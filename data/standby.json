@@ -1,0 +1,12 @@
+{
+  "standby": [
+    {
+      "id": 1,
+      "_snoozed_until": null,
+      "_snooze_count": 0,
+      "_triggered": false,
+      "_triggered_at": null,
+      "_last_fired_at": null
+    }
+  ]
+}

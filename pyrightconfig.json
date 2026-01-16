@@ -1,0 +1,8 @@
+{
+  "typeCheckingMode": "strict",
+    "exclude": [
+    "**/gui.py",
+    "**/cui.py",
+    "**/json_editor.py"
+    ]
+}

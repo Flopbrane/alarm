@@ -1,0 +1,22 @@
+{
+  "alarms": [
+    {
+      "id": 1,
+      "name": "単発",
+      "date": "2025-12-20",
+      "time": "13:02",
+      "repeat": "none",
+      "weekday": [],
+      "week_of_month": [],
+      "interval_weeks": 1,
+      "base_date": "2025-12-20T00:00:00",
+      "custom_desc": "",
+      "enabled": true,
+      "sound": "D:\\PC\\Python\\alarm\\sound\\Alarm01.wav",
+      "skip_holiday": false,
+      "duration": 10,
+      "snooze_minutes": 10,
+      "snooze_limit": 3
+    }
+  ]
+}

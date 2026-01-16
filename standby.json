@@ -1,0 +1,74 @@
+{
+  "standby": [
+    {
+      "id": 0,
+      "_snoozed_until": null,
+      "_snooze_count": 0,
+      "_triggered": false,
+      "_triggered_at": null
+    },
+    {
+      "id": 1,
+      "_snoozed_until": null,
+      "_snooze_count": 0,
+      "_triggered": false,
+      "_triggered_at": null
+    },
+    {
+      "id": 2,
+      "_snoozed_until": null,
+      "_snooze_count": 0,
+      "_triggered": false,
+      "_triggered_at": null
+    },
+    {
+      "id": 3,
+      "_snoozed_until": null,
+      "_snooze_count": 0,
+      "_triggered": false,
+      "_triggered_at": null
+    },
+    {
+      "id": 4,
+      "_snoozed_until": null,
+      "_snooze_count": 0,
+      "_triggered": false,
+      "_triggered_at": null
+    },
+    {
+      "id": 5,
+      "_snoozed_until": null,
+      "_snooze_count": 0,
+      "_triggered": false,
+      "_triggered_at": null
+    },
+    {
+      "id": 6,
+      "_snoozed_until": null,
+      "_snooze_count": 0,
+      "_triggered": false,
+      "_triggered_at": null
+    },
+    {
+      "id": 7,
+      "_snoozed_until": null,
+      "_snooze_count": 0,
+      "_triggered": false,
+      "_triggered_at": null
+    },
+    {
+      "id": 8,
+      "_snoozed_until": null,
+      "_snooze_count": 0,
+      "_triggered": false,
+      "_triggered_at": null
+    },
+    {
+      "id": 9,
+      "_snoozed_until": null,
+      "_snooze_count": 0,
+      "_triggered": false,
+      "_triggered_at": null
+    }
+  ]
+}
