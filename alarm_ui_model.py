@@ -69,5 +69,5 @@ class AlarmStateView:
     triggered: bool = False # 鳴動中か？
     triggered_at: Optional[str] = None  # 鳴動開始時刻
     last_fired_at: Optional[str] = None  # 最終鳴動時刻
-
+    next_fire_datetime: Optional[str] = None  # 次回鳴動予定日
 # --- EOF ---

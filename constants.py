@@ -44,7 +44,7 @@ WEEKS_DISPLAY: dict[int, str] = {
 
 # 表示 → 内部値
 REPEAT_INTERNAL: dict[str, str] = {
-    "単発": "none",
+    "単発": "single",
     "毎日": "daily",
     "毎週": "weekly",
     "毎月": "monthly",
@@ -53,7 +53,7 @@ REPEAT_INTERNAL: dict[str, str] = {
 
 # 内部値 → 表示
 REPEAT_DISPLAY: dict[str, str] = {
-    "none": "単発",
+    "single": "単発",
     "daily": "毎日",
     "weekly": "毎週",
     "monthly": "毎月",
@@ -122,7 +122,7 @@ ALARM_JSON_UI_KEYS: Final[set[str]] = {
     "name",  # 表示名
     "date",  # YYYY-MM-DD
     "time",  # HH:MM
-    "repeat",  # none / daily / weekly / custom ...
+    "repeat",  # single / daily / weekly / custom ...
     "weekday",  # [0,1,4] など
     "week_of_month",  # [1,3] など
     "interval_weeks",  # 何週おき
@@ -154,7 +154,7 @@ ALARM_TEMPLATE: dict[str, Any] = {
     "name": "",
     "date": "",
     "time": "",
-    "repeat": "none",
+    "repeat": "single",
     "weekday": [],
     "week_of_month": [],
     "interval_weeks": 1,

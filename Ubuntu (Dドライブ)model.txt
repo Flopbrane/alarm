@@ -1,0 +1,14 @@
+Ubuntu (Dドライブ)
+└─ Miniconda
+   └─ envs
+      ├─ ai-research
+      ├─ cvat-tools
+      └─ sandbox
+
+補足：今後の使い方イメージ
+/mnt/d/linux_work_space
+├─ ai-research
+├─ cvat-tools
+├─ sandbox
+├─ experiments
+└─ notes

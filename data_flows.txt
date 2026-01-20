@@ -1,0 +1,15 @@
+全体構造（完成形イメージ）
+
+UI
+ ↓
+InternalUIMapper
+ ↓
+AlarmInternal（唯一の真実）
+ ↓
+InternalJsonMapper
+ ↓
+AlarmJson
+ ↓
+AlarmJsonReader（dict吸収）
+ ↓
+JSONファイル

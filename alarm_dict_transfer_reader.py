@@ -1,5 +1,10 @@
 # -*- coding: utf-8 -*-
-"""ファイル入出力から、JSONモデルへの変換ラッパー"""
+"""ファイル入出力から、JSONモデルへの変換ラッパー
+このファイルの責務：
+- dict → AlarmJson のみ
+- dict → AlarmStateJson のみ
+Internal 変換は禁止
+"""
 #########################
 # Author: F.Kurokawa
 # Description:
@@ -47,20 +52,12 @@ class AlarmJsonDictAdapter:
     @staticmethod
     def dict_to_alarm_state_json(d: Dict[str, Any]) -> AlarmStateJson:
         """dict → AlarmStateJson"""
-        snoozed_until_str: Any | None
-        snoozed_until_str = d.get("_snoozed_until")
-        triggered_at_str: Any | None
-        triggered_at_str = d.get("_triggered_at")
-        last_fired_at_str: Any | None
-        last_fired_at_str = d.get("_last_fired_at")
-
         return AlarmStateJson(
             id=int(d.get("id", 0)),
-            # pylint: disable=protected-access
-            _snoozed_until=snoozed_until_str,
+            _snoozed_until=d.get("_snoozed_until"),
             _snooze_count=int(d.get("_snooze_count", 0)),
             _triggered=bool(d.get("_triggered", False)),
-            _triggered_at=triggered_at_str,
-            _last_fired_at=last_fired_at_str,
-            # pylint: enable=protected-access
+            _triggered_at=d.get("_triggered_at"),
+            _last_fired_at=d.get("_last_fired_at"),
+            _next_fire_datetime=d.get("_next_fire_datetime"),
         )

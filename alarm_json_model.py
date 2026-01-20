@@ -78,6 +78,7 @@ class AlarmStateJson:
     _triggered_at: str | datetime | None = None
     # ★ 推奨追加！
     _last_fired_at: str | datetime | None = None
+    _next_fire_datetime: str | None = None  # ← 追加（"YYYY-MM-DD"）
 
     # ===== Getter（こちらの方が自然で綺麗） =====
     @property
@@ -153,3 +154,12 @@ class AlarmStateJson:
             self._last_fired_at = v.isoformat()
         else:
             self._last_fired_at = v
+
+    @property
+    def next_fire_datetime(self) -> str | None:
+        """次回鳴動予定日を取得"""
+        return self._next_fire_datetime
+
+    @next_fire_datetime.setter
+    def next_fire_datetime(self, v: str | None) -> None:
+        self._next_fire_datetime = v
