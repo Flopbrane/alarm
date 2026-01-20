@@ -1,6 +1,13 @@
 # -*- coding: utf-8 -*-
 """
 UIデータ↔Internal データへの変換
+★========================================================================
+🔥 重要注意事項 🔥
+UI ↔ Internal 変換・受け渡し専用モジュール
+【禁止事項】
+- AlarmUI ↔ AlarmJson
+- AlarmStateUI ↔ AlarmStateJson
+上記の変換 mapper を作成してはならない。
 """
 #########################
 # Author: F.Kurokawa
@@ -15,6 +22,23 @@ from alarm_ui_model import AlarmStateView, AlarmUI
 from constants import DEFAULT_SOUND
 
 
+def ui_date_time_to_dt(date: str, time: str) -> datetime:
+    """AlarmUI の date, time から datetime を生成"""
+    return datetime.fromisoformat(f"{date}T{time}")
+
+
+def ui_default_date_time(
+    date: str | None,
+    time: str | None,
+) -> tuple[str, str]:
+    """AlarmUI の date, time のデフォルト補完"""
+    now: datetime = datetime.now()
+    return (
+        date or now.strftime("%Y-%m-%d"),
+        time or now.strftime("%H:%M"),
+    )
+
+
 class UItoInternalMapper:
     """UIモデルからInternalモデルへの変換クラス"""
     # ----------------------------------------------
@@ -25,13 +49,14 @@ class UItoInternalMapper:
         """AlarmUI → AlarmInternal"""
 
         # ---- 日付・時刻の補完（空なら現在時刻） ----
-        date: str = ui.date or datetime.now().strftime("%Y-%m-%d")
-        time: str = ui.time or datetime.now().strftime("%H:%M")
+        date: str
+        time: str
+        date, time = ui_default_date_time(ui.date, ui.time)
 
         return AlarmInternal(
             id=ui.id or 0,  # 仮ID（正式IDは AlarmManager 側）
             name=(ui.name.strip() if ui.name else f"Alarm{ui.id}"),
-            datetime_=datetime.fromisoformat(f"{date}T{time}"),
+            datetime_=ui_date_time_to_dt(date, time),
             repeat=ui.repeat,
             weekday=[int(x) for x in (ui.weekday or [])],
             week_of_month=[int(x) for x in (ui.week_of_month or [])],
@@ -96,4 +121,8 @@ class InternaltoViewMapper:
             last_fired_at=(
                 state.last_fired_at.isoformat(sep=" ") if state.last_fired_at else None
             ),
+            next_fire_datetime=(
+                state.next_fire_datetime.isoformat(sep=" ") if state.next_fire_datetime else None
+            ),
         )
+# =========================================================

@@ -25,15 +25,15 @@ LAST_MODE: Final[Mode] = "dialog"
 
 def set_default_mode(mode: Mode) -> None:
     """デフォルトモードを変更"""
-    cfg: Config = ConfigManager.load_config()
-    cfg.default_mode = mode
-    ConfigManager.save_config(cfg)
+    config: Config = ConfigManager.load_config()
+    config.default_mode = mode
+    ConfigManager.save_config(config)
 
 def set_last_mode(mode: Mode) -> None:
     """最終モードを変更"""
-    cfg: Config = ConfigManager.load_config()
-    cfg.last_mode = mode
-    ConfigManager.save_config(cfg)
+    config: Config = ConfigManager.load_config()
+    config.last_mode = mode
+    ConfigManager.save_config(config)
 
 # ==============================
 # 🔹 Config dataclass 定義
@@ -44,7 +44,8 @@ class Config:
     default_mode: Mode = DEFAULT_MODE  # gui / cui / dialog
     last_mode: Mode = LAST_MODE  # gui / cui / dialog
     show_dialog: bool = True  # 起動モード選択ダイアログを表示するかどうか
-
+    # 🔴 追加
+    last_shutdown_clean: bool = True  # 前回正常終了フラグ
 # ==============================
 # 🔹 ConfigManager クラス
 # ==============================
@@ -72,9 +73,9 @@ class ConfigManager:
         path: Path = ConfigManager.get_config_path()
 
         if not path.exists():
-            cfg = Config()
-            ConfigManager.save_config(cfg)
-            return cfg
+            cfg_local = Config()
+            ConfigManager.save_config(cfg_local)
+            return cfg_local
 
         def is_dict_str_any(v: Any) -> TypeGuard[dict[str, Any]]:
             return isinstance(v, dict)
@@ -90,26 +91,38 @@ class ConfigManager:
                 default_mode: Mode = ConfigManager._normalize_mode(data.get("default_mode"))
                 last_mode: Mode = ConfigManager._normalize_mode(data.get("last_mode"))
                 show_dialog = bool(data.get("show_dialog", True))
+                last_shutdown_clean = bool(data.get("last_shutdown_clean", True))
 
-                cfg = Config(
+                cfg_local = Config(
                     default_mode=default_mode,
                     last_mode=last_mode,
                     show_dialog=show_dialog,
+                    last_shutdown_clean=last_shutdown_clean,
                 )
 
-            return cfg
+            return cfg_local
 
         except (IOError, OSError, json.JSONDecodeError) as e:
             messagebox.showwarning("Config", f"Failed to load config: {e}, using defaults")
-            cfg = Config()
-            ConfigManager.save_config(cfg)
-            return cfg
+            cfg_local = Config()
+            ConfigManager.save_config(cfg_local)
+            return cfg_local
 
     @staticmethod
-    def save_config(cfg: Config) -> None:
+    def save_config(config: Config) -> None:
         """config.json 保存"""
         Path(CONFIG_PATH).parent.mkdir(parents=True, exist_ok=True)
         with open(CONFIG_PATH, "w", encoding="utf-8") as f:
-            json.dump(asdict(cfg), f, ensure_ascii=False, indent=2)
+            json.dump(asdict(config), f, ensure_ascii=False, indent=2)
 
 # ==============================
+# 🔹 動作確認用コード(デバッグ用)
+# ==============================
+# if __name__ == "__main__":
+#     cfg: Config = ConfigManager.load_config()
+#     print(cfg)
+
+#     cfg.last_shutdown_clean = False
+#     ConfigManager.save_config(cfg)
+
+#     print("config.json を書き換えました")

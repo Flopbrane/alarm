@@ -1,0 +1,58 @@
+# === Python ===
+__pycache__/
+*.pyc
+
+# === Virtual Env ===
+venv/
+venv-*/
+.env
+venv-alarm312/
+# === Editor ===
+.vscode/
+*.code-workspace
+
+# === Logs / temp ===
+*.log
+*.tmp
+*.ini
+# === Backup / generated ===
+backup/
+call_index_out/
+
+# === OS Generated ===
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+lerna-debug.log*
+.vs/
+*.swp
+*.swo
+*.bak
+# === Others ===
+*.wav
+*.mp3
+*.ogg
+*.flac
+*.m4a
+*.zip
+*.tar.gz
+*.tar.bz2
+*.rar
+*.7z
+*.exe
+*.dll
+*.iso
+.deprecated/
+.ruff_cache
+favorite_songs/
+sound/
+desktop.ini
+
+# === sound effects ===
+sound/*.wav

@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 """どのファイルのどの関数で、何処の関数が呼ばれているかを調査するユーティリティ"""
 # pyright: reportGeneralTypeIssues=false
 # pyright: reportOptionalMemberAccess=false

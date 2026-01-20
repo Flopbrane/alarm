@@ -231,14 +231,21 @@ class AlarmInternal:
 
 @dataclass
 class AlarmStateInternal:
-    """アラーム状態を内部形式で保持するためのデータクラス"""
+    """アラーム状態を「状態＋予定」を持つクラスで保持するためのデータクラス
+    State は計算しない
+    Scheduler が計算する
+    Manager が書き込む
+    """
 
     id: int = 0
-    _snoozed_until: datetime | None = None
-    _snooze_count: int = 0
-    _triggered: bool = False
-    _triggered_at: datetime | None = None
-    _last_fired_at: datetime | None = None
+    _snoozed_until: datetime | None = None  # スヌーズ解除日時(一時的制御（短期）)
+    _snooze_count: int = 0  # スヌーズ回数(スヌーズ制御（短期）)
+    _triggered: bool = False  # 鳴動中か？(UI / 再生中判定)
+    _triggered_at: datetime | None = None  # 鳴動開始時刻(ログ・履歴)
+    _last_fired_at: datetime | None = None  # 最終鳴動時刻(多重発火防止)
+    _next_fire_datetime: datetime | None = (
+        None  # 次回鳴動予定日(未来の確定スケジュール（中〜長期）)
+    )
 
     @classmethod
     def initial(cls, alarm_id: int) -> "AlarmStateInternal":
@@ -250,12 +257,14 @@ class AlarmStateInternal:
             _triggered=False,
             _triggered_at=None,
             _last_fired_at=None,
+            _next_fire_datetime=None,
         )
 
     # ===== Getter（こちらの方が自然で綺麗） =====
     # =========================
     # 🔹 ここに @property を置く！
     # =========================
+    # NOTE: ログは将来 logger に置き換える
     # ----------------------------------------------------
     # 🔥 snoozed_until（文字列 → datetime 変換対応）
     # ----------------------------------------------------
@@ -348,3 +357,25 @@ class AlarmStateInternal:
         except (TypeError, ValueError):
             print(f"[警告] 不正な last_fired_at の値: {v}")
             self._last_fired_at = None
+    @property
+    def next_fire_datetime(self) -> Optional[datetime]:
+        """_next_fire_datetimeのgetter"""
+        return self._next_fire_datetime
+
+    @next_fire_datetime.setter
+    def next_fire_datetime(self, v: Optional[str | datetime]) -> None:
+        if v is None:
+            self._next_fire_datetime = None
+            return
+
+        if isinstance(v, datetime):
+            self._next_fire_datetime = v
+            return
+
+        try:
+            # v は "YYYY-MM-DD" を想定
+            self._next_fire_datetime = datetime.fromisoformat(v)
+        except (TypeError, ValueError):
+            print(f"[警告] 不正な next_fire_datetime の値: {v}")
+            self._next_fire_datetime = None
+# =========================================================

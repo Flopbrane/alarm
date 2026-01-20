@@ -4,15 +4,19 @@
 alarm_manager.py へ受け渡すクラス群
 =========================================================================
 🔥 重要注意事項 🔥
-Internal↔JSON dataclass 変換・受渡し
-(AlarmUI ↔ AlarmJsonのmappara,及び,
-AlarmStateUI ↔ AlarmStateJson の変換mapper
-絶対に作ったらダメなモジュール)
-#########################
-UI↔Internal, UIState↔InternalState の変換は重要だが
-JSON↔UI, JSONState↔UIState の変換は,全体に作らないこと！！
-"""
+Internal ↔ JSON dataclass 変換・受け渡し専用モジュール
 
+【禁止事項】
+- AlarmUI ↔ AlarmJson
+- AlarmStateUI ↔ AlarmStateJson
+上記の変換 mapper を作成してはならない。
+
+【設計方針】
+- datetime ↔ str の変換は mapper の責務とする。
+- model の setter は不正値吸収の最終防御のみを担う。
+- 変換ロジックを他の層に書くことは禁止する。
+
+"""
 #########################
 # Author: F.Kurokawa
 # Description:
@@ -94,20 +98,16 @@ class JsonToInternalMapper:
     # --------------------------------------------------------
     def alarm_state_json_to_internal(self, s: AlarmStateJson) -> AlarmStateInternal:
         """AlarmStateJson → AlarmStateInternal"""
-        return AlarmStateInternal(
-            id=s.id,
-            _snoozed_until=(
-                any_to_dt(s.snoozed_until) if s.snoozed_until else None
-            ),
-            _snooze_count=s.snooze_count,
-            _triggered=s.triggered,
-            _triggered_at=any_to_dt(s.triggered_at) if s.triggered_at else None,
-            _last_fired_at=(
-                any_to_dt(s.last_fired_at) if s.last_fired_at else None
-            ),
-        )
+        state: AlarmStateInternal = AlarmStateInternal(id=s.id)
+        state.snoozed_until=any_to_dt(s.snoozed_until)
+        state.snooze_count=s.snooze_count
+        state.triggered=s.triggered
+        state.triggered_at=any_to_dt(s.triggered_at)
+        state.last_fired_at=any_to_dt(s.last_fired_at)
+        state.next_fire_datetime=any_to_dt(s.next_fire_datetime)
+        return state
 
-
+# =========================================================
 class InternalToJsonMapper(JsonToInternalMapper):
     """InternalモデルからJsonモデルへの変換クラス"""
 
@@ -160,6 +160,9 @@ class InternalToJsonMapper(JsonToInternalMapper):
             ),
             _last_fired_at=(
                 dt_to_str(s.last_fired_at) if s.last_fired_at else None
+            ),
+            _next_fire_datetime=(
+                dt_to_str(s.next_fire_datetime) if s.next_fire_datetime else None
             ),
         )
 # =========================================================

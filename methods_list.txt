@@ -1,0 +1,340 @@
+﻿:28 def _empty_window_positions() -> dict[str, WindowGeometry]:
+:33 class Config:
+:43 class ConfigManager:
+:48     def load_config() -> Config:
+:62     def save_config(cfg: Config) -> None:
+:70     def set_window_position(key: str, geo: WindowGeometry | dict[str, Any]) -> None:
+:81     def get_window_position(key: str) -> WindowGeometry | None:
+:87 def set_default_mode(mode: str) -> None:
+:23 class JsontoInternalMapper:
+:30     def dt_to_str(dt: datetime | None) -> str | None:
+:35     def str_to_dt(v: str | None) -> datetime | None:
+:43     def any_to_dt(v: str | datetime | None) -> datetime | None:
+:54     def alarm_json_to_internal(
+:91     def alarm_state_json_to_internal(self, s: AlarmStateJson) -> AlarmStateInternal:
+:105 class InternaltoJsonMapper(JsontoInternalMapper):
+:110     def load_all(
+:15 class AlarmJsonDictAdapter:
+:24     def dict_to_alarm_json(d: Dict[str, Any]) -> AlarmJson:
+:49     def dict_to_alarm_state_json(d: Dict[str, Any]) -> AlarmStateJson:
+:26 def _int_list() -> list[int]:
+:31 class AlarmInternal:
+:140     def __post_init__(self) -> None:
+:150     def date(self) -> str:
+:155     def date(self, v: str) -> None:
+:172     def time(self) -> str:
+:177     def time(self, t: str) -> None:
+:192     def repeat_base_datetime(self) -> Optional[datetime]:
+:201     def repeat_base_datetime(self, v: Optional[str | DateType | datetime]) -> None:
+:234 class AlarmStateInternal:
+:252     def snoozed_until(self) -> Optional[datetime]:
+:257     def snoozed_until(self, v: Optional[str | datetime]) -> None:
+:273     def snooze_count(self) -> int:
+:278     def snooze_count(self, v: int) -> None:
+:285     def triggered(self) -> bool:
+:290     def triggered(self, v: bool) -> None:
+:297     def triggered_at(self) -> Optional[datetime]:
+:302     def triggered_at(self, v: Optional[str | datetime]) -> None:
+:321     def last_fired_at(self) -> Optional[datetime]:
+:326     def last_fired_at(self, v: Optional[str | datetime]) -> None:
+:25 def _int_list() -> list[int]:
+:30 class AlarmJson:
+:51     def weekday_list(self) -> list[int]:
+:56     def weekday_list(self, v: list[int] | str | Iterable[int] | None) -> None:
+:66     def sound_path(self) -> Path:
+:71     def sound_path(self, v: str | Path) -> None:
+:80 class AlarmStateJson:
+:93     def snoozed_until(self) -> str | None:
+:102     def snoozed_until(self, v: str | datetime | None) -> None:
+:111     def snooze_count(self) -> int:
+:116     def snooze_count(self, v: int) -> None:
+:120     def triggered(self) -> bool:
+:125     def triggered(self, v: bool) -> None:
+:129     def triggered_at(self) -> str | datetime | None:
+:139     def triggered_at(self, v: str | datetime | None) -> None:
+:148     def triggered_at(self, v: str | datetime | None) -> None:
+:157     def last_fired_at(self) -> str | datetime | None:
+:167     def last_fired_at(self, v: str | datetime | None) -> None:
+:36 class NextAlarmInfo(TypedDict):
+:44 class AlarmManager:
+:50     def get_base_dir() -> Path:
+:59     def __init__(self) -> None:
+:105     def run(self) -> None:
+:112     def _fire_alarm(self, alarm: AlarmInternal) -> None:
+:125     def driving_stop(self) -> None:
+:133     def request_stop(self) -> None:
+:138     def stop_alarm(self, alarm: AlarmInternal) -> None:
+:155     def get_current_alarm(self) -> Optional[AlarmInternal]:
+:177     def update_alarm_field(self, alarm_id: int, field: str, value: Any) -> None:
+:189     def add_alarm(
+:221     def _check_snooze(self, alarm: AlarmInternal, now: datetime) -> bool:
+:242     def _mark_triggered(self, alarm: AlarmInternal, now: datetime) -> bool:
+:266     def _check_and_fire(self) -> None:
+:274     def load_alarms(self) -> List[AlarmInternal]:
+:290     def load_standby(self) -> None | List[AlarmInternal]:
+:314     def load_all(self) -> List[AlarmInternal]:
+:325     def _save(self) -> None:
+:332     def _save_standby(self) -> None:
+:343     def remove_alarm(self, alarm_id: int) -> None:
+:348     def delete_alarms(self, ids: List[int]) -> None:
+:353     def _remove_alarms_by_ids(self, ids: set[int]) -> None:
+:364     def toggle_alarm(self, alarm_id: int) -> None:
+:376     def snooze_alarm(self, alarm: AlarmInternal, minutes: int | None = None) -> None:
+:394     def get_next_alarms(self, count: int = 5) -> list[NextAlarmInfo]:
+:424     def get_next_alarm(self) -> tuple[AlarmInternal, datetime] | None:
+:434     def get_alarm_settings(self) -> list[tuple[AlarmInternal, datetime | None]]:
+:449     def get_alarm_by_id(self, alarm_id: int) -> AlarmInternal | None:
+:459     def _notify_listeners(self) -> None:
+:462         def _run() -> None:
+:471     def add_listener(self, func: Callable[[], None]) -> None:
+:476     def remove_listener(self, func: Callable[[], None]) -> None:
+:24 class AlarmPlayer:
+:27     def __init__(self) -> None:
+:37     def play(self, sound: str, duration: int = 10) -> None:
+:66         def stop_after():
+:73     def stop(self) -> None:
+:82 class AlarmPlayerGUI:
+:85     def __init__(self, root: tk.Misc) -> None:
+:96     def play(self, sound: str, duration: int = 10) -> None:
+:126     def stop(self) -> None:
+:27 def _check_last_fire(alarm: AlarmInternal, actual_now: datetime) -> bool:
+:38 def check_daily_rule(alarm: AlarmInternal, now: datetime, actual_now: datetime) -> bool:
+:53 def check_weekly_rule(
+:95 def check_monthly_rule(
+:137 def check_custom_rule(
+:176 def check_none_rule(alarm: AlarmInternal, now: datetime, actual_now: datetime) -> bool:
+:199 def should_fire_alarm(
+:218 def check_none_rule_debug(
+:23 class AlarmScheduler:
+:26     def __init__(self) -> None:
+:40     def _base(self, alarm: AlarmInternal) -> datetime:
+:50     def _with_time(self, d: datetime, alarm: AlarmInternal) -> datetime:
+:57     def get_next_time(self, alarm: AlarmInternal, now: datetime) -> datetime | None:
+:76     def _next_once(self, alarm: AlarmInternal, now: datetime) -> datetime:
+:83     def _next_daily(self, alarm: AlarmInternal, now: datetime) -> datetime:
+:102     def _next_weekly(self, alarm: AlarmInternal, now: datetime) -> datetime:
+:126     def _next_weekly_x(self, alarm: AlarmInternal, now: datetime) -> datetime:
+:151     def _next_monthly(self, alarm: AlarmInternal, now: datetime) -> datetime:
+:193     def _next_custom(self, alarm: AlarmInternal, now: datetime) -> datetime | None:
+:238     def find_due_alarms(self, alarms: list[AlarmInternal]) -> list[AlarmInternal]:
+:37 class AlarmStorage:
+:43     def load_alarms(self) -> List[AlarmJson]:
+:69     def load_standby(self) -> List[AlarmStateJson]:
+:89     def save_alarms(self, alarms: List[AlarmJson]) -> None:
+:102     def save_standby(self, states: List[AlarmStateJson]) -> None:
+:115     def save_all(self, alarms: List[AlarmJson], states: List[AlarmStateJson]) -> None:
+:131     def backup(self) -> None:
+:144     def restore_latest(self) -> None:
+:15 class AlarmTestBase:
+:18     def __init__(self) -> None:
+:30     def make_alarm(self, **kwargs) -> AlarmInternal:
+:38 def print_header(title: str) -> None:
+:45 def show(result, expect=None) -> None:
+:52 def test_once() -> None:
+:69 def test_daily() -> None:
+:90 def test_weekly() -> None:
+:114 def test_weekly_x() -> None:
+:139 def test_monthly() -> None:
+:164 def test_custom_weekday_only() -> None:
+:189 def test_custom_week_of_month_only() -> None:
+:214 def test_custom_interval_weeks_only() -> None:
+:239 def test_custom_full_combo() -> None:
+:264 def test_custom() -> None:
+:19 class UItoInternalMapper:
+:26     def ui_to_internal(ui: AlarmUI) -> AlarmInternal:
+:54     def stateui_to_stateinternal(ui_state: AlarmStateUI) -> AlarmStateInternal:
+:69 class InternaltoUImapper:
+:76     def internal_to_ui(alarm: AlarmInternal) -> AlarmUI:
+:101     def stateinternal_to_stateui(state: AlarmStateInternal) -> AlarmStateUI:
+:124         def _coerce_bool(val: bool | str | None) -> bool:
+:40 class AlarmUI:
+:67     def weekday_list(self) -> List[int]:
+:73 class AlarmStateUI:
+:95     def date(self) -> str:
+:100     def date(self, v: str) -> None:
+:117     def time(self) -> str:
+:122     def time(self, t: str) -> None:
+:137     def snoozed_until(self) -> Optional[datetime]:
+:142     def snoozed_until(self, v: Optional[str | datetime]) -> None:
+:161     def snooze_count(self) -> int:
+:166     def snooze_count(self, v: int) -> None:
+:173     def last_fired_at(self) -> Optional[datetime]:
+:178     def last_fired_at(self, v: Optional[str | datetime]) -> None:
+:197     def triggered(self) -> bool:
+:202     def triggered(self, v: bool) -> None:
+:209     def triggered_at(self) -> Optional[datetime]:
+:214     def triggered_at(self, v: Optional[str | datetime]) -> None:
+:233     def repeat_base_datetime(self) -> None | datetime:
+:242     def repeat_base_datetime(self, v: str | DateType | datetime | None) -> None:
+:43 def print_upcoming_alarms(manager: AlarmManager, count: int = 5) -> None:
+:73 def main() -> None:
+:77     def run_alarm_monitor(manager: AlarmManager) -> None:
+:85     def normalize_basic(text: str) -> str:
+:89     def input_with_mode(
+:110     def input_repeat(default: str = "単発") -> str:
+:125     def input_weekday_list() -> list[int]:
+:133     def input_week_of_month() -> list[int]:
+:147     def input_bool(prompt: str, default: bool = False) -> bool:
+:14 def normalize_base_date(
+:50 def is_valid_week_of_month(now, valid_weeks) -> bool:
+:59 def is_valid_interval_week(now_week: int, base_week: int, interval_weeks: int) -> bool:
+:65 def match_time(now: time, alarm_time: time) -> bool:
+:18 def get_base_dir() -> Path:
+:56 class AlarmGUI:
+:61     def __init__(self) -> None:
+:97     def _info(self, title: str, msg: str, parent=None) -> str:
+:100     def _warn(self, title: str, msg: str, parent=None) -> str:
+:103     def _error(self, title: str, msg: str, parent=None) -> str:
+:106     def _ask_yes_no(self, title: str, msg: str, parent=None) -> bool:
+:112     def get_window_pos_file(self) -> str:
+:116     def save_window_position(self, window, key: str) -> None:
+:122     def load_window_position(self, window, key: str) -> bool:
+:135     def start_gui(self) -> None:
+:148     def update_clock(self):
+:160     def alarm_check_loop(self) -> None:
+:181     def _finish_alarm(self, alarm_id: int):
+:199     def next_alarm_update_loop(self):
+:207     def update_next_alarm_label(self, recalc: bool = True):
+:279     def _update_remaining_text(self):
+:312     def _countdown_loop(self):
+:319     def create_cell_editor(self, tree, item_id, column_id, commit_callback):
+:328         def editor_setter(widget):
+:336             def done(event=None):
+:342             def cancel(event=None):
+:353     def refresh_tree(self, *_):
+:428     def create_menu(self):
+:435         def _set_gui():
+:438         def _set_cui():
+:441         def _dialog_on():
+:444         def _dialog_off():
+:447         def _open_json_editor():
+:450         def _restore_backup():
+:482     def config_set_default_mode(self, mode: str):
+:487     def config_set_dialog_enabled(self, flag: bool):
+:494     def create_main_widgets(self):
+:557     def on_main_close(self):
+:572     def _set_bg_snooze(self):
+:580     def _set_bg_normal(self):
+:591     def select_sound_file(self) -> str:
+:619     def place_window_near_parent(self, parent, child, offset_x=40, offset_y=40):
+:644     def on_close(self, win, key: str):
+:665     def open_settings_window(self):
+:844     def delete_selected_alarms(self):
+:866     def add_alarm_action(self):
+:948     def place_subwindow_near_parent(self, parent, child, offset_x=20, offset_y=40):
+:962     def _dock_child_window(self, child):
+:976     def select_weekdays_dialog(self, initial=None):
+:1013         def on_ok():
+:1018         def on_clear():
+:1022         def on_cancel():
+:1056     def open_custom_dialog(self, initial=None):
+:1128         def on_ok():
+:1136         def on_clear():
+:1141         def on_cancel():
+:1163     def pick_weekday(self):
+:1182     def on_repeat_change(self, event=None):
+:1195     def open_custom_from_form(self):
+:1218     def on_double_click(self, event):
+:1259         def set_editor(widget, commit_callback):
+:1285             def commit_repeat(value):
+:1324             def commit_enabled(value):
+:1339             def commit_skip(value):
+:1354             def commit_snooze(value):
+:1413             def commit_text(value):
+:1428     def select_date_dialog(self, initial_date=None):
+:1438     def select_time_dialog(self, initial_time=None):
+:1454     def pick_date(self):
+:1466     def pick_time(self):
+:1478     def stop_alarm(self):
+:1503     def snooze_alarm(self):
+:1558     def start(self):
+:51 class JsonEditor:
+:54     def __init__(self, master: tk.Misc, manager: AlarmManager) -> None:
+:122     def reload_from_file(self) -> None:
+:180     def safe_load_json(self, raw_text: str) -> Optional[Any]:
+:210     def heavy_repair_json(self, raw_text: str) -> Optional[Dict[str, Any]]:
+:271     def _to_bool(self, v: Any) -> bool:
+:286     def _to_int(self, v: Any, default: int = 0) -> int:
+:301     def _to_list_int(self, v: Any) -> List[int]:
+:337     def repair_alarm_dict(self, d: Dict[str, Any]) -> Dict[str, Any]:
+:410     def build_display_dict(self, alarm: Dict[str, Any]) -> Dict[str, Any]:
+:414         def _val(key: str) -> str:
+:467     def refresh_tree(self) -> None:
+:479     def add_row(self) -> None:
+:514     def delete_row(self) -> None:
+:534     def on_double_click(self, event) -> None:
+:566         def place_widget(widget: tk.Widget) -> None:
+:570             def on_focus_out(event=None):
+:606             def commit_repeat(event=None):
+:653             def commit_boolean(event=None):
+:669             def commit_numeric(event=None):
+:703         def commit_generic(event=None):
+:714     def select_date_dialog(self, initial_date: Optional[str] = None) -> Optional[str]:
+:719     def select_time_dialog(self, initial_time: Optional[str] = None) -> Optional[str]:
+:724     def select_weekdays_dialog(self, initial: Optional[List[int]] = None) -> Optional[List[int]]:
+:747         def ok():
+:754         def cancel():
+:768     def select_custom_repeat_dialog(
+:799         def on_ok():
+:810         def on_cancel():
+:830     def save_json(self) -> None:
+:22 class MiniCalendar:
+:31     def __init__(self, parent, initial_date=None, window_key: str | None = None):
+:44     def show(self):
+:53     def _build_window(self):
+:89     def _draw_calendar(self):
+:141     def _select_date(self, day):
+:157 class TimePicker:
+:167     def __init__(self, parent, initial_time="07:00", window_key: str | None = None):
+:185     def show(self):
+:235     def _commit(self):
+:17 def get_base_dir() -> Path:
+:21 class _NotImplementedModule:
+:26     def __init__(self, name, urgent=0):
+:35     def __getattr__(self, var):
+:42     def __bool__(self):
+:45     def warn(self):
+:59 def play_alarm(sound_path: str, duration: int = 10) -> None:
+:73 def alarm_loop(manager: AlarmManager) -> None:
+:92 def on_alarm_changed():
+:97 def start_cui():
+:107 def start_gui():
+:124     def open_settings_window(manager: AlarmManager):
+:140     def save_alarm(manager: AlarmManager, name: str, time: str):
+:22 def start_gui_mode(root: tk.Tk | None = None) -> None:
+:36 def start_cui_mode(root: tk.Tk | None = None) -> None:
+:49 def show_mode_dialog() -> None:
+:78 def start() -> None:
+:19 def normalize_int_list(text: str) -> list[int]:
+:40 def to_halfwidth(text: str) -> str:
+:45 def normalize_commas(text: str) -> str:
+:51 def normalize_date(text: str) -> str | None:
+:90 def normalize_time(text: str) -> str | None:
+:18 def normalize_weekday_list(text: str) -> list[int]:
+:32 def to_hankaku(text: Optional[str]) -> str:
+:39 def validate_date(text: str) -> str | None:
+:56 def validate_time(text: str) -> str | None:
+:70 def weekday_to_str(weekday_list: List[int]) -> str:
+:80 def datetime_to_dict(dt: Optional[datetime]) -> Dict[str, str]:
+:92 def dict_to_datetime(date_str: str, time_str: str) -> datetime:
+:97 def str_to_datetime(dt: str) -> datetime:
+:102 def combine_datetime(date_str: str, time_str: str) -> datetime:
+:111 def get_next_id(alarms: list[AlarmInternal]) -> int:
+:128 def select_sound_file() -> str:
+:148 def get_data_dir() -> Path:
+:156 def get_config_path() -> Path:
+:161 def load_config() -> Config:
+:203 def save_config(cfg: Config) -> None:
+:214 def set_default_mode(mode: str) -> None:
+:222 def set_show_dialog(flag: bool) -> None:
+:233 def normalize_alarm_dict(
+:16 class WindowGeometry:
+:25     def from_dict(d: Mapping[str, int]) -> "WindowGeometry":
+:34     def to_dict(self) -> dict[str, int]:
+:23 class WindowKey(str, Enum):
+:39 def parse_geometry(geo: str) -> Dict[str, int]:
+:55 def apply_geometry(window: tk.Tk, geo: Dict[str, int]) -> None:
+:68 def save_window_position(window: tk.Tk, key: WindowKey) -> None:
+:83 def load_window_position(window: tk.Tk, key: WindowKey) -> None:
+:15 def ui_to_json(ui_alarm: AlarmUI) -> AlarmJson:
+:22 def stateui_to_statejson(gui_state: AlarmStateUI) -> AlarmStateJson:

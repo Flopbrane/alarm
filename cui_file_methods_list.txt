@@ -1,0 +1,12 @@
+﻿34 def start_cui() -> None:
+46 def play_alarm(self, sound_path: str, duration: int = 10) -> None:
+55         def stop_after_delay() -> None:
+70 def alarm_loop(manager: AlarmManager) -> None:
+106 def on_alarm_changed() -> None:
+114 def select_sound_file(self=None) -> str:
+142 def main() -> None:
+146     def input_with_cancel(prompt: str, default: str = "") -> str:
+153     def input_repeat():
+159     def input_weekday_list():
+172     def input_week_of_month():
+185     def input_bool(prompt, default=False):

@@ -1,0 +1,67 @@
+alarm/
+├─ start.py                      ← 唯一のエントリーポイント
+│
+├─ core/                         ← GUI / CUI 非依存の中核
+│   ├─ alarm_internal_model.py
+│   ├─ alarm_state_model.py
+│   ├─ alarm_manager.py
+│   ├─ alarm_scheduler.py
+│   ├─ alarm_repeat_rules.py
+│   ├─ alarm_config_manager.py
+│   ├─ alarm_loader.py           ← load orchestration
+│   └─ alarm_storage.py          ← JSON保存・復元のみ
+│
+├─ mappers/                      ← dataclass変換専用
+│   ├─ json_mapper.py            ← Internal ↔ JSON
+│   ├─ ui_mapper.py              ← UI ↔ Internal（CUI/GUI共通）
+│   └─ state_mapper.py           ← State ↔ View
+│
+├─ normalizers/                  ← 入力正規化（重要）
+│   ├─ datetime_normalizer.py    ← 日付・時刻の正規化
+│   ├─ weekday_normalizer.py
+│   ├─ alarm_dict_normalizer.py  ← ★ normalize_alarm_dict はここ
+│   └─ __init__.py
+│
+├─ validators/                   ← 妥当性チェック（例外を投げる）
+│   ├─ datetime_validator.py
+│   ├─ alarm_validator.py
+│   └─ __init__.py
+│
+├─ gui/
+│   ├─ gui_main.py
+│   ├─ alarm_gui_model.py
+│   ├─ alarm_gui_mapper.py
+│   ├─ dialogs/
+│   │   ├─ base_dialog.py
+│   │   ├─ weekday_picker.py
+│   │   ├─ time_picker.py
+│   │   └─ custom_repeat_dialog.py
+│   └─ window/
+│       ├─ window_position.py
+│       └─ geometry.py
+│
+├─ cui/
+│   ├─ cui_main.py
+│   ├─ alarm_ui_model.py
+│   ├─ alarm_ui_mapper.py
+│   └─ alarm_ui_normalizer.py
+│
+├─ editor/
+│   └─ json_editor.py
+│
+├─ data/
+│   ├─ alarms.json
+│   ├─ standby.json
+│   ├─ config.json
+│   └─ backup/
+│
+├─ tests/
+│   └─ alarm_test_full_condition.py
+│
+├─ constants.py
+│
+└─ utils/                        ← ★最小限の「横断ユーティリティ」
+    ├─ datetime_util.py          ← dt↔str 低レベル変換のみ
+    ├─ path_util.py
+    ├─ logging_util.py           ← ★ error_log 用
+    └─ __init__.py

@@ -27,13 +27,6 @@
       "alarm_state_internal_to_json"
     ]
   },
-  "alarm_dict_transfer_reader.py": {
-    "__functions__": [],
-    "AlarmJsonDictAdapter": [
-      "dict_to_alarm_json",
-      "dict_to_alarm_state_json"
-    ]
-  },
   "alarm_internal_model.py": {
     "__functions__": [
       "_int_list"
@@ -47,6 +40,7 @@
     "AlarmStateInternal": [
       "initial",
       "last_fired_at",
+      "next_fire_datetime",
       "snooze_count",
       "snoozed_until",
       "triggered",
@@ -63,6 +57,7 @@
     ],
     "AlarmStateJson": [
       "last_fired_at",
+      "next_fire_datetime",
       "snooze_count",
       "snoozed_until",
       "triggered",
@@ -124,15 +119,16 @@
       "stop"
     ]
   },
-  "alarm_repeat_rules.py": {
+  "alarm_repeat_date_calculator.py": {
     "__functions__": [
       "_check_last_fire",
       "check_custom_rule",
       "check_daily_rule",
       "check_monthly_rule",
-      "check_none_rule",
-      "check_none_rule_debug",
+      "check_single_rule",
+      "check_single_rule_debug",
       "check_weekly_rule",
+      "match_time",
       "should_fire_alarm"
     ]
   },
@@ -144,7 +140,7 @@
       "_next_custom",
       "_next_daily",
       "_next_monthly",
-      "_next_once",
+      "_next_single",
       "_next_weekly",
       "_next_weekly_x",
       "_with_time",
@@ -155,6 +151,7 @@
   "alarm_storage.py": {
     "__functions__": [],
     "AlarmStorage": [
+      "_atomic_write_json",
       "backup",
       "load_alarms",
       "load_standby",
@@ -185,7 +182,10 @@
     ]
   },
   "alarm_ui_mapper.py": {
-    "__functions__": [],
+    "__functions__": [
+      "ui_date_time_to_dt",
+      "ui_default_date_time"
+    ],
     "UItoInternalMapper": [
       "ui_to_internal"
     ],
@@ -207,12 +207,10 @@
       "print_upcoming_alarms"
     ]
   },
-  "date_rule_util.py": {
+  "date_rule_valid_util.py": {
     "__functions__": [
       "is_valid_interval_week",
-      "is_valid_week_of_month",
-      "match_time",
-      "normalize_base_date"
+      "is_valid_week_of_month"
     ]
   },
   "debag_build_call_index.py": {
@@ -358,8 +356,24 @@
       "start_gui_mode"
     ]
   },
+  "test_alarm_state_internal_model.py": {
+    "__functions__": [],
+    "TestNextFireDatetime": [
+      "setUp",
+      "test_getter_after_initialization",
+      "test_multiple_assignments",
+      "test_setter_with_date_only_string",
+      "test_setter_with_datetime_object",
+      "test_setter_with_invalid_string",
+      "test_setter_with_invalid_type",
+      "test_setter_with_iso_format_datetime_string",
+      "test_setter_with_microseconds",
+      "test_setter_with_none"
+    ]
+  },
   "ui_datetime_normalizer.py": {
     "__functions__": [
+      "normalize_base_date",
       "normalize_commas",
       "normalize_date",
       "normalize_time",
@@ -406,10 +420,46 @@
       "save_all"
     ]
   },
-  "contents_class_def/build_definition_map_json.py": {
+  "contents_class_def/build_definition_map_csv_to_json.py": {
     "__functions__": [
       "build_definition_map",
       "main"
+    ]
+  },
+  "contents_class_def/build_reference_scanning_file_reporter.py": {
+    "__functions__": [
+      "build_symbol_index",
+      "collect_py_files",
+      "file_abs_from_key",
+      "is_excluded",
+      "load_definition_locations",
+      "load_definition_map",
+      "main",
+      "rel_key",
+      "render_html",
+      "resolve_call_to_targets",
+      "safe_read_text",
+      "scan_references",
+      "sort_key_by_definition",
+      "strip_comment_simple",
+      "vscode_link"
+    ],
+    "DefLoc": [],
+    "RefHit": []
+  },
+  "contents_class_def/build_unused_definitions_json.py": {
+    "__functions__": [
+      "load_all_definitions",
+      "main"
+    ]
+  },
+  "contents_class_def/build_unused_definitions_report.py": {
+    "__functions__": [
+      "load_all_definitions",
+      "load_used_definitions",
+      "main",
+      "render_html",
+      "vscode_link"
     ]
   },
   "contents_class_def/debag_build_call_index.py": {

@@ -17,57 +17,57 @@
   "alarm_config_manager.py:ConfigManager": {
     "file_key": "alarm_config_manager.py",
     "qualname": "ConfigManager",
-    "lineno": 51
+    "lineno": 52
   },
   "alarm_config_manager.py:ConfigManager._normalize_mode": {
     "file_key": "alarm_config_manager.py",
     "qualname": "ConfigManager._normalize_mode",
-    "lineno": 55
+    "lineno": 56
   },
   "alarm_config_manager.py:ConfigManager.get_config_path": {
     "file_key": "alarm_config_manager.py",
     "qualname": "ConfigManager.get_config_path",
-    "lineno": 65
+    "lineno": 66
   },
   "alarm_config_manager.py:ConfigManager.load_config": {
     "file_key": "alarm_config_manager.py",
     "qualname": "ConfigManager.load_config",
-    "lineno": 70
+    "lineno": 71
   },
   "alarm_config_manager.py:ConfigManager.save_config": {
     "file_key": "alarm_config_manager.py",
     "qualname": "ConfigManager.save_config",
-    "lineno": 109
+    "lineno": 112
   },
   "alarm_data_json_mapper.py:__functions__.dt_to_str": {
     "file_key": "alarm_data_json_mapper.py",
     "qualname": "__functions__.dt_to_str",
-    "lineno": 32
+    "lineno": 36
   },
   "alarm_data_json_mapper.py:__functions__.str_to_dt": {
     "file_key": "alarm_data_json_mapper.py",
     "qualname": "__functions__.str_to_dt",
-    "lineno": 37
+    "lineno": 41
   },
   "alarm_data_json_mapper.py:__functions__.any_to_dt": {
     "file_key": "alarm_data_json_mapper.py",
     "qualname": "__functions__.any_to_dt",
-    "lineno": 44
+    "lineno": 48
   },
   "alarm_data_json_mapper.py:JsonToInternalMapper": {
     "file_key": "alarm_data_json_mapper.py",
     "qualname": "JsonToInternalMapper",
-    "lineno": 55
+    "lineno": 59
   },
   "alarm_data_json_mapper.py:JsonToInternalMapper.alarm_json_to_internal": {
     "file_key": "alarm_data_json_mapper.py",
     "qualname": "JsonToInternalMapper.alarm_json_to_internal",
-    "lineno": 60
+    "lineno": 64
   },
   "alarm_data_json_mapper.py:JsonToInternalMapper.alarm_state_json_to_internal": {
     "file_key": "alarm_data_json_mapper.py",
     "qualname": "JsonToInternalMapper.alarm_state_json_to_internal",
-    "lineno": 95
+    "lineno": 99
   },
   "alarm_data_json_mapper.py:InternalToJsonMapper": {
     "file_key": "alarm_data_json_mapper.py",
@@ -83,21 +83,6 @@
     "file_key": "alarm_data_json_mapper.py",
     "qualname": "InternalToJsonMapper.alarm_state_internal_to_json",
     "lineno": 147
-  },
-  "alarm_dict_transfer_reader.py:AlarmJsonDictAdapter": {
-    "file_key": "alarm_dict_transfer_reader.py",
-    "qualname": "AlarmJsonDictAdapter",
-    "lineno": 14
-  },
-  "alarm_dict_transfer_reader.py:AlarmJsonDictAdapter.dict_to_alarm_json": {
-    "file_key": "alarm_dict_transfer_reader.py",
-    "qualname": "AlarmJsonDictAdapter.dict_to_alarm_json",
-    "lineno": 23
-  },
-  "alarm_dict_transfer_reader.py:AlarmJsonDictAdapter.dict_to_alarm_state_json": {
-    "file_key": "alarm_dict_transfer_reader.py",
-    "qualname": "AlarmJsonDictAdapter.dict_to_alarm_state_json",
-    "lineno": 48
   },
   "alarm_internal_model.py:__functions__._int_list": {
     "file_key": "alarm_internal_model.py",
@@ -137,32 +122,37 @@
   "alarm_internal_model.py:AlarmStateInternal.initial": {
     "file_key": "alarm_internal_model.py",
     "qualname": "AlarmStateInternal.initial",
-    "lineno": 244
+    "lineno": 251
   },
   "alarm_internal_model.py:AlarmStateInternal.snoozed_until": {
     "file_key": "alarm_internal_model.py",
     "qualname": "AlarmStateInternal.snoozed_until",
-    "lineno": 268
+    "lineno": 277
   },
   "alarm_internal_model.py:AlarmStateInternal.snooze_count": {
     "file_key": "alarm_internal_model.py",
     "qualname": "AlarmStateInternal.snooze_count",
-    "lineno": 289
+    "lineno": 298
   },
   "alarm_internal_model.py:AlarmStateInternal.triggered": {
     "file_key": "alarm_internal_model.py",
     "qualname": "AlarmStateInternal.triggered",
-    "lineno": 301
+    "lineno": 310
   },
   "alarm_internal_model.py:AlarmStateInternal.triggered_at": {
     "file_key": "alarm_internal_model.py",
     "qualname": "AlarmStateInternal.triggered_at",
-    "lineno": 313
+    "lineno": 322
   },
   "alarm_internal_model.py:AlarmStateInternal.last_fired_at": {
     "file_key": "alarm_internal_model.py",
     "qualname": "AlarmStateInternal.last_fired_at",
-    "lineno": 337
+    "lineno": 346
+  },
+  "alarm_internal_model.py:AlarmStateInternal.next_fire_datetime": {
+    "file_key": "alarm_internal_model.py",
+    "qualname": "AlarmStateInternal.next_fire_datetime",
+    "lineno": 366
   },
   "alarm_json_model.py:__functions__._int_list": {
     "file_key": "alarm_json_model.py",
@@ -192,217 +182,222 @@
   "alarm_json_model.py:AlarmStateJson.snoozed_until": {
     "file_key": "alarm_json_model.py",
     "qualname": "AlarmStateJson.snoozed_until",
-    "lineno": 93
+    "lineno": 94
   },
   "alarm_json_model.py:AlarmStateJson.snooze_count": {
     "file_key": "alarm_json_model.py",
     "qualname": "AlarmStateJson.snooze_count",
-    "lineno": 107
+    "lineno": 108
   },
   "alarm_json_model.py:AlarmStateJson.triggered": {
     "file_key": "alarm_json_model.py",
     "qualname": "AlarmStateJson.triggered",
-    "lineno": 116
+    "lineno": 117
   },
   "alarm_json_model.py:AlarmStateJson.triggered_at": {
     "file_key": "alarm_json_model.py",
     "qualname": "AlarmStateJson.triggered_at",
-    "lineno": 130
+    "lineno": 131
   },
   "alarm_json_model.py:AlarmStateJson.last_fired_at": {
     "file_key": "alarm_json_model.py",
     "qualname": "AlarmStateJson.last_fired_at",
-    "lineno": 149
+    "lineno": 150
+  },
+  "alarm_json_model.py:AlarmStateJson.next_fire_datetime": {
+    "file_key": "alarm_json_model.py",
+    "qualname": "AlarmStateJson.next_fire_datetime",
+    "lineno": 164
   },
   "alarm_manager.py:NextAlarmInfo": {
     "file_key": "alarm_manager.py",
     "qualname": "NextAlarmInfo",
-    "lineno": 36
+    "lineno": 38
   },
   "alarm_manager.py:AlarmManager": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager",
-    "lineno": 44
+    "lineno": 46
   },
   "alarm_manager.py:AlarmManager.get_base_dir": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager.get_base_dir",
-    "lineno": 50
+    "lineno": 52
   },
   "alarm_manager.py:AlarmManager.__init__": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager.__init__",
-    "lineno": 59
+    "lineno": 61
   },
   "alarm_manager.py:AlarmManager.run": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager.run",
-    "lineno": 119
+    "lineno": 121
   },
   "alarm_manager.py:AlarmManager._fire_alarm": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager._fire_alarm",
-    "lineno": 126
+    "lineno": 128
   },
   "alarm_manager.py:AlarmManager.driving_stop": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager.driving_stop",
-    "lineno": 146
+    "lineno": 148
   },
   "alarm_manager.py:AlarmManager.request_stop": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager.request_stop",
-    "lineno": 154
+    "lineno": 156
   },
   "alarm_manager.py:AlarmManager.stop_alarm": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager.stop_alarm",
-    "lineno": 159
+    "lineno": 161
   },
   "alarm_manager.py:AlarmManager.get_current_alarm": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager.get_current_alarm",
-    "lineno": 176
+    "lineno": 178
   },
   "alarm_manager.py:AlarmManager._adjust_state_after_update": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager._adjust_state_after_update",
-    "lineno": 212
+    "lineno": 214
   },
   "alarm_manager.py:AlarmManager.get_state_by_id": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager.get_state_by_id",
-    "lineno": 228
+    "lineno": 230
   },
   "alarm_manager.py:AlarmManager.update_alarm": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager.update_alarm",
-    "lineno": 235
+    "lineno": 237
   },
   "alarm_manager.py:AlarmManager._merge_ui": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager._merge_ui",
-    "lineno": 265
+    "lineno": 267
   },
   "alarm_manager.py:AlarmManager.get_next_id": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager.get_next_id",
-    "lineno": 328
+    "lineno": 330
   },
   "alarm_manager.py:AlarmManager.add_alarm": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager.add_alarm",
-    "lineno": 337
+    "lineno": 339
   },
   "alarm_manager.py:AlarmManager._replace_alarm": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager._replace_alarm",
-    "lineno": 367
+    "lineno": 369
   },
   "alarm_manager.py:AlarmManager.build_state_view": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager.build_state_view",
-    "lineno": 386
+    "lineno": 388
   },
   "alarm_manager.py:AlarmManager._check_snooze": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager._check_snooze",
-    "lineno": 400
+    "lineno": 402
   },
   "alarm_manager.py:AlarmManager._mark_triggered": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager._mark_triggered",
-    "lineno": 426
+    "lineno": 428
   },
   "alarm_manager.py:AlarmManager._check_and_fire": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager._check_and_fire",
-    "lineno": 455
+    "lineno": 457
   },
   "alarm_manager.py:AlarmManager.load_alarms": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager.load_alarms",
-    "lineno": 463
+    "lineno": 465
   },
   "alarm_manager.py:AlarmManager.load_standby": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager.load_standby",
-    "lineno": 476
+    "lineno": 478
   },
   "alarm_manager.py:AlarmManager.load_all": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager.load_all",
-    "lineno": 498
+    "lineno": 500
   },
   "alarm_manager.py:AlarmManager._save": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager._save",
-    "lineno": 515
+    "lineno": 517
   },
   "alarm_manager.py:AlarmManager._save_standby": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager._save_standby",
-    "lineno": 525
+    "lineno": 527
   },
   "alarm_manager.py:AlarmManager.remove_alarm": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager.remove_alarm",
-    "lineno": 539
+    "lineno": 541
   },
   "alarm_manager.py:AlarmManager.delete_alarms": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager.delete_alarms",
-    "lineno": 544
+    "lineno": 546
   },
   "alarm_manager.py:AlarmManager._remove_alarms_by_ids": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager._remove_alarms_by_ids",
-    "lineno": 549
+    "lineno": 551
   },
   "alarm_manager.py:AlarmManager.toggle_alarm": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager.toggle_alarm",
-    "lineno": 560
+    "lineno": 562
   },
   "alarm_manager.py:AlarmManager.snooze_alarm": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager.snooze_alarm",
-    "lineno": 572
+    "lineno": 574
   },
   "alarm_manager.py:AlarmManager.get_next_alarms": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager.get_next_alarms",
-    "lineno": 595
+    "lineno": 597
   },
   "alarm_manager.py:AlarmManager.get_next_alarm": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager.get_next_alarm",
-    "lineno": 625
+    "lineno": 627
   },
   "alarm_manager.py:AlarmManager.get_alarm_settings": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager.get_alarm_settings",
-    "lineno": 635
+    "lineno": 637
   },
   "alarm_manager.py:AlarmManager.get_alarm_by_id": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager.get_alarm_by_id",
-    "lineno": 650
+    "lineno": 652
   },
   "alarm_manager.py:AlarmManager._notify_listeners": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager._notify_listeners",
-    "lineno": 660
+    "lineno": 662
   },
   "alarm_manager.py:AlarmManager.add_listener": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager.add_listener",
-    "lineno": 672
+    "lineno": 674
   },
   "alarm_manager.py:AlarmManager.remove_listener": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager.remove_listener",
-    "lineno": 677
+    "lineno": 679
   },
   "alarm_player.py:AlarmPlayer": {
     "file_key": "alarm_player.py",
@@ -444,45 +439,50 @@
     "qualname": "AlarmPlayerGUI.stop",
     "lineno": 125
   },
-  "alarm_repeat_rules.py:__functions__._check_last_fire": {
-    "file_key": "alarm_repeat_rules.py",
+  "alarm_repeat_date_calculator.py:__functions__._check_last_fire": {
+    "file_key": "alarm_repeat_date_calculator.py",
     "qualname": "__functions__._check_last_fire",
-    "lineno": 27
+    "lineno": 26
   },
-  "alarm_repeat_rules.py:__functions__.check_daily_rule": {
-    "file_key": "alarm_repeat_rules.py",
+  "alarm_repeat_date_calculator.py:__functions__.match_time": {
+    "file_key": "alarm_repeat_date_calculator.py",
+    "qualname": "__functions__.match_time",
+    "lineno": 35
+  },
+  "alarm_repeat_date_calculator.py:__functions__.check_daily_rule": {
+    "file_key": "alarm_repeat_date_calculator.py",
     "qualname": "__functions__.check_daily_rule",
-    "lineno": 38
-  },
-  "alarm_repeat_rules.py:__functions__.check_weekly_rule": {
-    "file_key": "alarm_repeat_rules.py",
-    "qualname": "__functions__.check_weekly_rule",
     "lineno": 53
   },
-  "alarm_repeat_rules.py:__functions__.check_monthly_rule": {
-    "file_key": "alarm_repeat_rules.py",
+  "alarm_repeat_date_calculator.py:__functions__.check_weekly_rule": {
+    "file_key": "alarm_repeat_date_calculator.py",
+    "qualname": "__functions__.check_weekly_rule",
+    "lineno": 68
+  },
+  "alarm_repeat_date_calculator.py:__functions__.check_monthly_rule": {
+    "file_key": "alarm_repeat_date_calculator.py",
     "qualname": "__functions__.check_monthly_rule",
-    "lineno": 95
+    "lineno": 110
   },
-  "alarm_repeat_rules.py:__functions__.check_custom_rule": {
-    "file_key": "alarm_repeat_rules.py",
+  "alarm_repeat_date_calculator.py:__functions__.check_custom_rule": {
+    "file_key": "alarm_repeat_date_calculator.py",
     "qualname": "__functions__.check_custom_rule",
-    "lineno": 137
+    "lineno": 152
   },
-  "alarm_repeat_rules.py:__functions__.check_none_rule": {
-    "file_key": "alarm_repeat_rules.py",
-    "qualname": "__functions__.check_none_rule",
-    "lineno": 176
+  "alarm_repeat_date_calculator.py:__functions__.check_single_rule": {
+    "file_key": "alarm_repeat_date_calculator.py",
+    "qualname": "__functions__.check_single_rule",
+    "lineno": 191
   },
-  "alarm_repeat_rules.py:__functions__.should_fire_alarm": {
-    "file_key": "alarm_repeat_rules.py",
+  "alarm_repeat_date_calculator.py:__functions__.should_fire_alarm": {
+    "file_key": "alarm_repeat_date_calculator.py",
     "qualname": "__functions__.should_fire_alarm",
-    "lineno": 199
+    "lineno": 214
   },
-  "alarm_repeat_rules.py:__functions__.check_none_rule_debug": {
-    "file_key": "alarm_repeat_rules.py",
-    "qualname": "__functions__.check_none_rule_debug",
-    "lineno": 218
+  "alarm_repeat_date_calculator.py:__functions__.check_single_rule_debug": {
+    "file_key": "alarm_repeat_date_calculator.py",
+    "qualname": "__functions__.check_single_rule_debug",
+    "lineno": 233
   },
   "alarm_scheduler.py:AlarmScheduler": {
     "file_key": "alarm_scheduler.py",
@@ -509,9 +509,9 @@
     "qualname": "AlarmScheduler.get_next_time",
     "lineno": 56
   },
-  "alarm_scheduler.py:AlarmScheduler._next_once": {
+  "alarm_scheduler.py:AlarmScheduler._next_single": {
     "file_key": "alarm_scheduler.py",
-    "qualname": "AlarmScheduler._next_once",
+    "qualname": "AlarmScheduler._next_single",
     "lineno": 75
   },
   "alarm_scheduler.py:AlarmScheduler._next_daily": {
@@ -547,42 +547,47 @@
   "alarm_storage.py:AlarmStorage": {
     "file_key": "alarm_storage.py",
     "qualname": "AlarmStorage",
-    "lineno": 26
+    "lineno": 32
+  },
+  "alarm_storage.py:AlarmStorage._atomic_write_json": {
+    "file_key": "alarm_storage.py",
+    "qualname": "AlarmStorage._atomic_write_json",
+    "lineno": 37
   },
   "alarm_storage.py:AlarmStorage.load_alarms": {
     "file_key": "alarm_storage.py",
     "qualname": "AlarmStorage.load_alarms",
-    "lineno": 31
+    "lineno": 49
   },
   "alarm_storage.py:AlarmStorage.load_standby": {
     "file_key": "alarm_storage.py",
     "qualname": "AlarmStorage.load_standby",
-    "lineno": 57
+    "lineno": 82
   },
   "alarm_storage.py:AlarmStorage.save_alarms": {
     "file_key": "alarm_storage.py",
     "qualname": "AlarmStorage.save_alarms",
-    "lineno": 77
+    "lineno": 136
   },
   "alarm_storage.py:AlarmStorage.save_standby": {
     "file_key": "alarm_storage.py",
     "qualname": "AlarmStorage.save_standby",
-    "lineno": 94
+    "lineno": 150
   },
   "alarm_storage.py:AlarmStorage.save_all": {
     "file_key": "alarm_storage.py",
     "qualname": "AlarmStorage.save_all",
-    "lineno": 111
+    "lineno": 164
   },
   "alarm_storage.py:AlarmStorage.backup": {
     "file_key": "alarm_storage.py",
     "qualname": "AlarmStorage.backup",
-    "lineno": 131
+    "lineno": 184
   },
   "alarm_storage.py:AlarmStorage.restore_latest": {
     "file_key": "alarm_storage.py",
     "qualname": "AlarmStorage.restore_latest",
-    "lineno": 156
+    "lineno": 209
   },
   "alarm_test_full_condition.py:AlarmTestBase": {
     "file_key": "alarm_test_full_condition.py",
@@ -659,35 +664,45 @@
     "qualname": "__functions__.test_custom",
     "lineno": 264
   },
+  "alarm_ui_mapper.py:__functions__.ui_date_time_to_dt": {
+    "file_key": "alarm_ui_mapper.py",
+    "qualname": "__functions__.ui_date_time_to_dt",
+    "lineno": 25
+  },
+  "alarm_ui_mapper.py:__functions__.ui_default_date_time": {
+    "file_key": "alarm_ui_mapper.py",
+    "qualname": "__functions__.ui_default_date_time",
+    "lineno": 30
+  },
   "alarm_ui_mapper.py:UItoInternalMapper": {
     "file_key": "alarm_ui_mapper.py",
     "qualname": "UItoInternalMapper",
-    "lineno": 18
+    "lineno": 42
   },
   "alarm_ui_mapper.py:UItoInternalMapper.ui_to_internal": {
     "file_key": "alarm_ui_mapper.py",
     "qualname": "UItoInternalMapper.ui_to_internal",
-    "lineno": 24
+    "lineno": 48
   },
   "alarm_ui_mapper.py:InternaltoUIMapper": {
     "file_key": "alarm_ui_mapper.py",
     "qualname": "InternaltoUIMapper",
-    "lineno": 49
+    "lineno": 74
   },
   "alarm_ui_mapper.py:InternaltoUIMapper.internal_to_ui": {
     "file_key": "alarm_ui_mapper.py",
     "qualname": "InternaltoUIMapper.internal_to_ui",
-    "lineno": 55
+    "lineno": 80
   },
   "alarm_ui_mapper.py:InternaltoViewMapper": {
     "file_key": "alarm_ui_mapper.py",
     "qualname": "InternaltoViewMapper",
-    "lineno": 78
+    "lineno": 103
   },
   "alarm_ui_mapper.py:InternaltoViewMapper.stateinternal_to_stateview": {
     "file_key": "alarm_ui_mapper.py",
     "qualname": "InternaltoViewMapper.stateinternal_to_stateview",
-    "lineno": 84
+    "lineno": 109
   },
   "alarm_ui_model.py:AlarmUI": {
     "file_key": "alarm_ui_model.py",
@@ -709,135 +724,125 @@
     "qualname": "__functions__.main",
     "lineno": 73
   },
-  "date_rule_util.py:__functions__.normalize_base_date": {
-    "file_key": "date_rule_util.py",
-    "qualname": "__functions__.normalize_base_date",
-    "lineno": 14
-  },
-  "date_rule_util.py:__functions__.is_valid_week_of_month": {
-    "file_key": "date_rule_util.py",
+  "date_rule_valid_util.py:__functions__.is_valid_week_of_month": {
+    "file_key": "date_rule_valid_util.py",
     "qualname": "__functions__.is_valid_week_of_month",
-    "lineno": 48
+    "lineno": 16
   },
-  "date_rule_util.py:__functions__.is_valid_interval_week": {
-    "file_key": "date_rule_util.py",
+  "date_rule_valid_util.py:__functions__.is_valid_interval_week": {
+    "file_key": "date_rule_valid_util.py",
     "qualname": "__functions__.is_valid_interval_week",
-    "lineno": 60
-  },
-  "date_rule_util.py:__functions__.match_time": {
-    "file_key": "date_rule_util.py",
-    "qualname": "__functions__.match_time",
-    "lineno": 66
+    "lineno": 28
   },
   "debag_build_call_index.py:FuncRow": {
     "file_key": "debag_build_call_index.py",
     "qualname": "FuncRow",
-    "lineno": 76
+    "lineno": 72
   },
   "debag_build_call_index.py:__functions__.is_excluded": {
     "file_key": "debag_build_call_index.py",
     "qualname": "__functions__.is_excluded",
-    "lineno": 86
+    "lineno": 82
   },
   "debag_build_call_index.py:__functions__.collect_py_files": {
     "file_key": "debag_build_call_index.py",
     "qualname": "__functions__.collect_py_files",
-    "lineno": 95
+    "lineno": 91
   },
   "debag_build_call_index.py:__functions__.dotted_name": {
     "file_key": "debag_build_call_index.py",
     "qualname": "__functions__.dotted_name",
-    "lineno": 105
+    "lineno": 101
   },
   "debag_build_call_index.py:__functions__.parse_import_aliases": {
     "file_key": "debag_build_call_index.py",
     "qualname": "__functions__.parse_import_aliases",
-    "lineno": 117
+    "lineno": 113
   },
   "debag_build_call_index.py:CallCollector": {
     "file_key": "debag_build_call_index.py",
     "qualname": "CallCollector",
-    "lineno": 138
+    "lineno": 134
   },
   "debag_build_call_index.py:CallCollector.__init__": {
     "file_key": "debag_build_call_index.py",
     "qualname": "CallCollector.__init__",
-    "lineno": 140
+    "lineno": 136
   },
   "debag_build_call_index.py:CallCollector.visit": {
     "file_key": "debag_build_call_index.py",
     "qualname": "CallCollector.visit",
-    "lineno": 148
+    "lineno": 144
   },
   "debag_build_call_index.py:CallCollector.current_func_key": {
     "file_key": "debag_build_call_index.py",
     "qualname": "CallCollector.current_func_key",
-    "lineno": 156
+    "lineno": 152
   },
   "debag_build_call_index.py:CallCollector.visit_ClassDef": {
     "file_key": "debag_build_call_index.py",
     "qualname": "CallCollector.visit_ClassDef",
-    "lineno": 162
+    "lineno": 158
   },
   "debag_build_call_index.py:CallCollector.visit_FunctionDef": {
     "file_key": "debag_build_call_index.py",
     "qualname": "CallCollector.visit_FunctionDef",
-    "lineno": 168
+    "lineno": 164
   },
   "debag_build_call_index.py:CallCollector.visit_AsyncFunctionDef": {
     "file_key": "debag_build_call_index.py",
     "qualname": "CallCollector.visit_AsyncFunctionDef",
-    "lineno": 174
+    "lineno": 170
   },
   "debag_build_call_index.py:CallCollector.visit_Lambda": {
     "file_key": "debag_build_call_index.py",
     "qualname": "CallCollector.visit_Lambda",
-    "lineno": 180
+    "lineno": 176
   },
   "debag_build_call_index.py:CallCollector.visit_AnnAssign": {
     "file_key": "debag_build_call_index.py",
     "qualname": "CallCollector.visit_AnnAssign",
-    "lineno": 182
+    "lineno": 178
   },
   "debag_build_call_index.py:CallCollector._enter_func": {
     "file_key": "debag_build_call_index.py",
     "qualname": "CallCollector._enter_func",
-    "lineno": 185
+    "lineno": 181
   },
   "debag_build_call_index.py:CallCollector._exit_func": {
     "file_key": "debag_build_call_index.py",
     "qualname": "CallCollector._exit_func",
-    "lineno": 208
+    "lineno": 204
   },
   "debag_build_call_index.py:CallCollector.visit_Call": {
     "file_key": "debag_build_call_index.py",
     "qualname": "CallCollector.visit_Call",
-    "lineno": 212
+    "lineno": 208
   },
   "debag_build_call_index.py:__functions__.vscode_file_link": {
     "file_key": "debag_build_call_index.py",
     "qualname": "__functions__.vscode_file_link",
-    "lineno": 235
+    "lineno": 231
   },
   "debag_build_call_index.py:__functions__.ps_html_link_for_py": {
     "file_key": "debag_build_call_index.py",
     "qualname": "__functions__.ps_html_link_for_py",
-    "lineno": 242
+    "lineno": 238
   },
   "debag_build_call_index.py:__functions__.main": {
     "file_key": "debag_build_call_index.py",
     "qualname": "__functions__.main",
-    "lineno": 255
+    "lineno": 251
   },
   "env_paths.py:__functions__.get_app_root": {
     "file_key": "env_paths.py",
     "qualname": "__functions__.get_app_root",
-    "lineno": 18
+    "lineno": 19
   },
   "env_paths.py:__functions__.ensure_dirs": {
     "file_key": "env_paths.py",
     "qualname": "__functions__.ensure_dirs",
-    "lineno": 51
+    "lineno": 52
   },
   "gui.py:AlarmGUI": {
     "file_key": "gui.py",
@@ -1289,30 +1294,90 @@
     "qualname": "__functions__.start",
     "lineno": 77
   },
+  "test_alarm_state_internal_model.py:TestNextFireDatetime": {
+    "file_key": "test_alarm_state_internal_model.py",
+    "qualname": "TestNextFireDatetime",
+    "lineno": 10
+  },
+  "test_alarm_state_internal_model.py:TestNextFireDatetime.setUp": {
+    "file_key": "test_alarm_state_internal_model.py",
+    "qualname": "TestNextFireDatetime.setUp",
+    "lineno": 13
+  },
+  "test_alarm_state_internal_model.py:TestNextFireDatetime.test_setter_with_none": {
+    "file_key": "test_alarm_state_internal_model.py",
+    "qualname": "TestNextFireDatetime.test_setter_with_none",
+    "lineno": 17
+  },
+  "test_alarm_state_internal_model.py:TestNextFireDatetime.test_setter_with_datetime_object": {
+    "file_key": "test_alarm_state_internal_model.py",
+    "qualname": "TestNextFireDatetime.test_setter_with_datetime_object",
+    "lineno": 22
+  },
+  "test_alarm_state_internal_model.py:TestNextFireDatetime.test_setter_with_iso_format_datetime_string": {
+    "file_key": "test_alarm_state_internal_model.py",
+    "qualname": "TestNextFireDatetime.test_setter_with_iso_format_datetime_string",
+    "lineno": 28
+  },
+  "test_alarm_state_internal_model.py:TestNextFireDatetime.test_setter_with_date_only_string": {
+    "file_key": "test_alarm_state_internal_model.py",
+    "qualname": "TestNextFireDatetime.test_setter_with_date_only_string",
+    "lineno": 34
+  },
+  "test_alarm_state_internal_model.py:TestNextFireDatetime.test_setter_with_invalid_string": {
+    "file_key": "test_alarm_state_internal_model.py",
+    "qualname": "TestNextFireDatetime.test_setter_with_invalid_string",
+    "lineno": 40
+  },
+  "test_alarm_state_internal_model.py:TestNextFireDatetime.test_setter_with_invalid_type": {
+    "file_key": "test_alarm_state_internal_model.py",
+    "qualname": "TestNextFireDatetime.test_setter_with_invalid_type",
+    "lineno": 46
+  },
+  "test_alarm_state_internal_model.py:TestNextFireDatetime.test_getter_after_initialization": {
+    "file_key": "test_alarm_state_internal_model.py",
+    "qualname": "TestNextFireDatetime.test_getter_after_initialization",
+    "lineno": 51
+  },
+  "test_alarm_state_internal_model.py:TestNextFireDatetime.test_multiple_assignments": {
+    "file_key": "test_alarm_state_internal_model.py",
+    "qualname": "TestNextFireDatetime.test_multiple_assignments",
+    "lineno": 55
+  },
+  "test_alarm_state_internal_model.py:TestNextFireDatetime.test_setter_with_microseconds": {
+    "file_key": "test_alarm_state_internal_model.py",
+    "qualname": "TestNextFireDatetime.test_setter_with_microseconds",
+    "lineno": 68
+  },
   "ui_datetime_normalizer.py:__functions__.validate_date": {
     "file_key": "ui_datetime_normalizer.py",
     "qualname": "__functions__.validate_date",
-    "lineno": 23
+    "lineno": 24
   },
   "ui_datetime_normalizer.py:__functions__.validate_time": {
     "file_key": "ui_datetime_normalizer.py",
     "qualname": "__functions__.validate_time",
-    "lineno": 34
+    "lineno": 35
   },
   "ui_datetime_normalizer.py:__functions__.normalize_commas": {
     "file_key": "ui_datetime_normalizer.py",
     "qualname": "__functions__.normalize_commas",
-    "lineno": 47
+    "lineno": 49
   },
   "ui_datetime_normalizer.py:__functions__.normalize_date": {
     "file_key": "ui_datetime_normalizer.py",
     "qualname": "__functions__.normalize_date",
-    "lineno": 53
+    "lineno": 55
   },
   "ui_datetime_normalizer.py:__functions__.normalize_time": {
     "file_key": "ui_datetime_normalizer.py",
     "qualname": "__functions__.normalize_time",
-    "lineno": 92
+    "lineno": 94
+  },
+  "ui_datetime_normalizer.py:__functions__.normalize_base_date": {
+    "file_key": "ui_datetime_normalizer.py",
+    "qualname": "__functions__.normalize_base_date",
+    "lineno": 123
   },
   "ui_weekday_normalizer.py:__functions__.normalize_weekday_list": {
     "file_key": "ui_weekday_normalizer.py",
@@ -1357,7 +1422,7 @@
   "weekday_formatter.py:__functions__.weekday_to_str": {
     "file_key": "weekday_formatter.py",
     "qualname": "__functions__.weekday_to_str",
-    "lineno": 15
+    "lineno": 12
   },
   "window_geometry.py:WindowGeometry": {
     "file_key": "window_geometry.py",
@@ -1394,15 +1459,135 @@
     "qualname": "WindowPositionStore.save_all",
     "lineno": 47
   },
-  "contents_class_def/build_definition_map_json.py:__functions__.build_definition_map": {
-    "file_key": "contents_class_def/build_definition_map_json.py",
+  "contents_class_def/build_definition_map_csv_to_json.py:__functions__.build_definition_map": {
+    "file_key": "contents_class_def/build_definition_map_csv_to_json.py",
     "qualname": "__functions__.build_definition_map",
-    "lineno": 70
+    "lineno": 68
   },
-  "contents_class_def/build_definition_map_json.py:__functions__.main": {
-    "file_key": "contents_class_def/build_definition_map_json.py",
+  "contents_class_def/build_definition_map_csv_to_json.py:__functions__.main": {
+    "file_key": "contents_class_def/build_definition_map_csv_to_json.py",
     "qualname": "__functions__.main",
+    "lineno": 131
+  },
+  "contents_class_def/build_reference_scanning_file_reporter.py:DefLoc": {
+    "file_key": "contents_class_def/build_reference_scanning_file_reporter.py",
+    "qualname": "DefLoc",
+    "lineno": 86
+  },
+  "contents_class_def/build_reference_scanning_file_reporter.py:RefHit": {
+    "file_key": "contents_class_def/build_reference_scanning_file_reporter.py",
+    "qualname": "RefHit",
+    "lineno": 95
+  },
+  "contents_class_def/build_reference_scanning_file_reporter.py:__functions__.is_excluded": {
+    "file_key": "contents_class_def/build_reference_scanning_file_reporter.py",
+    "qualname": "__functions__.is_excluded",
+    "lineno": 107
+  },
+  "contents_class_def/build_reference_scanning_file_reporter.py:__functions__.rel_key": {
+    "file_key": "contents_class_def/build_reference_scanning_file_reporter.py",
+    "qualname": "__functions__.rel_key",
+    "lineno": 116
+  },
+  "contents_class_def/build_reference_scanning_file_reporter.py:__functions__.vscode_link": {
+    "file_key": "contents_class_def/build_reference_scanning_file_reporter.py",
+    "qualname": "__functions__.vscode_link",
+    "lineno": 122
+  },
+  "contents_class_def/build_reference_scanning_file_reporter.py:__functions__.file_abs_from_key": {
+    "file_key": "contents_class_def/build_reference_scanning_file_reporter.py",
+    "qualname": "__functions__.file_abs_from_key",
+    "lineno": 128
+  },
+  "contents_class_def/build_reference_scanning_file_reporter.py:__functions__.safe_read_text": {
+    "file_key": "contents_class_def/build_reference_scanning_file_reporter.py",
+    "qualname": "__functions__.safe_read_text",
     "lineno": 133
+  },
+  "contents_class_def/build_reference_scanning_file_reporter.py:__functions__.strip_comment_simple": {
+    "file_key": "contents_class_def/build_reference_scanning_file_reporter.py",
+    "qualname": "__functions__.strip_comment_simple",
+    "lineno": 141
+  },
+  "contents_class_def/build_reference_scanning_file_reporter.py:__functions__.sort_key_by_definition": {
+    "file_key": "contents_class_def/build_reference_scanning_file_reporter.py",
+    "qualname": "__functions__.sort_key_by_definition",
+    "lineno": 151
+  },
+  "contents_class_def/build_reference_scanning_file_reporter.py:__functions__.load_definition_map": {
+    "file_key": "contents_class_def/build_reference_scanning_file_reporter.py",
+    "qualname": "__functions__.load_definition_map",
+    "lineno": 165
+  },
+  "contents_class_def/build_reference_scanning_file_reporter.py:__functions__.load_definition_locations": {
+    "file_key": "contents_class_def/build_reference_scanning_file_reporter.py",
+    "qualname": "__functions__.load_definition_locations",
+    "lineno": 173
+  },
+  "contents_class_def/build_reference_scanning_file_reporter.py:__functions__.build_symbol_index": {
+    "file_key": "contents_class_def/build_reference_scanning_file_reporter.py",
+    "qualname": "__functions__.build_symbol_index",
+    "lineno": 235
+  },
+  "contents_class_def/build_reference_scanning_file_reporter.py:__functions__.collect_py_files": {
+    "file_key": "contents_class_def/build_reference_scanning_file_reporter.py",
+    "qualname": "__functions__.collect_py_files",
+    "lineno": 272
+  },
+  "contents_class_def/build_reference_scanning_file_reporter.py:__functions__.resolve_call_to_targets": {
+    "file_key": "contents_class_def/build_reference_scanning_file_reporter.py",
+    "qualname": "__functions__.resolve_call_to_targets",
+    "lineno": 282
+  },
+  "contents_class_def/build_reference_scanning_file_reporter.py:__functions__.scan_references": {
+    "file_key": "contents_class_def/build_reference_scanning_file_reporter.py",
+    "qualname": "__functions__.scan_references",
+    "lineno": 339
+  },
+  "contents_class_def/build_reference_scanning_file_reporter.py:__functions__.render_html": {
+    "file_key": "contents_class_def/build_reference_scanning_file_reporter.py",
+    "qualname": "__functions__.render_html",
+    "lineno": 421
+  },
+  "contents_class_def/build_reference_scanning_file_reporter.py:__functions__.main": {
+    "file_key": "contents_class_def/build_reference_scanning_file_reporter.py",
+    "qualname": "__functions__.main",
+    "lineno": 543
+  },
+  "contents_class_def/build_unused_definitions_json.py:__functions__.load_all_definitions": {
+    "file_key": "contents_class_def/build_unused_definitions_json.py",
+    "qualname": "__functions__.load_all_definitions",
+    "lineno": 50
+  },
+  "contents_class_def/build_unused_definitions_json.py:__functions__.main": {
+    "file_key": "contents_class_def/build_unused_definitions_json.py",
+    "qualname": "__functions__.main",
+    "lineno": 118
+  },
+  "contents_class_def/build_unused_definitions_report.py:__functions__.vscode_link": {
+    "file_key": "contents_class_def/build_unused_definitions_report.py",
+    "qualname": "__functions__.vscode_link",
+    "lineno": 47
+  },
+  "contents_class_def/build_unused_definitions_report.py:__functions__.load_all_definitions": {
+    "file_key": "contents_class_def/build_unused_definitions_report.py",
+    "qualname": "__functions__.load_all_definitions",
+    "lineno": 57
+  },
+  "contents_class_def/build_unused_definitions_report.py:__functions__.load_used_definitions": {
+    "file_key": "contents_class_def/build_unused_definitions_report.py",
+    "qualname": "__functions__.load_used_definitions",
+    "lineno": 126
+  },
+  "contents_class_def/build_unused_definitions_report.py:__functions__.render_html": {
+    "file_key": "contents_class_def/build_unused_definitions_report.py",
+    "qualname": "__functions__.render_html",
+    "lineno": 157
+  },
+  "contents_class_def/build_unused_definitions_report.py:__functions__.main": {
+    "file_key": "contents_class_def/build_unused_definitions_report.py",
+    "qualname": "__functions__.main",
+    "lineno": 189
   },
   "contents_class_def/debag_build_call_index.py:FuncRow": {
     "file_key": "contents_class_def/debag_build_call_index.py",
@@ -1512,32 +1697,32 @@
   "utils/datetime_utils.py:__functions__.any_to_datetime": {
     "file_key": "utils/datetime_utils.py",
     "qualname": "__functions__.any_to_datetime",
-    "lineno": 48
+    "lineno": 59
   },
   "utils/datetime_utils.py:__functions__.datetime_or_now": {
     "file_key": "utils/datetime_utils.py",
     "qualname": "__functions__.datetime_or_now",
-    "lineno": 57
+    "lineno": 68
   },
   "utils/datetime_utils.py:__functions__.datetime_to_str": {
     "file_key": "utils/datetime_utils.py",
     "qualname": "__functions__.datetime_to_str",
-    "lineno": 64
+    "lineno": 76
   },
   "utils/datetime_utils.py:__functions__.datetime_to_date_time": {
     "file_key": "utils/datetime_utils.py",
     "qualname": "__functions__.datetime_to_date_time",
-    "lineno": 68
+    "lineno": 80
   },
   "utils/datetime_utils.py:__functions__.date_to_str": {
     "file_key": "utils/datetime_utils.py",
     "qualname": "__functions__.date_to_str",
-    "lineno": 72
+    "lineno": 84
   },
   "utils/datetime_utils.py:__functions__.time_to_str": {
     "file_key": "utils/datetime_utils.py",
     "qualname": "__functions__.time_to_str",
-    "lineno": 76
+    "lineno": 88
   },
   "utils/text_utils.py:__functions__.to_hankaku": {
     "file_key": "utils/text_utils.py",

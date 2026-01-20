@@ -33,7 +33,7 @@ def _check_last_fire(state: AlarmStateInternal | AlarmInternal, actual_now: date
 
 
 def match_time(a: datetime | time, b: datetime | time) -> bool:
-    """Compare hour and minute of datetime/time-like objects."""
+    """日付時刻/時刻のようなオブジェクトの時間と分を比較します。"""
     try:
         a_hm: tuple[int, int] = (a.hour, a.minute)
     except AttributeError:
@@ -186,9 +186,9 @@ def check_custom_rule(
 
 
 # --------------------------------------------------------------
-# 🔹 none（単発アラーム）
+# 🔹 single（単発アラーム）
 # --------------------------------------------------------------
-def check_none_rule(alarm: AlarmInternal, now: datetime, actual_now: datetime) -> bool:
+def check_single_rule(alarm: AlarmInternal, now: datetime, actual_now: datetime) -> bool:
     """単発アラームの時の時刻計算"""
     alarm_time: datetime = alarm.datetime_
     if now.strftime("%Y-%m-%d %H:%M") != alarm_time.strftime("%Y-%m-%d %H:%M"):
@@ -204,7 +204,7 @@ REPEAT_RULE_CHECKERS: dict[str, Callable[..., bool]] = {
     "weekly": check_weekly_rule,  # ← 入口はこれだけ
     "monthly": check_monthly_rule,
     "custom": check_custom_rule,
-    "none": check_none_rule,
+    "single": check_single_rule,
 }
 
 
@@ -228,9 +228,9 @@ def should_fire_alarm(
 
 
 # --------------------------------------------------------------
-# 🔹 none（単発アラーム・デバッグ用）
+# 🔹 single（単発アラーム・デバッグ用）
 # --------------------------------------------------------------
-def check_none_rule_debug(
+def check_single_rule_debug(
     alarm: AlarmInternal, now: datetime, actual_now: datetime
 ) -> bool:
     """単発アラームの時の時刻計算"""

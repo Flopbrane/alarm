@@ -15,7 +15,7 @@ from datetime import datetime, timedelta
 from typing import Any, Dict
 
 from alarm_internal_model import AlarmInternal
-from alarm_repeat_rules import should_fire_alarm
+from alarm_repeat_date_calculator import should_fire_alarm
 from ui_datetime_normalizer import normalize_base_date
 
 
@@ -26,7 +26,7 @@ class AlarmScheduler:
         # インスタンス固有の戦略表
         self.schedulers: Dict[str, Any]
         self.schedulers = {
-            "none": self._next_once,
+            "single": self._next_single,
             "daily": self._next_daily,
             "weekly": self._next_weekly,  # ← ここが入口
             "monthly": self._next_monthly,
@@ -56,7 +56,7 @@ class AlarmScheduler:
     def get_next_time(self, alarm: AlarmInternal, now: datetime) -> datetime | None:
         """次回アラーム時刻を返す"""
         repeat: str
-        repeat = alarm.repeat or "none"
+        repeat = alarm.repeat or "single"
 
         if repeat == "weekly":
             if alarm.interval_weeks and alarm.interval_weeks > 1:
@@ -70,9 +70,9 @@ class AlarmScheduler:
         return None
 
     # --------------------------------------------------------------
-    # 🔹 none（単発アラーム）
+    # 🔹 single（単発アラーム）
     # --------------------------------------------------------------
-    def _next_once(self, alarm: AlarmInternal, now: datetime) -> datetime:
+    def _next_single(self, alarm: AlarmInternal, now: datetime) -> datetime:
         # pylint: disable=unused-argument
         return alarm.datetime_
 

@@ -21,7 +21,8 @@ from typing import Any, Callable, List, Optional, TypedDict, cast
 import pygame
 
 # 自作モジュール
-from alarm_data_json_mapper import InternalToJsonMapper, JsonToInternalMapper  # 旧Loader
+from alarm_data_json_mapper import (InternalToJsonMapper,  # 旧Loader
+                                    JsonToInternalMapper)
 from alarm_internal_model import AlarmInternal, AlarmStateInternal
 from alarm_json_model import AlarmJson, AlarmStateJson
 from alarm_player import AlarmPlayer
@@ -31,6 +32,7 @@ from alarm_ui_mapper import InternaltoUIMapper, UItoInternalMapper
 from alarm_ui_model import AlarmStateView, AlarmUI
 from constants import DEFAULT_SOUND
 from env_paths import ALARM_PATH, BACKUP_DIR, DATA_DIR, STANDBY_PATH
+
 
 
 class NextAlarmInfo(TypedDict):
