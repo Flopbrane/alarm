@@ -48,12 +48,12 @@ class AlarmJson:
 
     @property
     def weekday_list(self) -> list[int]:
-        """weekday の値をリストとして返す"""
+        """UI 側で iterable / CSV 等を扱うための補助プロパティ"""
         return list(self.weekday)
 
     @weekday_list.setter
     def weekday_list(self, v: list[int] | str | Iterable[int] | None) -> None:
-        """weekday にリストを設定する"""
+        """UI / CSV / 外部入力の揺れを吸収するための補助 setter"""
         if not v:
             self.weekday = []
         elif isinstance(v, str):
@@ -69,26 +69,27 @@ class AlarmJson:
 
 @dataclass
 class AlarmStateJson:
-    """アラーム状態を JSON 形式で保存・読み込みするためのデータクラス"""
+    """アラーム状態を JSON 形式で保存・読み込みするためのデータクラス
+    Json返しは必ず str | None
+    Internal返しは必ず datetime | None
+    str ↔ datetime 変換は必ず mapper で行う
+    """
 
     id: int
-    _snoozed_until: str | datetime | None = None
+    _snoozed_until: str | None = None
     _snooze_count: int = 0
     _triggered: bool = False
-    _triggered_at: str | datetime | None = None
+    _triggered_at: str | None = None
     # ★ 推奨追加！
-    _last_fired_at: str | datetime | None = None
-    _next_fire_datetime: str | None = None  # ← 追加（"YYYY-MM-DD"）
+    _last_fired_at: str | None = None
+    _next_fire_datetime: str | None = None  # ISO8601 ("YYYY-MM-DDTHH:MM:SS")
+    _lifecycle_finished: bool = False  # 鳴動開始後再参照終了フラグ(_next_fire_datetime更新後にリセット)
 
-    # ===== Getter（こちらの方が自然で綺麗） =====
+    # ===== Getter/Setter（こちらの方が自然で綺麗） =====
     @property
     def snoozed_until(self) -> str | None:
         """スヌーズ解除日時を取得"""
-        if self._snoozed_until is None:
-            return None
-        if isinstance(self._snoozed_until, str):
-            return self._snoozed_until
-        return self._snoozed_until.isoformat()
+        return self._snoozed_until
 
     @snoozed_until.setter
     def snoozed_until(self, v: str | datetime | None) -> None:
@@ -105,8 +106,13 @@ class AlarmStateJson:
         return self._snooze_count
 
     @snooze_count.setter
-    def snooze_count(self, v: int) -> None:
-        self._snooze_count = v
+    def snooze_count(self, v: int | str | None) -> None:
+        if v is None:
+            self._snooze_count = 0
+        elif isinstance(v, str):
+            self._snooze_count = int(v)
+        else:
+            self._snooze_count = v
 
     @property
     def triggered(self) -> bool:
@@ -118,12 +124,10 @@ class AlarmStateJson:
         self._triggered = v
 
     @property
-    def triggered_at(self) -> str | datetime | None:
+    def triggered_at(self) -> str | None:
         """アラームがトリガーされた日時を取得"""
         if self._triggered_at is None:
             return None
-        elif isinstance(self._triggered_at, datetime):
-            return self._triggered_at.isoformat()
         else:
             return self._triggered_at
 
@@ -137,12 +141,10 @@ class AlarmStateJson:
             self._triggered_at = v
 
     @property
-    def last_fired_at(self) -> str | datetime | None:
+    def last_fired_at(self) -> str | None:
         """最後にアラームが鳴動した日時を取得"""
         if self._last_fired_at is None:
             return None
-        elif isinstance(self._last_fired_at, datetime):
-            return self._last_fired_at.isoformat()
         else:
             return self._last_fired_at
 
@@ -163,3 +165,13 @@ class AlarmStateJson:
     @next_fire_datetime.setter
     def next_fire_datetime(self, v: str | None) -> None:
         self._next_fire_datetime = v
+
+    @property
+    def lifecycle_finished(self) -> bool:
+        """鳴動ライフサイクルが終了したかどうかを取得"""
+        return self._lifecycle_finished
+
+    @lifecycle_finished.setter
+    def lifecycle_finished(self, v: bool) -> None:
+        self._lifecycle_finished = v
+# =========================================================

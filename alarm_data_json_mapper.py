@@ -46,7 +46,7 @@ def str_to_dt(v: str | None) -> datetime | None:
     return datetime.fromisoformat(v)
 
 def any_to_dt(v: str | datetime | None) -> datetime | None:
-    """str|datetime|None → datetime|None (安全ラッパー)"""
+    """str|datetime|None → datetime|None (安全ラッパー) ※ Json → Internal 専用。UI では使用禁止"""
     if not v:
         return None
     if isinstance(v, datetime):
@@ -64,26 +64,33 @@ class JsonToInternalMapper:
     def alarm_json_to_internal(
         self, a: AlarmJson | None
     ) -> AlarmInternal:
-        """AlarmJson → AlarmInternal"""
+        """AlarmJson → AlarmInternal(str → datetime 変換含む)"""
+        # 回避基準チェック
         if a is None:
             raise ValueError("AlarmJson が None か、あるいは、初回起動です。")
-
         if not a.date or not a.time:
-            raise ValueError(f"アラームの日時が無効です id={a.id}")
+            raise ValueError(f"アラームの日時が無効です name={a.name} id={a.id}")
 
-        dt: datetime | None = str_to_dt(f"{a.date}T{a.time}")
+        # 発火基準 datetime（最重要）
+        try:
+            alarm_dt: datetime = datetime.fromisoformat(f"{a.date}T{a.time}")
+        except ValueError as exc:
+            raise ValueError(f"アラームの日時が無効です name={a.name} id={a.id}") from exc
+        # 🔑 base_date は date-only → time を合成する
+        if a.base_date:
+            base_dt: datetime | None = datetime.fromisoformat(f"{a.base_date}T{alarm_dt.time()}")
+        else:
+            base_dt = None
 
-        if dt is None:
-            raise ValueError(f"アラームの日時が無効です id={a.id}")
         return AlarmInternal(
             id=a.id,
             name=a.name,
-            datetime_=dt,
+            datetime_=alarm_dt,
             repeat=a.repeat,
             weekday=list(a.weekday),
             week_of_month=list(a.week_of_month),
             interval_weeks=a.interval_weeks,
-            base_date_=str_to_dt(a.base_date),
+            base_date_=base_dt,
             custom_desc=a.custom_desc,
             enabled=a.enabled,
             sound=a.sound_path,
@@ -105,6 +112,7 @@ class JsonToInternalMapper:
         state.triggered_at=any_to_dt(s.triggered_at)
         state.last_fired_at=any_to_dt(s.last_fired_at)
         state.next_fire_datetime=any_to_dt(s.next_fire_datetime)
+        state.lifecycle_finished=s.lifecycle_finished
         return state
 
 # =========================================================
@@ -119,6 +127,7 @@ class InternalToJsonMapper(JsonToInternalMapper):
         # split combined datetime into date and time strings
         date_str: str = a.datetime_.date().strftime("%Y-%m-%d")
         time_str: str = a.datetime_.time().strftime("%H:%M")
+        # base_date_ is datetime internally, but JSON stores date-only (YYYY-MM-DD)
         base_date_str: str | None = (
             a.base_date_.strftime("%Y-%m-%d") if a.base_date_ else None
         )
@@ -148,21 +157,16 @@ class InternalToJsonMapper(JsonToInternalMapper):
         self, s: AlarmStateInternal
     ) -> AlarmStateJson:
         """AlarmStateInternal → AlarmStateJson"""
-        return AlarmStateJson(
-            id=s.id,
-            _snoozed_until=(
-                dt_to_str(s.snoozed_until) if s.snoozed_until else None
-            ),
-            _snooze_count=s.snooze_count,
-            _triggered=s.triggered,
-            _triggered_at=(
-                dt_to_str(s.triggered_at) if s.triggered_at else None
-            ),
-            _last_fired_at=(
-                dt_to_str(s.last_fired_at) if s.last_fired_at else None
-            ),
-            _next_fire_datetime=(
-                dt_to_str(s.next_fire_datetime) if s.next_fire_datetime else None
-            ),
-        )
+        # NOTE:
+        # is_invalid_state の検出・対処は Manager の責務。
+        # mapper では状態をそのまま写す。
+        j_state: AlarmStateJson = AlarmStateJson(id=s.id)
+        j_state.snoozed_until=dt_to_str(s.snoozed_until)
+        j_state.snooze_count=s.snooze_count
+        j_state.triggered=s.triggered
+        j_state.triggered_at=dt_to_str(s.triggered_at)
+        j_state.last_fired_at=dt_to_str(s.last_fired_at)
+        j_state.next_fire_datetime=dt_to_str(s.next_fire_datetime)
+        j_state.lifecycle_finished=s.lifecycle_finished
+        return j_state
 # =========================================================

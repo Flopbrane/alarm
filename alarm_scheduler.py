@@ -15,7 +15,7 @@ from datetime import datetime, timedelta
 from typing import Any, Dict
 
 from alarm_internal_model import AlarmInternal
-from alarm_repeat_date_calculator import should_fire_alarm
+from alarm_repeat_date_checker import should_fire_alarm
 from ui_datetime_normalizer import normalize_base_date
 
 

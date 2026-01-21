@@ -12,7 +12,7 @@ UI ↔ Internal 変換・受け渡し専用モジュール
 #########################
 # Author: F.Kurokawa
 # Description:
-#  UI <-> Internal mapper
+#  UI <-> Internal mapper(チェック済み)
 #########################
 
 from datetime import datetime
@@ -26,18 +26,22 @@ def ui_date_time_to_dt(date: str, time: str) -> datetime:
     """AlarmUI の date, time から datetime を生成"""
     return datetime.fromisoformat(f"{date}T{time}")
 
-
 def ui_default_date_time(
     date: str | None,
     time: str | None,
 ) -> tuple[str, str]:
-    """AlarmUI の date, time のデフォルト補完"""
+    """
+    AlarmUI の date, time のデフォルト補完
+    NOTE:
+    - UI 層専用
+    - 内部ロジック・mapper で使用してはならない
+    - 入力補助目的のため datetime.now() を使用する
+    """
     now: datetime = datetime.now()
     return (
         date or now.strftime("%Y-%m-%d"),
         time or now.strftime("%H:%M"),
     )
-
 
 class UItoInternalMapper:
     """UIモデルからInternalモデルへの変換クラス"""
@@ -70,7 +74,6 @@ class UItoInternalMapper:
             snooze_limit=getattr(ui, "snooze_limit", 0),
         )
 
-
 class InternaltoUIMapper:
     """InternalモデルからUIモデルへの変換クラス"""
     # ----------------------------------------------
@@ -99,7 +102,6 @@ class InternaltoUIMapper:
             snooze_minutes=alarm.snooze_minutes,
         )
 
-
 class InternaltoViewMapper:
     """InternalモデルからViewモデルへの変換クラス"""
     # ----------------------------------------------
@@ -108,6 +110,7 @@ class InternaltoViewMapper:
     @staticmethod
     def stateinternal_to_stateview(state: AlarmStateInternal) -> AlarmStateView:
         """AlarmStateInternal → AlarmStateView"""
+        # NOTE: View 表示用のため sep=" " を使用
         return AlarmStateView(
             id=state.id,
             snoozed_until=(

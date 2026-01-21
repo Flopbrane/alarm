@@ -13,12 +13,12 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import date as DateType
 from datetime import datetime
+from datetime import time as TimeType
 from pathlib import Path
 from typing import Optional
 
 # 自作モジュール
 from constants import DEFAULT_SOUND
-from ui_datetime_normalizer import validate_time
 
 
 # ユーティリティ関数：list[int] のデフォルト値用
@@ -133,108 +133,75 @@ class AlarmInternal:
     # =========================
     # ----------------------------------------------------
     # __post_init__ : sound を Path に変換
-    #「初期化__init__は dataclass に任せる。
+    # 「初期化__init__は dataclass に任せる。
     # でも、そのあとに“仕上げ処理”をしたい」
     # ----------------------------------------------------
     def __post_init__(self) -> None:
+        """strで渡された sound を Path に変換する"""
         if not self.sound:
             self.sound = DEFAULT_SOUND
         elif isinstance(self.sound, str):
             self.sound = Path(self.sound)
-
     # ----------------------------------------------------
-    # 🔥 date（YYYY-MM-DD）
+    # 🔥 date（datetime.date）
     # ----------------------------------------------------
     @property
-    def date(self) -> str:
+    def date(self) -> DateType:
         """dateのgetter"""
-        return self.datetime_.strftime("%Y-%m-%d")
+        return self.datetime_.date()
 
     @date.setter
-    def date(self, v: str) -> None:
-        if not v:
-            v = datetime.now().strftime("%Y-%m-%d")
-
-        try:
-            datetime.strptime(v, "%Y-%m-%d")
-        except ValueError:
-            print(f"[警告] 不正な日付入力: {v}")
-            return
-
-        t: str = self.datetime_.strftime("%H:%M")
-        self.datetime_ = datetime.fromisoformat(f"{v}T{t}")
+    def date(self, v: DateType) -> None:
+        """date を差し替える（時刻は保持）"""
+        self.datetime_ = datetime.combine(v, self.datetime_.time())
 
     # ----------------------------------------------------
-    # 🔥 time（HH:MM）
+    # 🔥 time（datetime.time）
     # ----------------------------------------------------
     @property
-    def time(self) -> str:
-        """timeのgetter"""
-        return self.datetime_.strftime("%H:%M")
+    def time(self) -> TimeType:
+        """timeのgetter（表示用）"""
+        return self.datetime_.time()
 
     @time.setter
-    def time(self, t: str) -> None:
-        if not t:
-            t = datetime.now().strftime("%H:%M")
+    def time(self, v: TimeType) -> None:
+        """time を差し替える（日付は保持）"""
+        self.datetime_ = datetime.combine(self.datetime_.date(), v)
 
-        if validate_time(t) is None:
-            print(f"[警告] 不正な時刻入力: {t}")
-            return
-
-        d: str = self.datetime_.strftime("%Y-%m-%d")
-        self.datetime_ = datetime.fromisoformat(f"{d}T{t}")
 
     # ----------------------------------------------------
     # 🔥 base_date_（文字列 → datetime 変換対応）
+    # 🔥 repeat_base_datetime(base_date_)
     # ----------------------------------------------------
     @property
-    def repeat_base_datetime(self) -> Optional[datetime]:
+    def repeat_base_datetime(self) -> datetime:
         """
         繰り返し計算専用の基準日時
         ・weekly / custom / interval_weeks 用
-        ・発火時刻や表示日付とは無関係
+        ・None の場合は datetime_ を基準とする
         """
         return self.base_date_ or self.datetime_
 
+
     @repeat_base_datetime.setter
-    def repeat_base_datetime(self, v: Optional[str | DateType | datetime]) -> None:
-        """base_date_ を文字列/日付/datetime から正規化して設定する"""
-        # None → None
-        if v is None:
-            self.base_date_ = None  # ← 既存ロジックを再利用
-            return
-
-        # datetime → そのまま
-        if isinstance(v, datetime):
-            self.base_date_ = v  # ← 既存ロジックを再利用
-            return
-
-        # date → 既存の時刻で補完
-        if isinstance(v, DateType):
-            self.base_date_ = datetime.combine(v, self.datetime_.time())
-            return
-
-        # str → 解析
-        else:
-            try:
-                if " " in v:
-                    self.base_date_ = datetime.fromisoformat(v.replace(" ", "T"))
-                else:
-                    self.base_date_ = datetime.fromisoformat(
-                        f"{v}T{self.datetime_.time()}"
-                    )
-            except ValueError:
-                print(f"[警告] 不正な base_date: {v}")
-                self.base_date_ = None
-                return
+    def repeat_base_datetime(self, v: Optional[datetime]) -> None:
+        """基準日時を設定（Internal では datetime のみ許可）"""
+        self.base_date_ = v
 
 
 @dataclass
 class AlarmStateInternal:
     """アラーム状態を「状態＋予定」を持つクラスで保持するためのデータクラス
-    State は計算しない
-    Scheduler が計算する
-    Manager が書き込む
+    【設計方針】
+    Scheduler → next_fire_datetime を計算するだけ（※書き込みは Manager 経由）
+    Checker → 今鳴らすか？を判断するだけ(読むだけ)
+    Manager → lifecycle_finished を True にする唯一の存在(書き込み担当)
+    【内部判定】
+    - 内部ロジック（checkerが参照 / Managerが変更）
+        next_fire_datetime == None & lifecycle_finished == False → 未計算
+        next_fire_datetime != None & lifecycle_finished == False → 次回予定あり
+        next_fire_datetime == None & lifecycle_finished == True  → 鳴動終了
+        next_fire_datetime != None & lifecycle_finished == True  → エラー状態
     """
 
     id: int = 0
@@ -243,9 +210,9 @@ class AlarmStateInternal:
     _triggered: bool = False  # 鳴動中か？(UI / 再生中判定)
     _triggered_at: datetime | None = None  # 鳴動開始時刻(ログ・履歴)
     _last_fired_at: datetime | None = None  # 最終鳴動時刻(多重発火防止)
-    _next_fire_datetime: datetime | None = (
-        None  # 次回鳴動予定日(未来の確定スケジュール（中〜長期）)
-    )
+    # ★ 以下の二値を参考にして、checker, manager が動作を決定する
+    _next_fire_datetime: datetime | None = None  # 次回鳴動予定日(未来の確定スケジュール)
+    _lifecycle_finished: bool = False  # 鳴動開始後再参照終了フラグ(_next_fire_datetime更新後にリセット)
 
     @classmethod
     def initial(cls, alarm_id: int) -> "AlarmStateInternal":
@@ -258,9 +225,10 @@ class AlarmStateInternal:
             _triggered_at=None,
             _last_fired_at=None,
             _next_fire_datetime=None,
+            _lifecycle_finished=False,
         )
 
-    # ===== Getter（こちらの方が自然で綺麗） =====
+    # ===== Getter/Setter（こちらの方が自然で綺麗） =====
     # =========================
     # 🔹 ここに @property を置く！
     # =========================
@@ -274,20 +242,12 @@ class AlarmStateInternal:
         return self._snoozed_until
 
     @snoozed_until.setter  # setter:送られてきたデータを処理して保存する
-    def snoozed_until(self, v: Optional[str | datetime]) -> None:
+    def snoozed_until(self, v: Optional[datetime]) -> None:
         if v is None:
             self._snoozed_until = None
             return
-
-        if isinstance(v, datetime):
-            self._snoozed_until = v
-            return
-
-        try:
-            self._snoozed_until = datetime.fromisoformat(v)
-        except (TypeError, ValueError):
-            print(f"[警告] 不正な snoozed_until の値: {v}")
-            self._snoozed_until = None
+        self._snoozed_until = v
+        return
 
     @property
     def snooze_count(self) -> int:
@@ -319,63 +279,71 @@ class AlarmStateInternal:
         return self._triggered_at
 
     @triggered_at.setter
-    def triggered_at(self, v: Optional[str | datetime]) -> None:
+    def triggered_at(self, v: Optional[datetime]) -> None:
         if v is None:
             self._triggered_at = None
             return
-
-        if isinstance(v, datetime):
-            self._triggered_at = v
-            return
-
-        try:
-            self._triggered_at = datetime.fromisoformat(v)
-        except (TypeError, ValueError):
-            print(f"[警告] 不正な triggered_at の値: {v}")
-            self._triggered_at = None
-
+        self._triggered_at = v
     # ----------------------------------------------------
     # 🔥 last_fired_at（文字列 → datetime 変換対応）
     # ----------------------------------------------------
     @property
     def last_fired_at(self) -> Optional[datetime]:
-        """_last_fierd_atのgetter"""
+        """_last_fired_atのgetter"""
         return self._last_fired_at
 
     @last_fired_at.setter
-    def last_fired_at(self, v: Optional[str | datetime]) -> None:
+    def last_fired_at(self, v: Optional[datetime]) -> None:
         if v is None:
             self._last_fired_at = None
             return
-
-        if isinstance(v, datetime):
-            self._last_fired_at = v
-            return
-
-        try:
-            self._last_fired_at = datetime.fromisoformat(v)
-        except (TypeError, ValueError):
-            print(f"[警告] 不正な last_fired_at の値: {v}")
-            self._last_fired_at = None
+        self._last_fired_at = v
+    # ----------------------------------------------------
+    # 🔥 next_fire_datetime（文字列 → datetime 変換対応）
+    # ----------------------------------------------------
     @property
     def next_fire_datetime(self) -> Optional[datetime]:
         """_next_fire_datetimeのgetter"""
         return self._next_fire_datetime
 
     @next_fire_datetime.setter
-    def next_fire_datetime(self, v: Optional[str | datetime]) -> None:
+    def next_fire_datetime(self, v: Optional[datetime]) -> None:
         if v is None:
             self._next_fire_datetime = None
-            return
-
-        if isinstance(v, datetime):
-            self._next_fire_datetime = v
-            return
-
-        try:
             # v は "YYYY-MM-DD" を想定
-            self._next_fire_datetime = datetime.fromisoformat(v)
-        except (TypeError, ValueError):
-            print(f"[警告] 不正な next_fire_datetime の値: {v}")
-            self._next_fire_datetime = None
+        self._next_fire_datetime = v
+    # ----------------------------------------------------
+    # 🔥 lifecycle_finished（bool）:repeat == "single"の時の鳴動終了後の処置変数
+    # ----------------------------------------------------
+    @property
+    def lifecycle_finished(self) -> bool:
+        """_lifecycle_finishedのgetter"""
+        return self._lifecycle_finished
+
+    @lifecycle_finished.setter
+    def lifecycle_finished(self, v: bool) -> None:
+        self._lifecycle_finished = v
+
+    # ===派生プロパティ（保存しない/状態を一目で理解出来るようにする）===
+    @property
+    def is_uncomputed(self) -> bool:
+        """未計算状態かどうかを取得"""
+        return self.next_fire_datetime is None and not self.lifecycle_finished
+
+    @property
+    def has_next_schedule(self) -> bool:
+        """次回予定有りかどうかを取得"""
+        return self.next_fire_datetime is not None and not self.lifecycle_finished
+
+    @property
+    def is_finished(self) -> bool:
+        """鳴動終了状態かどうかを取得"""
+        return self.next_fire_datetime is None and self.lifecycle_finished
+
+    @property
+    def is_invalid_state(self) -> bool:
+        """本来起こらない状態（ガード・デバッグ用）"""
+        return self.next_fire_datetime is not None and self.lifecycle_finished
+
+
 # =========================================================

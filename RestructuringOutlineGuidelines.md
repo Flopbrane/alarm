@@ -30,8 +30,31 @@
 
 * フィールド名が一致しているか
 * 「誰が持つべきでない値」を持っていないか
-* `next_fire_datetime` が
 
+* AlarmInternalから、出力されるデータはdatetaime型
+* AlarmStateInternalから、出力されるデータはdatetime型
+* 　　↕ **mapperが変換責務を持つ**
+* AlarmJsonから、出力されるデータはstr型
+* AlarmStateJsonから、出力されるデータはstr型
+
+* AlarmUIから、出力されるデータはstr型
+* AlarmStatViewから、出力されるデータはstr型
+     ↕ **mapperが変換責務を持つ**
+* Alarmintenalから、出力されるデータはdatetime型
+* AlarmStateInternalから、出力されるデータはdatetime型
+
+👉 **ここは目視で OK**
+(と言うか、"strict free"でも、受渡し変数の型異常は発生する。)
+
+* `state.next_fire_datetime`
+* `state.lifecycle_finised` の二値を参照、
+* `lifecycle_finish == True` の場合、
+* このアラームデータは既に役目を終えている状況(repeat == "single"の場合のみ)
+* 将来的に、`state.alarm_datetime_repeat_limit`を設定した場合、
+* 長期的な繰り返し後、`state.alarm_datetime_repeat_limit(datetime)`を
+* 超過した場合も`lifecycle_finish == True`となる。
+
+* AlarmStateIntenel
   * Internal：`datetime`
   * Json：`str | None`
   * UI編集：**存在しない**
@@ -57,7 +80,6 @@
 * AlarmInternal ↔ AlarmStateInternal を **混ぜていないか**
 * 旧 AlarmInternal.state.xxx を参照していないか
 * 新規追加した `next_fire_datetime` が
-
   * Json ↔ Internal で正しく変換されているか
 * `Optional` の扱いが一致しているか
 
@@ -72,9 +94,10 @@
 
 #### 対象(Manager / Scheduler 境界チェック)
 
-* `alarm_manager.py`
-* `alarm_scheduler.py`
 * `alarm_repeat_rules.py`
+* `alarm_scheduler.py`
+* `alarm_manager.py`
+* 一番上から順番に修正を開始するファイル
 
 ##### チェック観点
 
@@ -290,6 +313,7 @@ mapper は最重要ポイント
 ### 👉 atomic な設計を理解し
 -実践することで
 -より良いソフトウェアを作り出す
+
 黒川さん、
 * 「行き当たりばったり」を自覚できた
 * ファイル数に応じて **作業方法を切り替えようとしている**
