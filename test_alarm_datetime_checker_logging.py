@@ -16,8 +16,8 @@ class TestAlarmDatetimeCheckerLogging(unittest.TestCase):
         """Test that invalid state triggers error logging"""
         # Create an invalid state: next_fire_datetime is NOT None AND lifecycle_finished is True
         state = AlarmStateInternal(id=42)
-        state._next_fire_datetime = datetime(2025, 1, 15, 10, 30)
-        state._lifecycle_finished = True
+        state.next_fire_datetime = datetime(2025, 1, 15, 10, 30)
+        state.lifecycle_finished = True
         
         # Verify it's detected as invalid
         self.assertTrue(state.is_invalid_state)
@@ -47,8 +47,8 @@ class TestAlarmDatetimeCheckerLogging(unittest.TestCase):
         """Test that valid state does not trigger error logging"""
         # Create a valid state
         state = AlarmStateInternal(id=1)
-        state._next_fire_datetime = datetime(2025, 1, 15, 10, 30)
-        state._lifecycle_finished = False
+        state.next_fire_datetime = datetime(2025, 1, 15, 10, 30)
+        state.lifecycle_finished = False
         
         # Verify it's not invalid
         self.assertFalse(state.is_invalid_state)
