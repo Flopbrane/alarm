@@ -11,11 +11,10 @@ alarm + now → datetime が返るか？
 #########################
 
 import calendar
+from collections.abc import Callable
 from datetime import datetime, timedelta
-from typing import Any, Dict
 
 from alarm_internal_model import AlarmInternal
-from alarm_repeat_date_checker import should_fire_alarm
 from ui_datetime_normalizer import normalize_base_date
 
 
@@ -24,7 +23,7 @@ class AlarmScheduler:
 
     def __init__(self) -> None:
         # インスタンス固有の戦略表
-        self.schedulers: Dict[str, Any]
+        self.schedulers: dict[str, Callable[[AlarmInternal, datetime], datetime | None]]
         self.schedulers = {
             "single": self._next_single,
             "daily": self._next_daily,
@@ -49,25 +48,6 @@ class AlarmScheduler:
     def _with_time(self, d: datetime, alarm: AlarmInternal) -> datetime:
         t: datetime = alarm.datetime_
         return d.replace(hour=t.hour, minute=t.minute, second=0, microsecond=0)
-
-    # ---------------------------------------
-    # 次回アラーム時刻を取得
-    # ---------------------------------------
-    def get_next_time(self, alarm: AlarmInternal, now: datetime) -> datetime | None:
-        """次回アラーム時刻を返す"""
-        repeat: str
-        repeat = alarm.repeat or "single"
-
-        if repeat == "weekly":
-            if alarm.interval_weeks and alarm.interval_weeks > 1:
-                return self._next_weekly_x(alarm, now)
-            return self._next_weekly(alarm, now)
-
-        func: Any | None = self.schedulers.get(repeat)
-        if func:
-            return func(alarm, now)
-
-        return None
 
     # --------------------------------------------------------------
     # 🔹 single（単発アラーム）
@@ -94,14 +74,15 @@ class AlarmScheduler:
             candidate += timedelta(days=1)
 
         return candidate
-
     # --------------------------------------------------------------
-    # 🔹 weekly（毎週）
+    # 🔹 weekly（毎週 / n週おき）
     # --------------------------------------------------------------
     def _next_weekly(self, alarm: AlarmInternal, now: datetime) -> datetime:
-        """毎週（interval_weeks == 1）の次回時刻を計算"""
+        """weekly（毎週 / n週おき 共通）"""
 
-        # ① 起点（日付）を決める
+        interval: int = alarm.interval_weeks or 1
+
+        # ① 起点（日付）
         start: datetime = max(now, self._base(alarm))
 
         # ② 目標曜日（0=月〜6=日）
@@ -111,36 +92,31 @@ class AlarmScheduler:
         days_ahead: int = (target_weekday - start.weekday()) % 7
 
         # ④ 日付を進めて、時刻を合成
-        candidate: datetime = self._with_time(start + timedelta(days=days_ahead), alarm)
+        candidate: datetime = self._with_time(
+            start + timedelta(days=days_ahead),
+            alarm,
+        )
 
-        # ⑤ 念のため「未来保証」
-        if candidate <= now:
-            candidate += timedelta(weeks=1)
+        # ⑤ 毎週（interval == 1）
+        if interval == 1:
+            if candidate <= now:
+                candidate += timedelta(weeks=1)
+            return candidate
 
-        return candidate
-
-    # --------------------------------------------------------------
-    # 🔹 weekly（n週おき：2週〜）
-    # --------------------------------------------------------------
-    def _next_weekly_x(self, alarm: AlarmInternal, now: datetime) -> datetime:
-        """weekly（n週おき：2週〜）"""
-        interval: int = alarm.interval_weeks
-        if interval < 2:
-            return self._next_weekly(alarm, now)
-        # weekly_x は「2以上」のときだけ有効
-
-        start: datetime = max(now, self._base(alarm))
-        target_weekday: int = alarm.datetime_.weekday()
-
-        days_ahead: int = (target_weekday - start.weekday()) % 7
-        candidate: datetime = self._with_time(start + timedelta(days=days_ahead), alarm)
-
-        base: None | datetime = normalize_base_date(self._base(alarm), candidate)
+        # ⑥ n週おき（interval >= 2）
+        base: datetime | None = normalize_base_date(self._base(alarm), candidate)
         if not base:
             base = candidate
 
-        while candidate <= now or (((candidate - base).days // 7) % interval != 0):
-            candidate += timedelta(weeks=1)
+        while True:
+            if candidate <= now:
+                candidate += timedelta(weeks=1)
+                continue
+            weeks_diff: int = (candidate - base).days // 7
+            if weeks_diff % interval != 0:
+                candidate += timedelta(weeks=1)
+                continue
+            break
 
         return candidate
 
@@ -148,6 +124,9 @@ class AlarmScheduler:
     # 🔹 monthly
     # --------------------------------------------------------------
     def _next_monthly(self, alarm: AlarmInternal, now: datetime) -> datetime:
+        """monthly（毎月）の次回時刻を計算"""
+        # monthly は「存在しない日付は月末に丸める」方針
+
         start: datetime = max(now, self._base(alarm))
         target_day: int = alarm.datetime_.day
 
@@ -233,15 +212,3 @@ class AlarmScheduler:
         return None
 
     # 🔥 その他の補助メソッドがあればここに追加
-
-    def find_due_alarms(self, alarms: list[AlarmInternal]) -> list[AlarmInternal]:
-        """鳴らすべきアラームデータを探す"""
-        now: datetime = datetime.now()
-        actual_now: datetime = now
-
-        due: list[AlarmInternal] = []
-
-        for alarm in alarms:
-            if alarm.enabled and should_fire_alarm(alarm, now, actual_now):
-                due.append(alarm)
-        return due

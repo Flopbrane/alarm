@@ -21,18 +21,17 @@ from typing import Any, Callable, List, Optional, TypedDict, cast
 import pygame
 
 # 自作モジュール
-from alarm_data_json_mapper import (InternalToJsonMapper,  # 旧Loader
-                                    JsonToInternalMapper)
+from alarm_data_json_mapper import InternalToJsonMapper, JsonToInternalMapper  # 旧Loader
 from alarm_internal_model import AlarmInternal, AlarmStateInternal
 from alarm_json_model import AlarmJson, AlarmStateJson
 from alarm_player import AlarmPlayer
+from alarm_repeat_datetime_checker import AlarmDatetimeChecker
 from alarm_scheduler import AlarmScheduler
 from alarm_storage import AlarmStorage
 from alarm_ui_mapper import InternaltoUIMapper, UItoInternalMapper
 from alarm_ui_model import AlarmStateView, AlarmUI
 from constants import DEFAULT_SOUND
 from env_paths import ALARM_PATH, BACKUP_DIR, DATA_DIR, STANDBY_PATH
-
 
 
 class NextAlarmInfo(TypedDict):
@@ -73,7 +72,10 @@ class AlarmManager:
         # データ保存・読み込み用
         self.storage = AlarmStorage()
         # 時刻計算用
+        self._now: datetime | None = None
         self.scheduler = AlarmScheduler()
+        self.datetime_checker: AlarmDatetimeChecker = AlarmDatetimeChecker(
+            state=AlarmStateInternal(id=""))
         # データ変換用
         # UI ↔ Internal
         self.ui_to_internal_mapper = UItoInternalMapper()
@@ -114,6 +116,22 @@ class AlarmManager:
             # pygame は環境依存で例外型が不定なため Exception を許容する
             print(f"[注意] pygame初期化失敗: {e}")
             self.default_sound = None
+
+    # ======================================================
+    # 計算軸になる、ソフト内の基準時刻設定
+    # ======================================================
+    def tick(self) -> None:
+        """1ループ開始時に一度だけ now を確定"""
+        self._now = datetime.now().replace(microsecond=0)
+
+
+    def internal_clock(self) -> datetime:
+        """ソフト駆動基準の現在基準時刻を返す"""
+        if self._now is None:
+            self.tick()
+
+        assert self._now is not None  # ← 型チェッカーへの宣言
+        return self._now
 
     # ---------------------------------------------------
     # CUIの駆動、アラーム監視

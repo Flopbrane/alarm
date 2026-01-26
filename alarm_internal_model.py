@@ -199,9 +199,13 @@ class AlarmStateInternal:
     【内部判定】
     - 内部ロジック（checkerが参照 / Managerが変更）
         next_fire_datetime == None & lifecycle_finished == False → 未計算
+        → is_uncomputed() が True
         next_fire_datetime != None & lifecycle_finished == False → 次回予定あり
+        → has_next_schedule() が True
         next_fire_datetime == None & lifecycle_finished == True  → 鳴動終了
+        → is_finished() が True
         next_fire_datetime != None & lifecycle_finished == True  → エラー状態
+        → is_invalid_state() が True
     """
 
     id: int = 0

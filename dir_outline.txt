@@ -1,28 +1,71 @@
+alarm プロジェクト：最新版ディレクトリ設計（2026-01）
+
 alarm/
-├─ start.py                      ← 唯一のエントリーポイント
+├─ start.py
+│   └─ 🚪 唯一のエントリーポイント
+│      ・GUI / CUI の分岐
+│      ・AlarmManager の起動のみ
 │
-├─ core/                         ← GUI / CUI 非依存の中核
-│   ├─ alarm_internal_model.py
-│   ├─ alarm_state_model.py
-│   ├─ alarm_manager.py
-│   ├─ alarm_scheduler.py
-│   ├─ alarm_repeat_rules.py
-│   ├─ alarm_config_manager.py
-│   ├─ alarm_loader.py           ← load orchestration
-│   └─ alarm_storage.py          ← JSON保存・復元のみ
+├─ core/                         ← ★純粋な業務ロジック層（UI 非依存）
+│   │
+│   ├─ models/
+│   │   ├─ alarm_internal_model.py
+│   │   │   └─ AlarmInternal（設定の真実）
+│   │   ├─ alarm_state_internal.py
+│   │   │   └─ AlarmStateInternal（状態の真実）
+│   │   └─ __init__.py
+│   │
+│   ├─ manager/
+│   │   ├─ alarm_manager.py
+│   │   │   └─ ★司令塔（唯一の書き込み責任者）
+│   │   │      ・add / update / delete
+│   │   │      ・scheduler 呼び出し
+│   │   │      ・sorted_next_fire_datetime_dict 管理
+│   │   └─ __init__.py
+│   │
+│   ├─ scheduler/
+│   │   ├─ alarm_scheduler.py
+│   │   │   └─ ★次回鳴動日時の計算専用
+│   │   │      ・repeat ごとの計算
+│   │   │      ・state.next_fire_datetime を返すだけ
+│   │   ├─ alarm_repeat_calculator.py
+│   │   │   └─ daily / weekly / custom 等の純計算ロジック
+│   │   └─ __init__.py
+│   │
+│   ├─ checker/
+│   │   ├─ alarm_fire_checker.py
+│   │   │   └─ ★「今、鳴らしていいか？」だけを判断
+│   │   │      ・repeat を知らない
+│   │   │      ・state.next_fire_datetime のみ参照
+│   │   └─ __init__.py
+│   │
+│   ├─ storage/
+│   │   ├─ alarm_storage.py
+│   │   │   └─ JSON の保存 / 復元のみ
+│   │   ├─ alarm_loader.py
+│   │   │   └─ 起動時ロードのオーケストレーション
+│   │   └─ __init__.py
+│   │
+│   └─ config/
+│       ├─ alarm_config_manager.py
+│       └─ __init__.py
 │
-├─ mappers/                      ← dataclass変換専用
-│   ├─ json_mapper.py            ← Internal ↔ JSON
-│   ├─ ui_mapper.py              ← UI ↔ Internal（CUI/GUI共通）
-│   └─ state_mapper.py           ← State ↔ View
-│
-├─ normalizers/                  ← 入力正規化（重要）
-│   ├─ datetime_normalizer.py    ← 日付・時刻の正規化
-│   ├─ weekday_normalizer.py
-│   ├─ alarm_dict_normalizer.py  ← ★ normalize_alarm_dict はここ
+├─ mappers/                      ← ★変換責務を一手に引き受ける層
+│   ├─ json_mapper.py
+│   │   └─ Internal ↔ JSON（datetime ↔ str）
+│   ├─ ui_mapper.py
+│   │   └─ UI ↔ Internal（入力補助のみ）
+│   ├─ state_view_mapper.py
+│   │   └─ StateInternal ↔ View（表示専用）
 │   └─ __init__.py
 │
-├─ validators/                   ← 妥当性チェック（例外を投げる）
+├─ normalizers/                  ← ★「整形するだけ・判断しない」
+│   ├─ datetime_normalizer.py
+│   ├─ weekday_normalizer.py
+│   ├─ alarm_dict_normalizer.py
+│   └─ __init__.py
+│
+├─ validators/                   ← ★妥当性検証（例外を投げる）
 │   ├─ datetime_validator.py
 │   ├─ alarm_validator.py
 │   └─ __init__.py
@@ -56,12 +99,15 @@ alarm/
 │   └─ backup/
 │
 ├─ tests/
-│   └─ alarm_test_full_condition.py
+│   ├─ test_alarm_scheduler.py
+│   ├─ test_alarm_checker.py
+│   ├─ test_alarm_manager_flow.py
+│   └─ __init__.py
 │
 ├─ constants.py
 │
-└─ utils/                        ← ★最小限の「横断ユーティリティ」
-    ├─ datetime_util.py          ← dt↔str 低レベル変換のみ
+└─ utils/                        ← ★横断的・最小限
+    ├─ datetime_util.py          ← dt↔str（低レベル）
     ├─ path_util.py
-    ├─ logging_util.py           ← ★ error_log 用
+    ├─ logging_util.py           ← ★JSON logger
     └─ __init__.py
