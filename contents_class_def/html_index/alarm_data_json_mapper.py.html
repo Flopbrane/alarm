@@ -1,19 +1,20 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="ja">
 <meta charset="utf-8">
 <title>alarm_data_json_mapper</title>
 <body>
 <h1>alarm_data_json_mapper</h1>
 <ul>
-<li><a href='vscode://file/D:/PC/Python/alarm/alarm_data_json_mapper.py:32'>D:\PC\Python\alarm\alarm_data_json_mapper.py:32</a> <code>def dt_to_str(dt: datetime | None) -&gt; str | None:</code></li>
-<li><a href='vscode://file/D:/PC/Python/alarm/alarm_data_json_mapper.py:37'>D:\PC\Python\alarm\alarm_data_json_mapper.py:37</a> <code>def str_to_dt(v: str | None) -&gt; datetime | None:</code></li>
-<li><a href='vscode://file/D:/PC/Python/alarm/alarm_data_json_mapper.py:44'>D:\PC\Python\alarm\alarm_data_json_mapper.py:44</a> <code>def any_to_dt(v: str | datetime | None) -&gt; datetime | None:</code></li>
-<li><a href='vscode://file/D:/PC/Python/alarm/alarm_data_json_mapper.py:55'>D:\PC\Python\alarm\alarm_data_json_mapper.py:55</a> <code>class JsonToInternalMapper:</code></li>
-<li><a href='vscode://file/D:/PC/Python/alarm/alarm_data_json_mapper.py:60'>D:\PC\Python\alarm\alarm_data_json_mapper.py:60</a> <code>    def alarm_json_to_internal(</code></li>
-<li><a href='vscode://file/D:/PC/Python/alarm/alarm_data_json_mapper.py:95'>D:\PC\Python\alarm\alarm_data_json_mapper.py:95</a> <code>    def alarm_state_json_to_internal(self, s: AlarmStateJson) -&gt; AlarmStateInternal:</code></li>
-<li><a href='vscode://file/D:/PC/Python/alarm/alarm_data_json_mapper.py:111'>D:\PC\Python\alarm\alarm_data_json_mapper.py:111</a> <code>class InternalToJsonMapper(JsonToInternalMapper):</code></li>
-<li><a href='vscode://file/D:/PC/Python/alarm/alarm_data_json_mapper.py:117'>D:\PC\Python\alarm\alarm_data_json_mapper.py:117</a> <code>    def alarm_internal_to_json(self, a: AlarmInternal) -&gt; AlarmJson:</code></li>
-<li><a href='vscode://file/D:/PC/Python/alarm/alarm_data_json_mapper.py:147'>D:\PC\Python\alarm\alarm_data_json_mapper.py:147</a> <code>    def alarm_state_internal_to_json(</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_data_json_mapper.py:36'>D:\PC\Python\alarm\alarm_data_json_mapper.py:36</a> <code>def dt_to_str(dt: datetime | None) -&gt; str | None: # 内部用</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_data_json_mapper.py:41'>D:\PC\Python\alarm\alarm_data_json_mapper.py:41</a> <code>def str_to_dt(v: str | None) -&gt; datetime | None:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_data_json_mapper.py:48'>D:\PC\Python\alarm\alarm_data_json_mapper.py:48</a> <code>def any_to_dt(v: str | datetime | None) -&gt; datetime | None: # 内部値への変換用</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_data_json_mapper.py:56'>D:\PC\Python\alarm\alarm_data_json_mapper.py:56</a> <code>def dt_to_any(dt: datetime | None) -&gt; str | None: # Jsonへの変換用</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_data_json_mapper.py:65'>D:\PC\Python\alarm\alarm_data_json_mapper.py:65</a> <code>class JsonToInternalMapper:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_data_json_mapper.py:70'>D:\PC\Python\alarm\alarm_data_json_mapper.py:70</a> <code>    def alarm_json_to_internal(</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_data_json_mapper.py:118'>D:\PC\Python\alarm\alarm_data_json_mapper.py:118</a> <code>    def alarm_state_json_to_internal(self, s: AlarmStateJson) -&gt; AlarmStateInternal:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_data_json_mapper.py:131'>D:\PC\Python\alarm\alarm_data_json_mapper.py:131</a> <code>class InternalToJsonMapper(JsonToInternalMapper):</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_data_json_mapper.py:137'>D:\PC\Python\alarm\alarm_data_json_mapper.py:137</a> <code>    def alarm_internal_to_json(self, a: AlarmInternal) -&gt; AlarmJson:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_data_json_mapper.py:177'>D:\PC\Python\alarm\alarm_data_json_mapper.py:177</a> <code>    def alarm_state_internal_to_json(</code></li>
 </ul>
 </body>
 </html>

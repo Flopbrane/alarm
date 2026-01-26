@@ -21,30 +21,33 @@ from constants import DEFAULT_SOUND
 
 
 # ユーティリティ関数：list[int] のデフォルト値用
+# 「可変デフォルト回避」の意図が伝わりやすくなる
 def _int_list() -> list[int]:
-    return []
+    return list()
 
 
 @dataclass
 class AlarmJson:
     """アラーム設定を JSON 形式で保存・読み込みするためのデータクラス"""
-
-    id: int
+    # id ->UUIDに変更
+    id: str  # アラームID（AlarmStateJson.id と対応）
     name: str
     date: str  # "YYYY-MM-DD"
     time: str  # "HH:MM"
-    repeat: str = "none"
+    repeat: str = "single"
     weekday: list[int] = field(default_factory=_int_list)
     week_of_month: list[int] = field(default_factory=_int_list)
     interval_weeks: int = 1
+    interval_days: int|None = None
     base_date: str | None = None
     custom_desc: str = ""
     enabled: bool = True
     sound: str = field(default_factory=lambda: str(DEFAULT_SOUND))
     skip_holiday: bool = False
-    duration: int = 10
+    duration: int = 30
     snooze_minutes: int = 10
     snooze_limit: int = 3
+    end_at: str | None = None
 
     @property
     def weekday_list(self) -> list[int]:
@@ -57,7 +60,7 @@ class AlarmJson:
         if not v:
             self.weekday = []
         elif isinstance(v, str):
-            self.weekday = [int(x) for x in v.split(",")]
+            self.weekday = [int(x) for x in v.split(",") if x.strip().isdigit()]
         else:
             self.weekday = list(v)
 
@@ -73,17 +76,18 @@ class AlarmStateJson:
     Json返しは必ず str | None
     Internal返しは必ず datetime | None
     str ↔ datetime 変換は必ず mapper で行う
+    id -> UUIDに変更
     """
-
-    id: int
-    _snoozed_until: str | None = None
-    _snooze_count: int = 0
-    _triggered: bool = False
-    _triggered_at: str | None = None
+    id: str  # アラームID（AlarmJson.id と対応）
+    _snoozed_until: str | None = None # ISO8601 ("YYYY-MM-DDTHH:MM:SS") | None
+    _snooze_count: int = 0 # スヌーズ回数
+    _triggered: bool = False # アラームがトリガーされたかどうか
+    _triggered_at: str | None = None # ISO8601 ("YYYY-MM-DDTHH:MM:SS") | None
     # ★ 推奨追加！
-    _last_fired_at: str | None = None
-    _next_fire_datetime: str | None = None  # ISO8601 ("YYYY-MM-DDTHH:MM:SS")
-    _lifecycle_finished: bool = False  # 鳴動開始後再参照終了フラグ(_next_fire_datetime更新後にリセット)
+    _last_fired_at: str | None = None # ISO8601 ("YYYY-MM-DDTHH:MM:SS") | None
+    _next_fire_datetime: str | None = None # ISO8601 ("YYYY-MM-DDTHH:MM:SS") | None（Manager がのみ更新）
+    _lifecycle_finished: bool = False # 鳴動開始後再参照終了フラグ(_next_fire_datetime更新後にリセット) repeat=single の終了判定用（Checkerは読まない）
+    _needs_recalc: bool = False # 再計算が必要かどうかのフラグ（Internal専用）
 
     # ===== Getter/Setter（こちらの方が自然で綺麗） =====
     @property
@@ -174,4 +178,12 @@ class AlarmStateJson:
     @lifecycle_finished.setter
     def lifecycle_finished(self, v: bool) -> None:
         self._lifecycle_finished = v
-# =========================================================
+
+    @property
+    def needs_recalc(self) -> bool:
+        """再計算が必要かどうかのフラグ"""
+        return self._needs_recalc
+
+    @needs_recalc.setter
+    def needs_recalc(self, value: bool) -> None:
+        self._needs_recalc = value

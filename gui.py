@@ -15,10 +15,11 @@ import os
 import tkinter as tk
 from datetime import datetime, timedelta
 from tkinter import filedialog, messagebox, ttk
-from typing import Any, Dict, Literal
+from typing import TYPE_CHECKING, Literal
+
+from alarm_config_manager import Config, ConfigManager
 
 # --- 自作モジュール ---------------------------------------------------------
-from alarm_manager import AlarmManager
 from alarm_player import AlarmPlayerGUI
 from alarm_storage import AlarmStorage
 from constants import (
@@ -31,44 +32,40 @@ from constants import (
     WEEKDAY_LABELS,
     WEEKS_CUSTOM_INTERNAL,
 )
+from gui_controller import GUIController
 from json_editor import JsonEditor
 from mini_calendar import MiniCalendar, TimePicker
-from utils import (
-    load_config,
-    load_window_position,
-    save_config,
-    save_window_position,
-    to_hankaku,
-    validate_date,
-    validate_time,
-    weekday_to_str,
-)
+from utils import save_config, to_hankaku, validate_date, validate_time, weekday_to_str
+from window_keys import WINDOW_KEYS
+from window_position_store import WindowPositionStore
 
 # print(python_version := os.sys.version) # デバッグ用
-
+if TYPE_CHECKING:
+    from gui_controller import GUIController
 # =========================================================
 # 🔹 GUIクラス（AlarmManagerと連携）
 # =========================================================
-
-
 class AlarmGUI:
     """GUI駆動・コントロールクラス"""
     # =========================================
     # 🔹 __init__
     # =========================================
-    def __init__(self) -> None:
-        self.manager = AlarmManager()
+    def __init__(self, controller: "GUIController") -> None:
+        self.controller = controller
         self.root = tk.Tk()
         # Tk after 版のプレーヤーを使用
         self.player = AlarmPlayerGUI(self.root)
         self.storage = AlarmStorage()
-        self.config_data = load_config()
+        self.config_manager = ConfigManager()
+        self.config_data: Config = self.config_manager.load_config()
         self._next_alarm_cache = None  # (next_time, alarm dict)
         self._next_label_line1: Literal[""] = ""
+        # =========================================
+        self.window_position_store = WindowPositionStore()
+
 
         # 🟢 ① まず位置復元を試みる
-        restored: bool = self.load_window_position(self.root, WINDOW_KEYS["MAIN"])
-
+        restored: bool = self.window_position_store.load_window_position(self.root, WINDOW_KEYS["MAIN"])
         if not restored:
             # ⭐ 初回起動 → 左上に固定
             self.root.geometry("520x400+40+40")
@@ -87,7 +84,7 @@ class AlarmGUI:
         self.create_main_widgets()
 
         # 🟢 ④ リスナー
-        self.manager.add_listener(self.refresh_tree)
+        self.controller.manager.add_listener(self.refresh_tree)
 
     # --------------------------------------------
     # 🔹 messagebox ラッパー（親をメインに固定）
@@ -108,12 +105,12 @@ class AlarmGUI:
     # 🔹 ウインド位置記憶
     # --------------------------------------------
     def get_window_pos_file(self) -> str:
-        base = self.manager.base_dir
+        base = self.controller.manager.base_dir
         return os.path.join(base, "config.json")
 
     def save_window_position(self, window, key: str) -> None:
         try:
-            save_window_position(window, key)
+            self.window_position_store.save_window_position(window, key)
         except Exception as e:
             print("⚠ ウインド位置の保存失敗:", e)
 
@@ -122,7 +119,7 @@ class AlarmGUI:
         復元に成功すれば True、位置が無ければ False を返す。
         """
         try:
-            return load_window_position(window, key)
+            return self.window_position_store.load_window_position(window, key)
         except Exception as e:
             print(f"[WARN] load_window_position エラー: {e}")
             return False
@@ -131,9 +128,10 @@ class AlarmGUI:
     # 🔹 GUI起動
     # --------------------------------------------
     def start_gui(self) -> None:
+        """GUIのメインループ開始"""
         # ✅ GUIが立ってからループ開始
         # 位置復元（★ window = self.root を渡す）
-        self.load_window_position(self.root, WINDOW_KEYS["MAIN"])
+        self.window_position_store.load_window_position(self.root, WINDOW_KEYS["MAIN"])
         self.root.after(500, self.update_clock)
         self.root.after(500, self.alarm_check_loop)
         self.root.after(500, self.next_alarm_update_loop)  # 次アラーム表示は20秒ごと
@@ -157,7 +155,7 @@ class AlarmGUI:
     # --------------------------------------------
     def alarm_check_loop(self) -> None:
         """アラーム鳴動チェック（音鳴らし）"""
-        due_alarms = self.manager.find_due_alarm()
+        due_alarms = self.controller.manager.find_due_alarm()
 
         if due_alarms:
             for alarm in due_alarms:
@@ -178,14 +176,14 @@ class AlarmGUI:
 
     def _finish_alarm(self, alarm_id: int):
         """鳴動終了時にフラグと表示をリセット"""
-        alarm = self.manager.get_alarm_by_id(alarm_id)
+        alarm = self.controller.manager.get_alarm_by_id(alarm_id)
         if not alarm:
             return
         # pylint: disable=protected-access
         if alarm.get("_triggered"):
             alarm["_triggered"] = False
             alarm.pop("_triggered_at", None)
-            self.manager._save_standby()
+            self.controller.manager._save_standby()
         # pylint: enable=protected-access
         # 背景と表示を通常に戻す
         self._set_bg_normal()

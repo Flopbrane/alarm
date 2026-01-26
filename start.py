@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""GUI/CUI 起動選択ダイアログ"""
+"""
+GUI / CUI 起動選択エントリーポイント
+Tk は「起動モード選択」にしか使わない
+"""
 #########################
 # Author: F.Kurokawa
 # Description:
-# GUI/CUI 起動選択ダイアログ
+# start.py
 #########################
 
 # 標準ライブラリ
@@ -13,82 +16,134 @@ from tkinter import ttk
 
 # 自作モジュール
 from alarm_config_manager import Config, ConfigManager
-from cui import main
-from gui import AlarmGUI
+from alarm_manager_temp import AlarmManager
+from cui_controller import CUIController
+from gui_controller import GUIController
 
+# =====================================================
+# 🔹 グローバル初期化（1回だけ）
+# =====================================================
+manager = AlarmManager()
 cfg_mgr = ConfigManager()
-
-def start_gui_mode(root: tk.Tk | None = None) -> None:
-    """GUIモードで起動"""
-    cfg: Config
-    cfg = cfg_mgr.load_config()
-    cfg.last_mode = "gui"
-    cfg_mgr.save_config(cfg)
-
-    if root is not None:
-        root.destroy()
-
-    app = AlarmGUI()
-    app.start_gui()
+cfg: Config = cfg_mgr.load_config()
 
 
-def start_cui_mode(root: tk.Tk | None = None) -> None:
-    """CUIモードで起動"""
-    cfg: Config
-    cfg = cfg_mgr.load_config()
-    cfg.last_mode = "cui"
-    cfg_mgr.save_config(cfg)
+# =====================================================
+# 🔹 起動処理本体
+# =====================================================
+def start_application() -> None:
+    """
+    アプリ起動エントリーポイント
+    """
+    try:
+        if cfg.show_dialog:
+            show_mode_dialog()
+        else:
+            start_by_last_mode()
 
-    if root is not None:
-        root.destroy()
+    except (FileNotFoundError, ValueError, KeyError) as e:
+        # 🔴 最終セーフティネット
+        print("[警告] 起動設定の読み込みに失敗しました")
+        print(e)
 
-    main()
+        # 強制的にダイアログ起動
+        show_mode_dialog()
 
 
+def start_by_last_mode() -> None:
+    """
+    設定に従って GUI / CUI を直接起動
+    """
+    try:
+        if cfg.last_mode == "gui":
+            launch_gui()
+        elif cfg.last_mode == "cui":
+            launch_cui()
+        else:
+            show_mode_dialog()
+
+    except (FileNotFoundError, ValueError, KeyError, AttributeError) as e:
+        print("[警告] 最終モード起動に失敗しました")
+        print(e)
+        show_mode_dialog()
+
+
+def launch_gui() -> None:
+    """GUI 起動"""
+    GUIController(manager).start()
+
+
+def launch_cui() -> None:
+    """CUI 起動"""
+    CUIController(manager).run()
+
+
+# =====================================================
+# 🔹 起動モード選択ダイアログ
+# =====================================================
 def show_mode_dialog() -> None:
-    """起動モード選択ダイアログを表示する"""
+    """起動モード選択用の Tk ダイアログ"""
     root = tk.Tk()
     root.title("起動モードを選択")
     root.geometry("360x150")
-    root.resizable(True, True)
+    root.resizable(False, False)
 
-    ttk.Label(root, text="起動モードを選んでください", font=("Meiryo", 12)).pack(
-        pady=15
-    )
+    ttk.Label(
+        root,
+        text="起動モードを選んでください",
+        font=("Meiryo", 12),
+    ).pack(pady=15)
 
     btn_frame = ttk.Frame(root)
     btn_frame.pack(pady=5)
 
     ttk.Button(
-        btn_frame, text="GUI で起動", width=15, command=lambda: start_gui_mode(root)
+        btn_frame,
+        text="GUI で起動",
+        width=15,
+        command=lambda: on_gui_selected(root),
     ).grid(row=0, column=0, padx=5)
 
     ttk.Button(
-        btn_frame, text="CUI で起動", width=15, command=lambda: start_cui_mode(root)
+        btn_frame,
+        text="CUI で起動",
+        width=15,
+        command=lambda: on_cui_selected(root),
     ).grid(row=0, column=1, padx=5)
 
-    ttk.Button(btn_frame, text="キャンセル", width=15, command=root.destroy).grid(
-        row=0, column=2, padx=5
-    )
+    ttk.Button(
+        btn_frame,
+        text="キャンセル",
+        width=15,
+        command=root.destroy,
+    ).grid(row=0, column=2, padx=5)
 
     root.mainloop()
 
 
-def start() -> None:
-    """メイン関数"""
-    cfg: Config
-    cfg = cfg_mgr.load_config()
+# =====================================================
+# 🔹 ボタンイベント
+# =====================================================
+def on_gui_selected(root: tk.Tk) -> None:
+    """GUI 起動が選ばれた"""
+    cfg.last_mode = "gui"
+    cfg_mgr.save_config(cfg)
 
-    # show_startup_dialog = False の時 → 自動で last_mode に従って起動
-    if not getattr(cfg, "show_startup_dialog", True):
-        if getattr(cfg, "last_mode", "") == "":
-            return start_cui_mode()
-        else:
-            return start_gui_mode()
-
-    # 通常 → モード選択ダイアログ表示
-    show_mode_dialog()
+    root.destroy()  # ← Tk はここで完全終了
+    launch_gui()
 
 
+def on_cui_selected(root: tk.Tk) -> None:
+    """CUI 起動が選ばれた"""
+    cfg.last_mode = "cui"
+    cfg_mgr.save_config(cfg)
+
+    root.destroy()  # ← Tk はここで完全終了
+    launch_cui()
+
+
+# =====================================================
+# 🔹 エントリーポイント
+# =====================================================
 if __name__ == "__main__":
-    start()
+    start_application()

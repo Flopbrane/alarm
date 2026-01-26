@@ -62,7 +62,7 @@ class AlarmPlayer:
 
         pygame.mixer.music.play(-1)
 
-        def stop_after():
+        def stop_after() -> None:
             sleep(dur)
             pygame.mixer.music.stop()
 

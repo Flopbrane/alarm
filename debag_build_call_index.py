@@ -65,18 +65,21 @@ EXCLUDE_DIR_NAMES: Set[str] = {
     "contents_class_def",  # 自分自身を除外
 }
 
+
 # ==========================
 # 実装
 # ==========================
 @dataclass(frozen=True)
 class FuncRow:
     """関数ごとの呼び出し情報行"""
+
     file: str
     qualname: str
     lineno: int
     calls: str
     vscode_link: str
     ps_html_link: str
+
 
 # ==========================
 def is_excluded(path: Path) -> bool:
@@ -133,6 +136,7 @@ def parse_import_aliases(tree: ast.AST) -> Dict[str, str]:
 
 class CallCollector(ast.NodeVisitor):
     """関数/メソッドごとの呼び出し名を収集するAST Visitor"""
+
     def __init__(self, alias_map: Dict[str, str]) -> None:
         self.alias_map: Dict[str, str] = alias_map
         self.class_stack: List[str] = []
@@ -175,6 +179,7 @@ class CallCollector(ast.NodeVisitor):
 
     def visit_Lambda(self, node: ast.Lambda) -> None:
         return  # 潜らない
+
     def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
         return
 

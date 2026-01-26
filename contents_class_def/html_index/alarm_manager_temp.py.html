@@ -1,0 +1,67 @@
+﻿<!doctype html>
+<html lang="ja">
+<meta charset="utf-8">
+<title>alarm_manager_temp</title>
+<body>
+<h1>alarm_manager_temp</h1>
+<ul>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_manager_temp.py:52'>D:\PC\Python\alarm\alarm_manager_temp.py:52</a> <code>class NextAlarmInfo(TypedDict):</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_manager_temp.py:60'>D:\PC\Python\alarm\alarm_manager_temp.py:60</a> <code>class AlarmManager:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_manager_temp.py:74'>D:\PC\Python\alarm\alarm_manager_temp.py:74</a> <code>    def get_base_dir() -&gt; Path:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_manager_temp.py:83'>D:\PC\Python\alarm\alarm_manager_temp.py:83</a> <code>    def __init__(</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_manager_temp.py:141'>D:\PC\Python\alarm\alarm_manager_temp.py:141</a> <code>    def tick(self) -&gt; None:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_manager_temp.py:145'>D:\PC\Python\alarm\alarm_manager_temp.py:145</a> <code>    def internal_clock(self) -&gt; datetime:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_manager_temp.py:157'>D:\PC\Python\alarm\alarm_manager_temp.py:157</a> <code>    def _where(self, method_name: str) -&gt; LogWhere:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_manager_temp.py:174'>D:\PC\Python\alarm\alarm_manager_temp.py:174</a> <code>    def _recalc_states(self) -&gt; None:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_manager_temp.py:205'>D:\PC\Python\alarm\alarm_manager_temp.py:205</a> <code>    def _get_state(self, alarm_id: str) -&gt; AlarmStateInternal | None:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_manager_temp.py:212'>D:\PC\Python\alarm\alarm_manager_temp.py:212</a> <code>    def get_alarm_by_id(self, alarm_id: str) -&gt; AlarmInternal | None:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_manager_temp.py:219'>D:\PC\Python\alarm\alarm_manager_temp.py:219</a> <code>    def get_state_by_id(self, alarm_id: str) -&gt; AlarmStateInternal | None:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_manager_temp.py:226'>D:\PC\Python\alarm\alarm_manager_temp.py:226</a> <code>    def _update_next_fire_runtime(self) -&gt; None:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_manager_temp.py:242'>D:\PC\Python\alarm\alarm_manager_temp.py:242</a> <code>    def _handle_due_alarms(self) -&gt; None:  # 実際に鳴らす処理</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_manager_temp.py:307'>D:\PC\Python\alarm\alarm_manager_temp.py:307</a> <code>    def _get_or_create_state(self, alarm_id: str) -&gt; AlarmStateInternal:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_manager_temp.py:319'>D:\PC\Python\alarm\alarm_manager_temp.py:319</a> <code>    def _build_sorted_next_alarm_list(self) -&gt; list[tuple[str, datetime]]:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_manager_temp.py:323'>D:\PC\Python\alarm\alarm_manager_temp.py:323</a> <code>    def _fire_alarm(self, alarm: AlarmInternal, state: AlarmStateInternal) -&gt; None:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_manager_temp.py:357'>D:\PC\Python\alarm\alarm_manager_temp.py:357</a> <code>    def _check_invalid_states(self) -&gt; None:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_manager_temp.py:384'>D:\PC\Python\alarm\alarm_manager_temp.py:384</a> <code>    def _repair_invalid_states(self) -&gt; None:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_manager_temp.py:453'>D:\PC\Python\alarm\alarm_manager_temp.py:453</a> <code>    def _normalize_on_boot_and_edit(self, reason: Literal[&quot;boot&quot;, &quot;edit&quot;]) -&gt; None:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_manager_temp.py:487'>D:\PC\Python\alarm\alarm_manager_temp.py:487</a> <code>    def _reset_state_for_future(self, state: AlarmStateInternal) -&gt; None:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_manager_temp.py:496'>D:\PC\Python\alarm\alarm_manager_temp.py:496</a> <code>    def apply_alarm_mutation(</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_manager_temp.py:525'>D:\PC\Python\alarm\alarm_manager_temp.py:525</a> <code>    def update_alarm(self, alarm_id: str, patch: AlarmUIPatch) -&gt; None:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_manager_temp.py:556'>D:\PC\Python\alarm\alarm_manager_temp.py:556</a> <code>    def _adjust_state_after_update(self, alarm_id: str) -&gt; None:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_manager_temp.py:573'>D:\PC\Python\alarm\alarm_manager_temp.py:573</a> <code>    def _merge_ui(self, base: AlarmUI, patch: AlarmUIPatch) -&gt; AlarmUI:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_manager_temp.py:589'>D:\PC\Python\alarm\alarm_manager_temp.py:589</a> <code>    def get_next_id(self) -&gt; str:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_manager_temp.py:596'>D:\PC\Python\alarm\alarm_manager_temp.py:596</a> <code>    def add_alarm(self, ui_alarm: AlarmUI) -&gt; Optional[AlarmInternal]:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_manager_temp.py:634'>D:\PC\Python\alarm\alarm_manager_temp.py:634</a> <code>    def _replace_alarm(self, new_internal: AlarmInternal) -&gt; None:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_manager_temp.py:655'>D:\PC\Python\alarm\alarm_manager_temp.py:655</a> <code>    def delete_alarms(self, ids: list[str]) -&gt; None:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_manager_temp.py:660'>D:\PC\Python\alarm\alarm_manager_temp.py:660</a> <code>    def _remove_alarms_by_ids(self, ids: set[str]) -&gt; None:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_manager_temp.py:675'>D:\PC\Python\alarm\alarm_manager_temp.py:675</a> <code>    def _notify_listeners(self) -&gt; None:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_manager_temp.py:682'>D:\PC\Python\alarm\alarm_manager_temp.py:682</a> <code>        def _run() -&gt; None:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_manager_temp.py:691'>D:\PC\Python\alarm\alarm_manager_temp.py:691</a> <code>    def add_listener(self, func: Callable[[], None]) -&gt; None:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_manager_temp.py:696'>D:\PC\Python\alarm\alarm_manager_temp.py:696</a> <code>    def remove_listener(self, func: Callable[[], None]) -&gt; None:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_manager_temp.py:704'>D:\PC\Python\alarm\alarm_manager_temp.py:704</a> <code>    def toggle_alarm(self, alarm_id: str) -&gt; None:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_manager_temp.py:716'>D:\PC\Python\alarm\alarm_manager_temp.py:716</a> <code>    def _check_snooze(</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_manager_temp.py:756'>D:\PC\Python\alarm\alarm_manager_temp.py:756</a> <code>    def snooze_alarm(</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_manager_temp.py:779'>D:\PC\Python\alarm\alarm_manager_temp.py:779</a> <code>    def request_stop(self) -&gt; None:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_manager_temp.py:784'>D:\PC\Python\alarm\alarm_manager_temp.py:784</a> <code>    def stop_alarm(self, state: AlarmStateInternal) -&gt; None:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_manager_temp.py:801'>D:\PC\Python\alarm\alarm_manager_temp.py:801</a> <code>    def get_active_alarm_state(self) -&gt; Optional[AlarmStateInternal]:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_manager_temp.py:826'>D:\PC\Python\alarm\alarm_manager_temp.py:826</a> <code>    def load_alarms(self) -&gt; list[AlarmInternal]:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_manager_temp.py:841'>D:\PC\Python\alarm\alarm_manager_temp.py:841</a> <code>    def load_standby(self) -&gt; list[AlarmStateInternal]:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_manager_temp.py:868'>D:\PC\Python\alarm\alarm_manager_temp.py:868</a> <code>    def load_all(self) -&gt; None:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_manager_temp.py:883'>D:\PC\Python\alarm\alarm_manager_temp.py:883</a> <code>    def _save(self) -&gt; None:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_manager_temp.py:904'>D:\PC\Python\alarm\alarm_manager_temp.py:904</a> <code>    def _save_standby(self) -&gt; None:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_manager_temp.py:916'>D:\PC\Python\alarm\alarm_manager_temp.py:916</a> <code>    def _ensure_state_id_integrity(self) -&gt; None:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_manager_temp.py:932'>D:\PC\Python\alarm\alarm_manager_temp.py:932</a> <code>    def _normalize_for_persistence(self) -&gt; list[AlarmStateInternal]:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_manager_temp.py:951'>D:\PC\Python\alarm\alarm_manager_temp.py:951</a> <code>    def start_cycle(self, condition: CycleCondition) -&gt; None:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_manager_temp.py:966'>D:\PC\Python\alarm\alarm_manager_temp.py:966</a> <code>    def _start_config_changed_cycle(self) -&gt; None:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_manager_temp.py:973'>D:\PC\Python\alarm\alarm_manager_temp.py:973</a> <code>    def _start_startup_cycle(self) -&gt; None:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_manager_temp.py:980'>D:\PC\Python\alarm\alarm_manager_temp.py:980</a> <code>    def _start_running_cycle(self) -&gt; None:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_manager_temp.py:988'>D:\PC\Python\alarm\alarm_manager_temp.py:988</a> <code>    def run_cycle(self, opt: CycleOptions) -&gt; None:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_manager_temp.py:1034'>D:\PC\Python\alarm\alarm_manager_temp.py:1034</a> <code>    def _begin_cycle(self) -&gt; None:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_manager_temp.py:1038'>D:\PC\Python\alarm\alarm_manager_temp.py:1038</a> <code>    def _load_phase(self) -&gt; None:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_manager_temp.py:1042'>D:\PC\Python\alarm\alarm_manager_temp.py:1042</a> <code>    def _recalc_phase(self) -&gt; None:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_manager_temp.py:1048'>D:\PC\Python\alarm\alarm_manager_temp.py:1048</a> <code>    def _fire_phase(self) -&gt; None:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_manager_temp.py:1052'>D:\PC\Python\alarm\alarm_manager_temp.py:1052</a> <code>    def _save_phase(self) -&gt; None:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_manager_temp.py:1076'>D:\PC\Python\alarm\alarm_manager_temp.py:1076</a> <code>    def _stop_phase(self) -&gt; None:</code></li>
+</ul>
+</body>
+</html>

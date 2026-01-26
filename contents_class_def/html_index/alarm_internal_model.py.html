@@ -1,31 +1,41 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="ja">
 <meta charset="utf-8">
 <title>alarm_internal_model</title>
 <body>
 <h1>alarm_internal_model</h1>
 <ul>
-<li><a href='vscode://file/D:/PC/Python/alarm/alarm_internal_model.py:25'>D:\PC\Python\alarm\alarm_internal_model.py:25</a> <code>def _int_list() -&gt; list[int]:</code></li>
-<li><a href='vscode://file/D:/PC/Python/alarm/alarm_internal_model.py:30'>D:\PC\Python\alarm\alarm_internal_model.py:30</a> <code>class AlarmInternal:</code></li>
-<li><a href='vscode://file/D:/PC/Python/alarm/alarm_internal_model.py:139'>D:\PC\Python\alarm\alarm_internal_model.py:139</a> <code>    def __post_init__(self) -&gt; None:</code></li>
-<li><a href='vscode://file/D:/PC/Python/alarm/alarm_internal_model.py:149'>D:\PC\Python\alarm\alarm_internal_model.py:149</a> <code>    def date(self) -&gt; str:</code></li>
-<li><a href='vscode://file/D:/PC/Python/alarm/alarm_internal_model.py:154'>D:\PC\Python\alarm\alarm_internal_model.py:154</a> <code>    def date(self, v: str) -&gt; None:</code></li>
-<li><a href='vscode://file/D:/PC/Python/alarm/alarm_internal_model.py:171'>D:\PC\Python\alarm\alarm_internal_model.py:171</a> <code>    def time(self) -&gt; str:</code></li>
-<li><a href='vscode://file/D:/PC/Python/alarm/alarm_internal_model.py:176'>D:\PC\Python\alarm\alarm_internal_model.py:176</a> <code>    def time(self, t: str) -&gt; None:</code></li>
-<li><a href='vscode://file/D:/PC/Python/alarm/alarm_internal_model.py:191'>D:\PC\Python\alarm\alarm_internal_model.py:191</a> <code>    def repeat_base_datetime(self) -&gt; Optional[datetime]:</code></li>
-<li><a href='vscode://file/D:/PC/Python/alarm/alarm_internal_model.py:200'>D:\PC\Python\alarm\alarm_internal_model.py:200</a> <code>    def repeat_base_datetime(self, v: Optional[str | DateType | datetime]) -&gt; None:</code></li>
-<li><a href='vscode://file/D:/PC/Python/alarm/alarm_internal_model.py:233'>D:\PC\Python\alarm\alarm_internal_model.py:233</a> <code>class AlarmStateInternal:</code></li>
-<li><a href='vscode://file/D:/PC/Python/alarm/alarm_internal_model.py:244'>D:\PC\Python\alarm\alarm_internal_model.py:244</a> <code>    def initial(cls, alarm_id: int) -&gt; &quot;AlarmStateInternal&quot;:</code></li>
-<li><a href='vscode://file/D:/PC/Python/alarm/alarm_internal_model.py:263'>D:\PC\Python\alarm\alarm_internal_model.py:263</a> <code>    def snoozed_until(self) -&gt; Optional[datetime]:</code></li>
-<li><a href='vscode://file/D:/PC/Python/alarm/alarm_internal_model.py:268'>D:\PC\Python\alarm\alarm_internal_model.py:268</a> <code>    def snoozed_until(self, v: Optional[str | datetime]) -&gt; None:</code></li>
-<li><a href='vscode://file/D:/PC/Python/alarm/alarm_internal_model.py:284'>D:\PC\Python\alarm\alarm_internal_model.py:284</a> <code>    def snooze_count(self) -&gt; int:</code></li>
-<li><a href='vscode://file/D:/PC/Python/alarm/alarm_internal_model.py:289'>D:\PC\Python\alarm\alarm_internal_model.py:289</a> <code>    def snooze_count(self, v: int) -&gt; None:</code></li>
-<li><a href='vscode://file/D:/PC/Python/alarm/alarm_internal_model.py:296'>D:\PC\Python\alarm\alarm_internal_model.py:296</a> <code>    def triggered(self) -&gt; bool:</code></li>
-<li><a href='vscode://file/D:/PC/Python/alarm/alarm_internal_model.py:301'>D:\PC\Python\alarm\alarm_internal_model.py:301</a> <code>    def triggered(self, v: bool) -&gt; None:</code></li>
-<li><a href='vscode://file/D:/PC/Python/alarm/alarm_internal_model.py:308'>D:\PC\Python\alarm\alarm_internal_model.py:308</a> <code>    def triggered_at(self) -&gt; Optional[datetime]:</code></li>
-<li><a href='vscode://file/D:/PC/Python/alarm/alarm_internal_model.py:313'>D:\PC\Python\alarm\alarm_internal_model.py:313</a> <code>    def triggered_at(self, v: Optional[str | datetime]) -&gt; None:</code></li>
-<li><a href='vscode://file/D:/PC/Python/alarm/alarm_internal_model.py:332'>D:\PC\Python\alarm\alarm_internal_model.py:332</a> <code>    def last_fired_at(self) -&gt; Optional[datetime]:</code></li>
-<li><a href='vscode://file/D:/PC/Python/alarm/alarm_internal_model.py:337'>D:\PC\Python\alarm\alarm_internal_model.py:337</a> <code>    def last_fired_at(self, v: Optional[str | datetime]) -&gt; None:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_internal_model.py:23'>D:\PC\Python\alarm\alarm_internal_model.py:23</a> <code>def _int_list() -&gt; list[int]:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_internal_model.py:27'>D:\PC\Python\alarm\alarm_internal_model.py:27</a> <code>class AlarmInternal:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_internal_model.py:150'>D:\PC\Python\alarm\alarm_internal_model.py:150</a> <code>    def __post_init__(self) -&gt; None:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_internal_model.py:159'>D:\PC\Python\alarm\alarm_internal_model.py:159</a> <code>    def date(self) -&gt; DateType:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_internal_model.py:166'>D:\PC\Python\alarm\alarm_internal_model.py:166</a> <code>    def date(self, v: DateType) -&gt; None:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_internal_model.py:180'>D:\PC\Python\alarm\alarm_internal_model.py:180</a> <code>    def time(self) -&gt; TimeType:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_internal_model.py:188'>D:\PC\Python\alarm\alarm_internal_model.py:188</a> <code>    def time(self, v: TimeType) -&gt; None:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_internal_model.py:204'>D:\PC\Python\alarm\alarm_internal_model.py:204</a> <code>    def repeat_base_datetime(self) -&gt; datetime | None:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_internal_model.py:213'>D:\PC\Python\alarm\alarm_internal_model.py:213</a> <code>    def repeat_base_datetime(self, v: datetime | None) -&gt; None:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_internal_model.py:219'>D:\PC\Python\alarm\alarm_internal_model.py:219</a> <code>class AlarmStateInternal:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_internal_model.py:260'>D:\PC\Python\alarm\alarm_internal_model.py:260</a> <code>    def initial(cls, alarm_id: str) -&gt; &quot;AlarmStateInternal&quot;:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_internal_model.py:289'>D:\PC\Python\alarm\alarm_internal_model.py:289</a> <code>    def snoozed_until(self) -&gt; Optional[datetime]:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_internal_model.py:294'>D:\PC\Python\alarm\alarm_internal_model.py:294</a> <code>    def snoozed_until(self, v: Optional[datetime]) -&gt; None:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_internal_model.py:302'>D:\PC\Python\alarm\alarm_internal_model.py:302</a> <code>    def snooze_count(self) -&gt; int:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_internal_model.py:307'>D:\PC\Python\alarm\alarm_internal_model.py:307</a> <code>    def snooze_count(self, v: int) -&gt; None:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_internal_model.py:314'>D:\PC\Python\alarm\alarm_internal_model.py:314</a> <code>    def triggered(self) -&gt; bool:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_internal_model.py:319'>D:\PC\Python\alarm\alarm_internal_model.py:319</a> <code>    def triggered(self, v: bool) -&gt; None:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_internal_model.py:326'>D:\PC\Python\alarm\alarm_internal_model.py:326</a> <code>    def triggered_at(self) -&gt; Optional[datetime]:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_internal_model.py:331'>D:\PC\Python\alarm\alarm_internal_model.py:331</a> <code>    def triggered_at(self, v: Optional[datetime]) -&gt; None:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_internal_model.py:340'>D:\PC\Python\alarm\alarm_internal_model.py:340</a> <code>    def last_fired_at(self) -&gt; Optional[datetime]:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_internal_model.py:345'>D:\PC\Python\alarm\alarm_internal_model.py:345</a> <code>    def last_fired_at(self, v: Optional[datetime]) -&gt; None:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_internal_model.py:354'>D:\PC\Python\alarm\alarm_internal_model.py:354</a> <code>    def next_fire_datetime(self) -&gt; Optional[datetime]:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_internal_model.py:359'>D:\PC\Python\alarm\alarm_internal_model.py:359</a> <code>    def next_fire_datetime(self, value: Optional[Union[datetime, str]]) -&gt; None:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_internal_model.py:386'>D:\PC\Python\alarm\alarm_internal_model.py:386</a> <code>    def lifecycle_finished(self) -&gt; bool:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_internal_model.py:391'>D:\PC\Python\alarm\alarm_internal_model.py:391</a> <code>    def lifecycle_finished(self, v: bool) -&gt; None:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_internal_model.py:397'>D:\PC\Python\alarm\alarm_internal_model.py:397</a> <code>    def needs_recalc(self) -&gt; bool:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_internal_model.py:402'>D:\PC\Python\alarm\alarm_internal_model.py:402</a> <code>    def needs_recalc(self, value: bool) -&gt; None:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_internal_model.py:410'>D:\PC\Python\alarm\alarm_internal_model.py:410</a> <code>    def is_uncomputed(self) -&gt; bool:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_internal_model.py:415'>D:\PC\Python\alarm\alarm_internal_model.py:415</a> <code>    def has_next_schedule(self) -&gt; bool:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_internal_model.py:420'>D:\PC\Python\alarm\alarm_internal_model.py:420</a> <code>    def is_finished(self) -&gt; bool:</code></li>
+<li><a href='vscode://file/D:/PC/Python/alarm/alarm_internal_model.py:425'>D:\PC\Python\alarm\alarm_internal_model.py:425</a> <code>    def is_invalid_state(self) -&gt; bool:</code></li>
 </ul>
 </body>
 </html>

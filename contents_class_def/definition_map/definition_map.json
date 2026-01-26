@@ -15,6 +15,7 @@
   "alarm_data_json_mapper.py": {
     "__functions__": [
       "any_to_dt",
+      "dt_to_any",
       "dt_to_str",
       "str_to_dt"
     ],
@@ -25,6 +26,11 @@
     "InternalToJsonMapper": [
       "alarm_internal_to_json",
       "alarm_state_internal_to_json"
+    ]
+  },
+  "alarm_fire_guard.py": {
+    "__functions__": [
+      "check_last_fire"
     ]
   },
   "alarm_internal_model.py": {
@@ -38,13 +44,34 @@
       "time"
     ],
     "AlarmStateInternal": [
+      "has_next_schedule",
       "initial",
+      "is_finished",
+      "is_invalid_state",
+      "is_uncomputed",
       "last_fired_at",
+      "lifecycle_finished",
+      "needs_recalc",
       "next_fire_datetime",
       "snooze_count",
       "snoozed_until",
       "triggered",
       "triggered_at"
+    ]
+  },
+  "alarm_irregular_logger.py": {
+    "__functions__": [],
+    "LogWhere": [],
+    "LogWhat": [],
+    "LogRecord": [],
+    "AlarmLogger": [
+      "__init__",
+      "_json_safe",
+      "_write",
+      "error",
+      "info",
+      "warning",
+      "where_here"
     ]
   },
   "alarm_json_model.py": {
@@ -57,6 +84,8 @@
     ],
     "AlarmStateJson": [
       "last_fired_at",
+      "lifecycle_finished",
+      "needs_recalc",
       "next_fire_datetime",
       "snooze_count",
       "snoozed_until",
@@ -85,6 +114,7 @@
       "build_state_view",
       "delete_alarms",
       "driving_stop",
+      "find_due_alarms",
       "get_alarm_by_id",
       "get_alarm_settings",
       "get_base_dir",
@@ -93,17 +123,95 @@
       "get_next_alarms",
       "get_next_id",
       "get_state_by_id",
+      "internal_clock",
       "load_alarms",
       "load_all",
       "load_standby",
       "remove_alarm",
       "remove_listener",
       "request_stop",
-      "run",
       "snooze_alarm",
       "stop_alarm",
+      "tick",
       "toggle_alarm",
       "update_alarm"
+    ]
+  },
+  "alarm_manager_cycle_controll_options.py": {
+    "__functions__": [],
+    "CycleOptions": []
+  },
+  "alarm_manager_temp.py": {
+    "__functions__": [],
+    "NextAlarmInfo": [],
+    "AlarmManager": [
+      "__init__",
+      "_adjust_state_after_update",
+      "_begin_cycle",
+      "_build_normalized_states_for_save",
+      "_build_sorted_next_alarm_list",
+      "_check_invalid_states",
+      "_check_snooze",
+      "_fire_alarm",
+      "_fire_phase",
+      "_get_or_create_state",
+      "_get_state",
+      "_handle_due_alarms",
+      "_load_phase",
+      "_merge_ui",
+      "_normalize_on_boot_and_edit",
+      "_normalize_states",
+      "_notify_listeners",
+      "_recalc_phase",
+      "_recalc_states",
+      "_remove_alarms_by_ids",
+      "_repair_invalid_states",
+      "_replace_alarm",
+      "_reset_state_for_future",
+      "_save",
+      "_save_phase",
+      "_save_standby",
+      "_start_config_changed_cycle",
+      "_start_running_cycle",
+      "_start_startup_cycle",
+      "_stop_phase",
+      "_update_next_fire_runtime",
+      "_where",
+      "add_alarm",
+      "add_listener",
+      "apply_alarm_mutation",
+      "build_state_view",
+      "delete_alarms",
+      "get_active_alarm_state",
+      "get_alarm_by_id",
+      "get_base_dir",
+      "get_next_id",
+      "get_state_by_id",
+      "internal_clock",
+      "load_alarms",
+      "load_all",
+      "load_standby",
+      "remove_listener",
+      "request_stop",
+      "run_cycle",
+      "snooze_alarm",
+      "start_cycle",
+      "stop_alarm",
+      "tick",
+      "toggle_alarm",
+      "update_alarm"
+    ]
+  },
+  "alarm_manager_verification_script.py": {
+    "__functions__": [
+      "_validate_single_repeat",
+      "_where",
+      "main",
+      "test_disabled_alarms_never_fire",
+      "test_edge_case_alarm_fields_do_not_crash",
+      "test_hard_alarm_sample_json_survives",
+      "test_missing_state_creates_initial_state",
+      "test_next_fire_is_sane_for_all_alarms"
     ]
   },
   "alarm_player.py": {
@@ -119,17 +227,12 @@
       "stop"
     ]
   },
-  "alarm_repeat_date_calculator.py": {
-    "__functions__": [
-      "_check_last_fire",
-      "check_custom_rule",
-      "check_daily_rule",
-      "check_monthly_rule",
-      "check_single_rule",
-      "check_single_rule_debug",
-      "check_weekly_rule",
-      "match_time",
-      "should_fire_alarm"
+  "alarm_repeat_datetime_checker.py": {
+    "__functions__": [],
+    "AlarmDatetimeChecker": [
+      "__init__",
+      "_where",
+      "should_fire"
     ]
   },
   "alarm_scheduler.py": {
@@ -137,14 +240,15 @@
     "AlarmScheduler": [
       "__init__",
       "_base",
+      "_get_handler",
       "_next_custom",
       "_next_daily",
+      "_next_interval_days",
       "_next_monthly",
       "_next_single",
+      "_next_weekday_candidate",
       "_next_weekly",
-      "_next_weekly_x",
       "_with_time",
-      "find_due_alarms",
       "get_next_time"
     ]
   },
@@ -183,6 +287,8 @@
   },
   "alarm_ui_mapper.py": {
     "__functions__": [
+      "any_to_dt",
+      "dt_to_any",
       "ui_date_time_to_dt",
       "ui_default_date_time"
     ],
@@ -199,12 +305,40 @@
   "alarm_ui_model.py": {
     "__functions__": [],
     "AlarmUI": [],
+    "AlarmUIPatch": [],
     "AlarmStateView": []
   },
   "cui.py": {
     "__functions__": [
       "main",
       "print_upcoming_alarms"
+    ]
+  },
+  "cui_controller.py": {
+    "__functions__": [],
+    "CUIController": [
+      "__init__",
+      "on_timer",
+      "run",
+      "stop"
+    ]
+  },
+  "cui_datetime_normalizer.py": {
+    "__functions__": [
+      "normalize_base_date",
+      "normalize_commas",
+      "normalize_date",
+      "normalize_time",
+      "validate_date",
+      "validate_time"
+    ]
+  },
+  "cui_weekday_normalizer.py": {
+    "__functions__": [
+      "_extract_ints",
+      "_looks_numeric_only",
+      "normalize_weekday_list",
+      "parse_weekdays_cui"
     ]
   },
   "date_rule_valid_util.py": {
@@ -295,6 +429,14 @@
       "update_next_alarm_label"
     ]
   },
+  "gui_controller.py": {
+    "__functions__": [],
+    "GUIController": [
+      "__init__",
+      "on_timer",
+      "start"
+    ]
+  },
   "json_editor.py": {
     "__functions__": [],
     "JsonEditor": [
@@ -350,10 +492,24 @@
   },
   "start.py": {
     "__functions__": [
+      "launch_cui",
+      "launch_gui",
+      "on_cui_selected",
+      "on_gui_selected",
       "show_mode_dialog",
-      "start",
-      "start_cui_mode",
-      "start_gui_mode"
+      "start_application",
+      "start_by_last_mode"
+    ]
+  },
+  "test_alarm_manager_temp.py": {
+    "__functions__": [],
+    "TestAlarmManagerTemp": [
+      "setUp",
+      "test_alarm_fires_when_due",
+      "test_next_fire_times_updated_via_process",
+      "test_no_alarms_fire_before_due_time",
+      "test_process_sets_next_fire_datetime",
+      "test_startup_sync"
     ]
   },
   "test_alarm_state_internal_model.py": {
@@ -362,28 +518,12 @@
       "setUp",
       "test_getter_after_initialization",
       "test_multiple_assignments",
-      "test_setter_with_date_only_string",
       "test_setter_with_datetime_object",
       "test_setter_with_invalid_string",
       "test_setter_with_invalid_type",
       "test_setter_with_iso_format_datetime_string",
       "test_setter_with_microseconds",
       "test_setter_with_none"
-    ]
-  },
-  "ui_datetime_normalizer.py": {
-    "__functions__": [
-      "normalize_base_date",
-      "normalize_commas",
-      "normalize_date",
-      "normalize_time",
-      "validate_date",
-      "validate_time"
-    ]
-  },
-  "ui_weekday_normalizer.py": {
-    "__functions__": [
-      "normalize_weekday_list"
     ]
   },
   "utils.py": {
@@ -501,10 +641,12 @@
   "utils/text_utils.py": {
     "__functions__": [
       "is_empty",
+      "normalize_alarm_name",
       "normalize_whitespace",
       "safe_str",
       "strip_or_none",
-      "to_hankaku"
+      "to_hankaku",
+      "validate_alarm_name"
     ]
   },
   "utils/weekday_utils.py": {

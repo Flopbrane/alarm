@@ -11,20 +11,17 @@ from __future__ import annotations
 
 # 標準モジュール
 from dataclasses import dataclass, field
-from datetime import date as DateType
-from datetime import datetime
-from datetime import time as TimeType
+from datetime import datetime, time, date as date_class
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union
 
 # 自作モジュール
-from constants import DEFAULT_SOUND
-
+from alarm_types import DateType, TimeType
+from constants import DEFAULT_SOUND, REPEAT_INTERNAL
 
 # ユーティリティ関数：list[int] のデフォルト値用
 def _int_list() -> list[int]:
     return []
-
 
 @dataclass
 class AlarmInternal:
@@ -37,23 +34,24 @@ class AlarmInternal:
     - 文字列（日付・時刻）は扱わない
     ★AlarmInternal の **「外部から触っていい属性一覧」**をコメントで書く
     ★Scheduler 側では _ 付き属性を 一切触らないと決める
+    id -> UUID に変更(str にする)
     """
 
     # =========================
     # 🔹 識別・表示系
     # =========================
-    id: int
+    id: str = ""
     # 行識別子（必ず先頭）
     # JSON / GUI / 内部のすべてで共通の一意ID
 
-    name: str
+    name: str = ""
     # 表示名（アラーム一覧・GUI表示用）
     # ロジック上の意味は持たない
 
     # =========================
     # 🔹 発火時刻の基準（最重要）
     # =========================
-    datetime_: datetime
+    datetime_: datetime | None = None
     # 🔑 【最重要フィールド】
     # このアラームが「何時に鳴るか」を決める唯一の基準
     #
@@ -61,9 +59,9 @@ class AlarmInternal:
     # - Scheduler / Rule / Manager は必ずこれを参照する
     # - 「表示用の日時」ではなく「発火時刻の設計値」
 
-    repeat: str = "none"
+    repeat: str = list(REPEAT_INTERNAL.values())[0]
     # 繰り返しの種類（意味だけを表す）
-    # "none" / "daily" / "weekly" / "monthly" / "custom"
+    # "single" / "daily" / "weekly" / "monthly" / "custom"
     #
     # ※ 何週おきかは interval_weeks が担当する
 
@@ -83,6 +81,15 @@ class AlarmInternal:
     # 何週おきか（1=毎週、2=隔週、3=3週おき…）
     # repeat="weekly" / "custom" で使用
     # repeat の種類とは切り離された「数値パラメータ」
+
+    interval_days: int | None = None
+    # 何日おきか（2=2日おき、3=3日おき…）
+    # repeat="days_span" で使用
+    # repeat 内設定日の「数値パラメータ」
+
+    # =========================
+    # 🔹 カスタム設定（補助パラメータ）
+    # =========================
 
     base_date_: Optional[datetime] = None
     # 🔑 繰り返し計算専用の「基準日時」
@@ -121,6 +128,10 @@ class AlarmInternal:
     snooze_limit: int = 3
     # スヌーズ可能回数の上限
 
+    end_at: datetime | None = None
+    # アラームの終了日時（指定日時以降は鳴らさない）
+    # None の場合は無期限に鳴る
+
     # ====将来的に使用するproperty====
     # timezone_mode: Literal["local", "fixed"] = "local"
     # # 海外対応のproperty
@@ -143,38 +154,54 @@ class AlarmInternal:
         elif isinstance(self.sound, str):
             self.sound = Path(self.sound)
     # ----------------------------------------------------
-    # 🔥 date（datetime.date）
-    # ----------------------------------------------------
+    # 🔥 time（TimeType）の getter/setter
     @property
     def date(self) -> DateType:
         """dateのgetter"""
+        if self.datetime_ is None:
+            return None
         return self.datetime_.date()
 
     @date.setter
     def date(self, v: DateType) -> None:
         """date を差し替える（時刻は保持）"""
-        self.datetime_ = datetime.combine(v, self.datetime_.time())
+        if v is None:
+            self.datetime_ = None
+            return
 
-    # ----------------------------------------------------
-    # 🔥 time（datetime.time）
-    # ----------------------------------------------------
+        if self.datetime_ is None:
+            # 時刻がない場合は 00:00 を補完
+            self.datetime_ = datetime.combine(v, time(0, 0))
+        else:
+            self.datetime_ = datetime.combine(v, self.datetime_.time())
+
+
     @property
     def time(self) -> TimeType:
         """timeのgetter（表示用）"""
+        if self.datetime_ is None:
+            return None
         return self.datetime_.time()
+
 
     @time.setter
     def time(self, v: TimeType) -> None:
         """time を差し替える（日付は保持）"""
-        self.datetime_ = datetime.combine(self.datetime_.date(), v)
+        if v is None:
+            return  # UI側で None を許さないなら何もしない
 
+        if self.datetime_ is None:
+            # 日付がない場合は「今日」を補完（または base_date）
+            self.datetime_ = datetime.combine(date_class.today(), v)
+        else:
+            self.datetime_ = datetime.combine(self.datetime_.date(), v)
 
     # ----------------------------------------------------
     # 🔥 base_date_（文字列 → datetime 変換対応）
     # 🔥 repeat_base_datetime(base_date_)
     # ----------------------------------------------------
     @property
-    def repeat_base_datetime(self) -> datetime:
+    def repeat_base_datetime(self) -> datetime | None:
         """
         繰り返し計算専用の基準日時
         ・weekly / custom / interval_weeks 用
@@ -182,9 +209,8 @@ class AlarmInternal:
         """
         return self.base_date_ or self.datetime_
 
-
     @repeat_base_datetime.setter
-    def repeat_base_datetime(self, v: Optional[datetime]) -> None:
+    def repeat_base_datetime(self, v: datetime | None) -> None:
         """基準日時を設定（Internal では datetime のみ許可）"""
         self.base_date_ = v
 
@@ -193,30 +219,51 @@ class AlarmInternal:
 class AlarmStateInternal:
     """アラーム状態を「状態＋予定」を持つクラスで保持するためのデータクラス
     【設計方針】
+    id -> UUID に変更(str にする)
     Scheduler → next_fire_datetime を計算するだけ（※書き込みは Manager 経由）
     Checker → 今鳴らすか？を判断するだけ(読むだけ)
     Manager → lifecycle_finished を True にする唯一の存在(書き込み担当)
     【内部判定】
     - 内部ロジック（checkerが参照 / Managerが変更）
         next_fire_datetime == None & lifecycle_finished == False → 未計算
+        → is_uncomputed() が True
         next_fire_datetime != None & lifecycle_finished == False → 次回予定あり
+        → has_next_schedule() が True
         next_fire_datetime == None & lifecycle_finished == True  → 鳴動終了
+        → is_finished() が True
         next_fire_datetime != None & lifecycle_finished == True  → エラー状態
+        → is_invalid_state() が True
+        _needs_recalc は Scheduler が参照 / 書き込み
     """
 
-    id: int = 0
+    id: str ="" # 行識別子（必ず先頭）(UUIDに変更)
     _snoozed_until: datetime | None = None  # スヌーズ解除日時(一時的制御（短期）)
     _snooze_count: int = 0  # スヌーズ回数(スヌーズ制御（短期）)
     _triggered: bool = False  # 鳴動中か？(UI / 再生中判定)
-    _triggered_at: datetime | None = None  # 鳴動開始時刻(ログ・履歴)
-    _last_fired_at: datetime | None = None  # 最終鳴動時刻(多重発火防止)
+    _triggered_at: datetime | None = None  # 鳴動開始時刻(履歴)
+    _last_fired_at: datetime | None = None  # 直近の鳴動時刻(多重発火防止・履歴)
     # ★ 以下の二値を参考にして、checker, manager が動作を決定する
     _next_fire_datetime: datetime | None = None  # 次回鳴動予定日(未来の確定スケジュール)
     _lifecycle_finished: bool = False  # 鳴動開始後再参照終了フラグ(_next_fire_datetime更新後にリセット)
+    # ★ 追加: 再計算が必要かどうかのフラグ
+    _needs_recalc: bool = False
+    # _needs_recalc は、
+    # 「この state は保存されているが、今は信用してはいけない」
+    # という意思表示です。
+    # つまり：
+    # ❌ 壊れている
+    # ❌ エラー
+    # ⭕ 再計算待ち
+    # この違いが非常に重要です。
 
     @classmethod
-    def initial(cls, alarm_id: int) -> "AlarmStateInternal":
-        """初期状態の AlarmStateInternal を生成する"""
+    def initial(cls, alarm_id: str) -> "AlarmStateInternal":
+        """初期状態の AlarmStateInternal を生成する
+        - alarm_id: 対応する AlarmInternal の id を指定する
+        - すべての状態は「未計算・未鳴動」の初期値になる
+        - これを生成してから Scheduler に渡すことで、
+        Scheduler は「この状態は初期状態からスタートしている」と認識できる
+        """
         return cls(
             id=alarm_id,
             _snoozed_until=None,
@@ -226,6 +273,8 @@ class AlarmStateInternal:
             _last_fired_at=None,
             _next_fire_datetime=None,
             _lifecycle_finished=False,
+                # ★ 追加
+            _needs_recalc=False
         )
 
     # ===== Getter/Setter（こちらの方が自然で綺麗） =====
@@ -307,11 +356,29 @@ class AlarmStateInternal:
         return self._next_fire_datetime
 
     @next_fire_datetime.setter
-    def next_fire_datetime(self, v: Optional[datetime]) -> None:
-        if v is None:
+    def next_fire_datetime(self, value: Optional[Union[datetime, str]]) -> None:
+        # None
+        if value is None:
             self._next_fire_datetime = None
-            # v は "YYYY-MM-DD" を想定
-        self._next_fire_datetime = v
+            return
+
+        if isinstance(value, datetime):
+            self._next_fire_datetime = value
+            return
+
+        try:
+            # str 以外はここで TypeError が出る
+            self._next_fire_datetime = datetime.fromisoformat(value)
+            return
+        except (TypeError, ValueError):
+            try:
+                self._next_fire_datetime = datetime.strptime(value, "%Y-%m-%d")
+                return
+            except (TypeError, ValueError):
+                self._next_fire_datetime = None
+            # その他の型（int, float, list, dict, etc）
+            self._next_fire_datetime = None
+
     # ----------------------------------------------------
     # 🔥 lifecycle_finished（bool）:repeat == "single"の時の鳴動終了後の処置変数
     # ----------------------------------------------------
@@ -323,8 +390,22 @@ class AlarmStateInternal:
     @lifecycle_finished.setter
     def lifecycle_finished(self, v: bool) -> None:
         self._lifecycle_finished = v
+    # ----------------------------------------------------
+    # 🔥 needs_recalc（bool）:再計算が必要かどうか
+    # ----------------------------------------------------
+    @property
+    def needs_recalc(self) -> bool:
+        """再計算が必要かどうかのフラグ"""
+        return self._needs_recalc
 
+    @needs_recalc.setter
+    def needs_recalc(self, value: bool) -> None:
+        self._needs_recalc = value
+    ################################################################################
+    # ===== 派生プロパティ =====
+    ################################################################################
     # ===派生プロパティ（保存しない/状態を一目で理解出来るようにする）===
+
     @property
     def is_uncomputed(self) -> bool:
         """未計算状態かどうかを取得"""

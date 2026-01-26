@@ -1,189 +1,93 @@
 # -*- coding: utf-8 -*-
-"""アプリ全体で共有する定数と辞書定義"""
+"""アプリ全体で共有する定数と辞書定義（dataclass運用版）"""
 #########################
 # Author: F.Kurokawa
+# Description:
 # 共通定義ファイル（定数・辞書構造集中管理）
 #########################
 
-# ------------------------------------------
-# 🔹 デフォルトサウンド設定
-# ------------------------------------------
+from __future__ import annotations
+
 from pathlib import Path
-from typing import Any, Final
+from typing import Final
 
 from env_paths import BASE_DIR
 
+# ==========================================================
+# 🔊 サウンド・基本パス
+# ==========================================================
 DEFAULT_SOUND: Path = BASE_DIR / "sound" / "Alarm01.wav"
-# ------------------------------------------
-# 🔹 曜日ラベル（0=月〜6=日）
-# ------------------------------------------
-WEEKDAY_LABELS: list[str] = ["月", "火", "水", "木", "金", "土", "日"]
-# 変換用
-WEEKDAY_TO_INDEX: dict[str, int] = {label: i for i, label in enumerate(WEEKDAY_LABELS)}
-INDEX_TO_WEEKDAY: dict[int, str] = {i: label for i, label in enumerate(WEEKDAY_LABELS)}
+# デフォルトのアラーム音ファイルパス
+# ==========================================================
+# 🗓️ 曜日（0=月〜6=日）
+# ==========================================================
+WEEKDAY_LABELS: Final[list[str]] = ["月", "火", "水", "木", "金", "土", "日"]
 
-# ------------------------------------------
-# 🔹 繰り返しパターン辞書(カスタムダイアログ表示用)
-# ------------------------------------------
+# 変換用（CUI入力補正・GUI表示で使用）
+WEEKDAY_TO_INDEX: Final[dict[str, int]] = {label: i for i, label in enumerate(WEEKDAY_LABELS)}
+INDEX_TO_WEEKDAY: Final[dict[int, str]] = {i: label for i, label in enumerate(WEEKDAY_LABELS)}
 
-# -----------------------------
-# 何週おき（内部値）
-# -----------------------------
-WEEKS_INTERNAL: list[int] = [1, 2, 3, 4, 5]
+# GUI の曜日一覧（ドロップダウン等）
+WEEKDAY_OPTIONS_GUI: Final[list[str]] = list(WEEKDAY_LABELS)
 
-# -----------------------------
+# ==========================================================
+# 🔁 repeat（表示 ↔ 内部値）
+# ==========================================================
+# 表示 → 内部値（UI/CUI入力の正規化用）
+REPEAT_INTERNAL: Final[dict[str, str]] = {
+    "単発": "single",
+    "毎日": "daily",
+    "毎週": "weekly",
+    "毎月": "monthly",
+    "◯日おき": "interval_days",
+    "カスタム": "custom",
+}
+
+# 内部値 → 表示（UI表示用）
+REPEAT_DISPLAY: Final[dict[str, str]] = {
+    "single": "単発",
+    "daily": "毎日",
+    "weekly": "毎週",
+    "monthly": "毎月",
+    "interval_days": "◯日おき",
+    "custom": "カスタム",
+}
+# 内部値のデフォルト値
+DEFAULT_REPEAT_INTERNAL: Final[str] = "single"
+
+
+# GUI のドロップダウン用（表示文字列）
+REPEAT_OPTIONS_GUI: Final[list[str]] = list(REPEAT_INTERNAL.keys())
+# 表示->内部値変換（デバッグ・内部処理用）
+REPEAT_OPTIONS_INTERNAL: Final[list[str]] = list(REPEAT_INTERNAL.values())
+
+# ==========================================================
+# 📆 「何週おき」表示（interval_weeks）
+# ==========================================================
+# 内部値（1〜5週おき）
+WEEKS_INTERNAL: Final[tuple[int, ...]] = (1, 2, 3, 4, 5)
+
 # 表示用（GUI）
-# -----------------------------
-WEEKS_DISPLAY: dict[int, str] = {
+WEEKS_DISPLAY: Final[dict[int, str]] = {
     1: "毎週",
     2: "隔週（2週おき）",
     3: "3週おき",
     4: "4週おき",
     5: "5週おき",
 }
-
-# 表示 → 内部値
-REPEAT_INTERNAL: dict[str, str] = {
-    "単発": "single",
-    "毎日": "daily",
-    "毎週": "weekly",
-    "毎月": "monthly",
-    "カスタム": "custom",
-}
-
-# 内部値 → 表示
-REPEAT_DISPLAY: dict[str, str] = {
-    "single": "単発",
-    "daily": "毎日",
-    "weekly": "毎週",
-    "monthly": "毎月",
-    "custom": "カスタム",
-}
-
-# GUI のドロップダウン用
-REPEAT_OPTIONS_GUI: list[str] = list(REPEAT_INTERNAL.keys())
-
-# GUI の曜日一覧
-WEEKDAY_OPTIONS_GUI: list[str] = WEEKDAY_LABELS
-
-# -------- カスタムダイアログ表示用 ------------------
+# デフォルト値
+DEFAULT_INTERVAL_WEEKS: Final[int] = 1
 # GUI ドロップダウン用（表示）
-WEEKS_CUSTOM_GUI: list[str] = list(WEEKS_DISPLAY.values())
-# ["毎週", "隔週（2週おき）", "3週おき", "4週おき", "5週おき"]
-
+WEEKS_CUSTOM_GUI: Final[list[str]] = [WEEKS_DISPLAY[i] for i in WEEKS_INTERNAL]
 # 内部用（数値）
-WEEKS_CUSTOM_INTERNAL: list[int] = list(WEEKS_DISPLAY.keys())
-# [1, 2, 3, 4, 5]
-
-# ------------------------------------------
-# 🔹 🔑 Alarm 基本キー定義(AlarmInternal専用)
-# ------------------------------------------
-ALARM_INTERNAL_KEYS: Final[set[str]] = {
-    "id",
-    "name",
-    "datetime",
-    "repeat",
-    "weekday",
-    "week_of_month",
-    "interval_weeks",
-    "base_date",
-    "custom_desc",
-    "enabled",
-    "sound",
-    "skip_holiday",
-    "duration",
-    "snooze_minutes",
-    "snooze_repeat_limit",
-    "snooze_limit",
-}
-# =========================
-# 🔧 デフォルト値（設計値）
-# =========================
-# DEFAULT_SNOOZE_MINUTES: Final[int] = 5
-# DEFAULT_SNOOZE_LIMIT: Final[int] = 3
-# ------------------------------------------
-# 🔹 🔑 AlarmState 基本キー定義(AlarmStateInternal専用)
-# ------------------------------------------
-ALARM_STATE_KEYS: Final[set[str]] = {
-    "id",
-    "_snoozed_until",
-    "_snooze_count",
-    "_triggered",
-    "_triggered_at",
-    "_last_fired_at",
-}
+WEEKS_CUSTOM_INTERNAL: Final[list[int]] = list(WEEKS_DISPLAY.keys())
 
 
-# ------------------------------------------
-# 🔹 JSON・UI共用 構造（任意・開発補助）
-# ------------------------------------------
-ALARM_JSON_UI_KEYS: Final[set[str]] = {
-    "id",  # 行識別子（必ず先頭）
-    "name",  # 表示名
-    "date",  # YYYY-MM-DD
-    "time",  # HH:MM
-    "repeat",  # single / daily / weekly / custom ...
-    "weekday",  # [0,1,4] など
-    "week_of_month",  # [1,3] など
-    "interval_weeks",  # 何週おき
-    "base_date",  # custom の基準日
-    "custom_desc",  # カスタム説明文
-    "enabled",  # ON/OFF
-    "sound",  # WAV ファイル
-    "skip_holiday",  # True/False
-    "duration",  # 再生秒数
-    "snooze_minutes",  # 初スヌーズ分
-    "snooze_limit",  # 回数上限
-}
-
-STANDBY_KEYS: Final[set[str]] = {
-    "id",
-    "_snoozed_until",  # ISO8601
-    "_snooze_count",  # 現在のカウント
-    "_triggered",  # 鳴動中か？
-    "_triggered_at",  # 鳴動開始時刻（ISO8601）
-    "_last_fired_at",  # 最終鳴動時刻（ISO8601）
-}
-
-# ------------------------------------------
-# 🔹 正規化アラームテンプレート（JsonEditor / AlarmManager 共通）
-# ------------------------------------------
-# AlarmJson/AlarmUI共用
-ALARM_TEMPLATE: dict[str, Any] = {
-    "id": 0,
-    "name": "",
-    "date": "",
-    "time": "",
-    "repeat": "single",
-    "weekday": [],
-    "week_of_month": [],
-    "interval_weeks": 1,
-    "base_date": "",
-    "custom_desc": "",
-    "enabled": False,
-    "sound": "",
-    "skip_holiday": False,
-    "duration": 10,
-    "snooze_minutes": 10,
-    "snooze_limit": 3
-}
-
-# AlarmStateInternal
-STANDBY_TEMPLATE: dict[str, Any] = {
-    "id": 0,
-    "_snoozed_until": None,
-    "_snooze_count": 0,
-    "_triggered": False,
-    "_triggered_at": None,
-    "_last_fired_at": None,
-}
-
-# ------------------------------------------
-# 🔹 一覧表カラム名（GUI表示用）
-# ------------------------------------------
-# 設定ウインドウのアラーム一覧表カラム
-COLUMN_BASE = (
-    "id",
+# ==========================================================
+# 📋 GUI 一覧表（カラム定義）
+# ==========================================================
+COLUMN_BASE: Final[tuple[str, ...]] = (
+    "id",  # 一覧表示用ID(実稼働時は削除予定)
     "name",
     "date",
     "time",
@@ -191,27 +95,33 @@ COLUMN_BASE = (
     "weekday",
     "enabled",
     "skip_holiday",
+    "duration_time",
     "snooze_limit",
+    "end_at",
     "custom_desc",
 )
-# 設定ウインドウのアラーム一覧表カラム名変換
-COLUMN_LABELS: dict[str, str] = {
-    "id": "ID",
+
+COLUMN_LABELS: Final[dict[str, str]] = {
+    "id": "ID", # 一覧表示用ID(実稼働時は削除予定)
     "name": "アラーム名",
     "date": "日付",
     "time": "時刻",
     "repeat": "繰返し",
     "weekday": "曜日",
-    "enabled": "有効",
-    "skip_holiday": "祝日ｽｷｯﾌﾟ",
-    "snooze_limit": "ｽﾇｰｽﾞ上限",
+    "enabled": "有効/無効",
+    "skip_holiday": "祝日スキップ",
+    "duration_time": "再生分数",
+    "snooze_limit": "スヌーズ回数上限",
+    "end_at": "アラーム有効期限終了日時",
     "custom_desc": "詳細設定",
 }
-# ================以下はまだ手を付けない===========================
-# ------------------------------------------
-# 🔹 json_editor.py 用：ALARM_KEYS 日本語対応名
-# ------------------------------------------
-COLUMN_LABELS_EDITOR: dict[str, str] = {
+
+
+# ==========================================================
+# 🧾 json_editor.py 用：日本語ラベル（表示辞書）
+# ※ dataclass移行後も「表示名辞書」としては有用なので残す
+# ==========================================================
+COLUMN_LABELS_EDITOR: Final[dict[str, str]] = {
     "id": "ID",
     "name": "アラーム名",
     "date": "日付",
@@ -220,6 +130,7 @@ COLUMN_LABELS_EDITOR: dict[str, str] = {
     "weekday": "曜日",
     "week_of_month": "第n週",
     "interval_weeks": "間隔(週)",
+    "interval_days": "間隔(日)",
     "base_date": "基準日",
     "enabled": "有効",
     "custom_desc": "詳細設定",
@@ -228,6 +139,7 @@ COLUMN_LABELS_EDITOR: dict[str, str] = {
     "duration": "再生秒数",
     "snooze_minutes": "初回スヌーズ",
     "snooze_limit": "スヌーズ上限",
+    "end_at": "アラーム有効期限終了日時",
     "_snooze_count": "現在スヌーズ回数",
     "_snoozed_until": "スヌーズ再開時刻",
     "_triggered": "鳴動中フラグ",

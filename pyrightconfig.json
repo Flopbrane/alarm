@@ -1,8 +1,22 @@
 {
+  "include": [
+    "./**/*.py"
+  ],
+  "exclude": [
+    "**/venv*/**",
+    "**/.venv/**",
+    "**/env/**",
+    "**/site-packages/**",
+    "**/__pycache__/**",
+    "**/.mypy_cache/**",
+    "**/.ruff_cache/**",
+    "**/.pytest_cache/**",
+    "**/.deprecated/**",
+    "**/contents_class_def/**"
+  ],
   "typeCheckingMode": "strict",
-    "exclude": [
-    "**/gui.py",
-    "**/cui.py",
-    "**/json_editor.py"
-    ]
+  "useLibraryCodeForTypes": true,
+  "reportMissingTypeStubs": false,
+  "reportUnusedImport": false,
+  "reportUnusedVariable": false
 }

@@ -23,7 +23,7 @@ Internal ↔ JSON dataclass 変換・受け渡し専用モジュール
 # dataclass変換・受渡し(チェック済み)
 #########################
 # 標準ライブラリ
-from datetime import datetime
+from datetime import date, datetime
 
 # 自作モジュール
 from alarm_internal_model import AlarmInternal, AlarmStateInternal
@@ -33,7 +33,7 @@ from alarm_json_model import AlarmJson, AlarmStateJson
 # ===============================
 # 🔥 Datetime Utility（統一用）
 # ===============================
-def dt_to_str(dt: datetime | None) -> str | None:
+def dt_to_str(dt: datetime | None) -> str | None: # 内部用
     """datetime → ISO8601 (T付き)"""
     return dt.isoformat() if dt else None
 
@@ -45,13 +45,19 @@ def str_to_dt(v: str | None) -> datetime | None:
     v = v.replace(" ", "T")  # 🔥 "YYYY-MM-DD HH:MM" も許容
     return datetime.fromisoformat(v)
 
-def any_to_dt(v: str | datetime | None) -> datetime | None:
+def any_to_dt(v: str | datetime | None) -> datetime | None: # 内部値への変換用
     """str|datetime|None → datetime|None (安全ラッパー) ※ Json → Internal 専用。UI では使用禁止"""
     if not v:
         return None
     if isinstance(v, datetime):
         return v
     return str_to_dt(v)
+
+def dt_to_any(dt: datetime | None) -> str | None: # Jsonへの変換用
+    """datetime|None → str|None (安全ラッパー) ※ Internal → Json 専用。UI では使用禁止"""
+    if not dt:
+        return None
+    return dt.isoformat()
 
 # =========================================================
 # 🔹 Jsonモデル → Internalモデル マッパー
@@ -68,19 +74,23 @@ class JsonToInternalMapper:
         # 回避基準チェック
         if a is None:
             raise ValueError("AlarmJson が None か、あるいは、初回起動です。")
+        # 日時チェック
         if not a.date or not a.time:
             raise ValueError(f"アラームの日時が無効です name={a.name} id={a.id}")
 
         # 発火基準 datetime（最重要）
-        try:
-            alarm_dt: datetime = datetime.fromisoformat(f"{a.date}T{a.time}")
-        except ValueError as exc:
-            raise ValueError(f"アラームの日時が無効です name={a.name} id={a.id}") from exc
+        alarm_dt: datetime = datetime.fromisoformat(f"{a.date}T{a.time}")
+        
         # 🔑 base_date は date-only → time を合成する
+        base_dt: datetime | None = None
+
         if a.base_date:
-            base_dt: datetime | None = datetime.fromisoformat(f"{a.base_date}T{alarm_dt.time()}")
-        else:
-            base_dt = None
+            base_raw: datetime = datetime.fromisoformat(a.base_date)
+            base_date_only: date = base_raw.date()  # ← time を必ず落とす
+            base_dt = datetime.combine(
+                base_date_only,
+                alarm_dt.time()
+            )
 
         return AlarmInternal(
             id=a.id,
@@ -90,6 +100,7 @@ class JsonToInternalMapper:
             weekday=list(a.weekday),
             week_of_month=list(a.week_of_month),
             interval_weeks=a.interval_weeks,
+            interval_days=a.interval_days,
             base_date_=base_dt,
             custom_desc=a.custom_desc,
             enabled=a.enabled,
@@ -98,6 +109,7 @@ class JsonToInternalMapper:
             duration=a.duration,
             snooze_minutes=a.snooze_minutes,
             snooze_limit=a.snooze_limit,
+            end_at=any_to_dt(a.end_at),
         )
 
     # --------------------------------------------------------
@@ -123,14 +135,20 @@ class InternalToJsonMapper(JsonToInternalMapper):
     # 🔹 AlarmInternal → AlarmJson
     # -------------------------------------------------------
     def alarm_internal_to_json(self, a: AlarmInternal) -> AlarmJson:
-        """AlarmInternal → AlarmJson"""
-        # split combined datetime into date and time strings
-        date_str: str = a.datetime_.date().strftime("%Y-%m-%d")
-        time_str: str = a.datetime_.time().strftime("%H:%M")
-        # base_date_ is datetime internally, but JSON stores date-only (YYYY-MM-DD)
+        """AlarmInternal → AlarmJson（ISO8601ベース）"""
+
+        # datetime_ → ISO8601 → date / time 分離
+        dt_iso: str = a.datetime_.isoformat(timespec="minutes")
+        date_str: str
+        time_str: str
+        date_str, time_str = dt_iso.split("T")
+
+        # base_date_ は date-only（YYYY-MM-DD）として保存
         base_date_str: str | None = (
-            a.base_date_.strftime("%Y-%m-%d") if a.base_date_ else None
+            a.base_date_.date().isoformat() if a.base_date_ else None
         )
+        # end_at は ISO8601 文字列 or None(None == 無期限)
+        end_at_str: str | None = dt_to_any(a.end_at)
 
         return AlarmJson(
             id=a.id,
@@ -141,6 +159,7 @@ class InternalToJsonMapper(JsonToInternalMapper):
             weekday=list(a.weekday),
             week_of_month=list(a.week_of_month),
             interval_weeks=a.interval_weeks,
+            interval_days=a.interval_days,
             base_date=base_date_str,
             custom_desc=a.custom_desc,
             enabled=a.enabled,
@@ -149,7 +168,9 @@ class InternalToJsonMapper(JsonToInternalMapper):
             duration=a.duration,
             snooze_minutes=a.snooze_minutes,
             snooze_limit=a.snooze_limit,
+            end_at=end_at_str,
         )
+
     # --------------------------------------------------------
     # 🔹 AlarmStateInternal → AlarmStateJson
     # --------------------------------------------------------
@@ -161,12 +182,14 @@ class InternalToJsonMapper(JsonToInternalMapper):
         # is_invalid_state の検出・対処は Manager の責務。
         # mapper では状態をそのまま写す。
         j_state: AlarmStateJson = AlarmStateJson(id=s.id)
-        j_state.snoozed_until=dt_to_str(s.snoozed_until)
+        j_state.snoozed_until=dt_to_any(s.snoozed_until)
         j_state.snooze_count=s.snooze_count
         j_state.triggered=s.triggered
-        j_state.triggered_at=dt_to_str(s.triggered_at)
-        j_state.last_fired_at=dt_to_str(s.last_fired_at)
-        j_state.next_fire_datetime=dt_to_str(s.next_fire_datetime)
+        j_state.triggered_at=dt_to_any(s.triggered_at)
+        j_state.last_fired_at=dt_to_any(s.last_fired_at)
+        j_state.next_fire_datetime=dt_to_any(s.next_fire_datetime)
         j_state.lifecycle_finished=s.lifecycle_finished
         return j_state
+
+
 # =========================================================

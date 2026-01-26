@@ -17,27 +17,27 @@
   "alarm_config_manager.py:ConfigManager": {
     "file_key": "alarm_config_manager.py",
     "qualname": "ConfigManager",
-    "lineno": 52
+    "lineno": 55
   },
   "alarm_config_manager.py:ConfigManager._normalize_mode": {
     "file_key": "alarm_config_manager.py",
     "qualname": "ConfigManager._normalize_mode",
-    "lineno": 56
+    "lineno": 59
   },
   "alarm_config_manager.py:ConfigManager.get_config_path": {
     "file_key": "alarm_config_manager.py",
     "qualname": "ConfigManager.get_config_path",
-    "lineno": 66
+    "lineno": 69
   },
   "alarm_config_manager.py:ConfigManager.load_config": {
     "file_key": "alarm_config_manager.py",
     "qualname": "ConfigManager.load_config",
-    "lineno": 71
+    "lineno": 74
   },
   "alarm_config_manager.py:ConfigManager.save_config": {
     "file_key": "alarm_config_manager.py",
     "qualname": "ConfigManager.save_config",
-    "lineno": 112
+    "lineno": 115
   },
   "alarm_data_json_mapper.py:__functions__.dt_to_str": {
     "file_key": "alarm_data_json_mapper.py",
@@ -54,35 +54,45 @@
     "qualname": "__functions__.any_to_dt",
     "lineno": 48
   },
+  "alarm_data_json_mapper.py:__functions__.dt_to_any": {
+    "file_key": "alarm_data_json_mapper.py",
+    "qualname": "__functions__.dt_to_any",
+    "lineno": 56
+  },
   "alarm_data_json_mapper.py:JsonToInternalMapper": {
     "file_key": "alarm_data_json_mapper.py",
     "qualname": "JsonToInternalMapper",
-    "lineno": 59
+    "lineno": 65
   },
   "alarm_data_json_mapper.py:JsonToInternalMapper.alarm_json_to_internal": {
     "file_key": "alarm_data_json_mapper.py",
     "qualname": "JsonToInternalMapper.alarm_json_to_internal",
-    "lineno": 64
+    "lineno": 70
   },
   "alarm_data_json_mapper.py:JsonToInternalMapper.alarm_state_json_to_internal": {
     "file_key": "alarm_data_json_mapper.py",
     "qualname": "JsonToInternalMapper.alarm_state_json_to_internal",
-    "lineno": 99
+    "lineno": 118
   },
   "alarm_data_json_mapper.py:InternalToJsonMapper": {
     "file_key": "alarm_data_json_mapper.py",
     "qualname": "InternalToJsonMapper",
-    "lineno": 111
+    "lineno": 131
   },
   "alarm_data_json_mapper.py:InternalToJsonMapper.alarm_internal_to_json": {
     "file_key": "alarm_data_json_mapper.py",
     "qualname": "InternalToJsonMapper.alarm_internal_to_json",
-    "lineno": 117
+    "lineno": 137
   },
   "alarm_data_json_mapper.py:InternalToJsonMapper.alarm_state_internal_to_json": {
     "file_key": "alarm_data_json_mapper.py",
     "qualname": "InternalToJsonMapper.alarm_state_internal_to_json",
-    "lineno": 147
+    "lineno": 177
+  },
+  "alarm_fire_guard.py:__functions__.check_last_fire": {
+    "file_key": "alarm_fire_guard.py",
+    "qualname": "__functions__.check_last_fire",
+    "lineno": 19
   },
   "alarm_internal_model.py:__functions__._int_list": {
     "file_key": "alarm_internal_model.py",
@@ -97,307 +107,742 @@
   "alarm_internal_model.py:AlarmInternal.__post_init__": {
     "file_key": "alarm_internal_model.py",
     "qualname": "AlarmInternal.__post_init__",
-    "lineno": 139
+    "lineno": 153
   },
   "alarm_internal_model.py:AlarmInternal.date": {
     "file_key": "alarm_internal_model.py",
     "qualname": "AlarmInternal.date",
-    "lineno": 154
+    "lineno": 168
   },
   "alarm_internal_model.py:AlarmInternal.time": {
     "file_key": "alarm_internal_model.py",
     "qualname": "AlarmInternal.time",
-    "lineno": 176
+    "lineno": 181
   },
   "alarm_internal_model.py:AlarmInternal.repeat_base_datetime": {
     "file_key": "alarm_internal_model.py",
     "qualname": "AlarmInternal.repeat_base_datetime",
-    "lineno": 200
+    "lineno": 201
   },
   "alarm_internal_model.py:AlarmStateInternal": {
     "file_key": "alarm_internal_model.py",
     "qualname": "AlarmStateInternal",
-    "lineno": 233
+    "lineno": 207
   },
   "alarm_internal_model.py:AlarmStateInternal.initial": {
     "file_key": "alarm_internal_model.py",
     "qualname": "AlarmStateInternal.initial",
-    "lineno": 251
+    "lineno": 247
   },
   "alarm_internal_model.py:AlarmStateInternal.snoozed_until": {
     "file_key": "alarm_internal_model.py",
     "qualname": "AlarmStateInternal.snoozed_until",
-    "lineno": 277
+    "lineno": 276
   },
   "alarm_internal_model.py:AlarmStateInternal.snooze_count": {
     "file_key": "alarm_internal_model.py",
     "qualname": "AlarmStateInternal.snooze_count",
-    "lineno": 298
+    "lineno": 289
   },
   "alarm_internal_model.py:AlarmStateInternal.triggered": {
     "file_key": "alarm_internal_model.py",
     "qualname": "AlarmStateInternal.triggered",
-    "lineno": 310
+    "lineno": 301
   },
   "alarm_internal_model.py:AlarmStateInternal.triggered_at": {
     "file_key": "alarm_internal_model.py",
     "qualname": "AlarmStateInternal.triggered_at",
-    "lineno": 322
+    "lineno": 313
   },
   "alarm_internal_model.py:AlarmStateInternal.last_fired_at": {
     "file_key": "alarm_internal_model.py",
     "qualname": "AlarmStateInternal.last_fired_at",
-    "lineno": 346
+    "lineno": 327
   },
   "alarm_internal_model.py:AlarmStateInternal.next_fire_datetime": {
     "file_key": "alarm_internal_model.py",
     "qualname": "AlarmStateInternal.next_fire_datetime",
-    "lineno": 366
+    "lineno": 342
+  },
+  "alarm_internal_model.py:AlarmStateInternal.lifecycle_finished": {
+    "file_key": "alarm_internal_model.py",
+    "qualname": "AlarmStateInternal.lifecycle_finished",
+    "lineno": 374
+  },
+  "alarm_internal_model.py:AlarmStateInternal.needs_recalc": {
+    "file_key": "alarm_internal_model.py",
+    "qualname": "AlarmStateInternal.needs_recalc",
+    "lineno": 385
+  },
+  "alarm_internal_model.py:AlarmStateInternal.is_uncomputed": {
+    "file_key": "alarm_internal_model.py",
+    "qualname": "AlarmStateInternal.is_uncomputed",
+    "lineno": 393
+  },
+  "alarm_internal_model.py:AlarmStateInternal.has_next_schedule": {
+    "file_key": "alarm_internal_model.py",
+    "qualname": "AlarmStateInternal.has_next_schedule",
+    "lineno": 398
+  },
+  "alarm_internal_model.py:AlarmStateInternal.is_finished": {
+    "file_key": "alarm_internal_model.py",
+    "qualname": "AlarmStateInternal.is_finished",
+    "lineno": 403
+  },
+  "alarm_internal_model.py:AlarmStateInternal.is_invalid_state": {
+    "file_key": "alarm_internal_model.py",
+    "qualname": "AlarmStateInternal.is_invalid_state",
+    "lineno": 408
+  },
+  "alarm_irregular_logger.py:LogWhere": {
+    "file_key": "alarm_irregular_logger.py",
+    "qualname": "LogWhere",
+    "lineno": 15
+  },
+  "alarm_irregular_logger.py:LogWhat": {
+    "file_key": "alarm_irregular_logger.py",
+    "qualname": "LogWhat",
+    "lineno": 25
+  },
+  "alarm_irregular_logger.py:LogRecord": {
+    "file_key": "alarm_irregular_logger.py",
+    "qualname": "LogRecord",
+    "lineno": 31
+  },
+  "alarm_irregular_logger.py:AlarmLogger": {
+    "file_key": "alarm_irregular_logger.py",
+    "qualname": "AlarmLogger",
+    "lineno": 40
+  },
+  "alarm_irregular_logger.py:AlarmLogger.__init__": {
+    "file_key": "alarm_irregular_logger.py",
+    "qualname": "AlarmLogger.__init__",
+    "lineno": 43
+  },
+  "alarm_irregular_logger.py:AlarmLogger._json_safe": {
+    "file_key": "alarm_irregular_logger.py",
+    "qualname": "AlarmLogger._json_safe",
+    "lineno": 51
+  },
+  "alarm_irregular_logger.py:AlarmLogger._write": {
+    "file_key": "alarm_irregular_logger.py",
+    "qualname": "AlarmLogger._write",
+    "lineno": 61
+  },
+  "alarm_irregular_logger.py:AlarmLogger.where_here": {
+    "file_key": "alarm_irregular_logger.py",
+    "qualname": "AlarmLogger.where_here",
+    "lineno": 91
+  },
+  "alarm_irregular_logger.py:AlarmLogger.info": {
+    "file_key": "alarm_irregular_logger.py",
+    "qualname": "AlarmLogger.info",
+    "lineno": 101
+  },
+  "alarm_irregular_logger.py:AlarmLogger.warning": {
+    "file_key": "alarm_irregular_logger.py",
+    "qualname": "AlarmLogger.warning",
+    "lineno": 119
+  },
+  "alarm_irregular_logger.py:AlarmLogger.error": {
+    "file_key": "alarm_irregular_logger.py",
+    "qualname": "AlarmLogger.error",
+    "lineno": 137
   },
   "alarm_json_model.py:__functions__._int_list": {
     "file_key": "alarm_json_model.py",
     "qualname": "__functions__._int_list",
-    "lineno": 24
+    "lineno": 25
   },
   "alarm_json_model.py:AlarmJson": {
     "file_key": "alarm_json_model.py",
     "qualname": "AlarmJson",
-    "lineno": 29
+    "lineno": 30
   },
   "alarm_json_model.py:AlarmJson.weekday_list": {
     "file_key": "alarm_json_model.py",
     "qualname": "AlarmJson.weekday_list",
-    "lineno": 55
+    "lineno": 58
   },
   "alarm_json_model.py:AlarmJson.sound_path": {
     "file_key": "alarm_json_model.py",
     "qualname": "AlarmJson.sound_path",
-    "lineno": 65
+    "lineno": 68
   },
   "alarm_json_model.py:AlarmStateJson": {
     "file_key": "alarm_json_model.py",
     "qualname": "AlarmStateJson",
-    "lineno": 71
+    "lineno": 74
   },
   "alarm_json_model.py:AlarmStateJson.snoozed_until": {
     "file_key": "alarm_json_model.py",
     "qualname": "AlarmStateJson.snoozed_until",
-    "lineno": 94
+    "lineno": 98
   },
   "alarm_json_model.py:AlarmStateJson.snooze_count": {
     "file_key": "alarm_json_model.py",
     "qualname": "AlarmStateJson.snooze_count",
-    "lineno": 108
+    "lineno": 112
   },
   "alarm_json_model.py:AlarmStateJson.triggered": {
     "file_key": "alarm_json_model.py",
     "qualname": "AlarmStateJson.triggered",
-    "lineno": 117
+    "lineno": 126
   },
   "alarm_json_model.py:AlarmStateJson.triggered_at": {
     "file_key": "alarm_json_model.py",
     "qualname": "AlarmStateJson.triggered_at",
-    "lineno": 131
+    "lineno": 138
   },
   "alarm_json_model.py:AlarmStateJson.last_fired_at": {
     "file_key": "alarm_json_model.py",
     "qualname": "AlarmStateJson.last_fired_at",
-    "lineno": 150
+    "lineno": 155
   },
   "alarm_json_model.py:AlarmStateJson.next_fire_datetime": {
     "file_key": "alarm_json_model.py",
     "qualname": "AlarmStateJson.next_fire_datetime",
-    "lineno": 164
+    "lineno": 169
+  },
+  "alarm_json_model.py:AlarmStateJson.lifecycle_finished": {
+    "file_key": "alarm_json_model.py",
+    "qualname": "AlarmStateJson.lifecycle_finished",
+    "lineno": 178
+  },
+  "alarm_json_model.py:AlarmStateJson.needs_recalc": {
+    "file_key": "alarm_json_model.py",
+    "qualname": "AlarmStateJson.needs_recalc",
+    "lineno": 187
   },
   "alarm_manager.py:NextAlarmInfo": {
     "file_key": "alarm_manager.py",
     "qualname": "NextAlarmInfo",
-    "lineno": 38
+    "lineno": 37
   },
   "alarm_manager.py:AlarmManager": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager",
-    "lineno": 46
+    "lineno": 48
   },
   "alarm_manager.py:AlarmManager.get_base_dir": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager.get_base_dir",
-    "lineno": 52
+    "lineno": 54
   },
   "alarm_manager.py:AlarmManager.__init__": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager.__init__",
-    "lineno": 61
+    "lineno": 63
   },
-  "alarm_manager.py:AlarmManager.run": {
+  "alarm_manager.py:AlarmManager.tick": {
     "file_key": "alarm_manager.py",
-    "qualname": "AlarmManager.run",
-    "lineno": 121
+    "qualname": "AlarmManager.tick",
+    "lineno": 127
+  },
+  "alarm_manager.py:AlarmManager.internal_clock": {
+    "file_key": "alarm_manager.py",
+    "qualname": "AlarmManager.internal_clock",
+    "lineno": 131
   },
   "alarm_manager.py:AlarmManager._fire_alarm": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager._fire_alarm",
-    "lineno": 128
+    "lineno": 149
   },
   "alarm_manager.py:AlarmManager.driving_stop": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager.driving_stop",
-    "lineno": 148
+    "lineno": 169
   },
   "alarm_manager.py:AlarmManager.request_stop": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager.request_stop",
-    "lineno": 156
+    "lineno": 177
   },
   "alarm_manager.py:AlarmManager.stop_alarm": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager.stop_alarm",
-    "lineno": 161
+    "lineno": 182
   },
   "alarm_manager.py:AlarmManager.get_current_alarm": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager.get_current_alarm",
-    "lineno": 178
+    "lineno": 199
   },
   "alarm_manager.py:AlarmManager._adjust_state_after_update": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager._adjust_state_after_update",
-    "lineno": 214
+    "lineno": 235
   },
   "alarm_manager.py:AlarmManager.get_state_by_id": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager.get_state_by_id",
-    "lineno": 230
+    "lineno": 251
   },
   "alarm_manager.py:AlarmManager.update_alarm": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager.update_alarm",
-    "lineno": 237
+    "lineno": 258
   },
   "alarm_manager.py:AlarmManager._merge_ui": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager._merge_ui",
-    "lineno": 267
+    "lineno": 288
   },
   "alarm_manager.py:AlarmManager.get_next_id": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager.get_next_id",
-    "lineno": 330
+    "lineno": 351
   },
   "alarm_manager.py:AlarmManager.add_alarm": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager.add_alarm",
-    "lineno": 339
+    "lineno": 360
   },
   "alarm_manager.py:AlarmManager._replace_alarm": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager._replace_alarm",
-    "lineno": 369
+    "lineno": 390
   },
   "alarm_manager.py:AlarmManager.build_state_view": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager.build_state_view",
-    "lineno": 388
+    "lineno": 409
   },
   "alarm_manager.py:AlarmManager._check_snooze": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager._check_snooze",
-    "lineno": 402
+    "lineno": 423
   },
   "alarm_manager.py:AlarmManager._mark_triggered": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager._mark_triggered",
-    "lineno": 428
+    "lineno": 449
   },
   "alarm_manager.py:AlarmManager._check_and_fire": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager._check_and_fire",
-    "lineno": 457
+    "lineno": 478
   },
   "alarm_manager.py:AlarmManager.load_alarms": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager.load_alarms",
-    "lineno": 465
+    "lineno": 501
   },
   "alarm_manager.py:AlarmManager.load_standby": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager.load_standby",
-    "lineno": 478
+    "lineno": 514
   },
   "alarm_manager.py:AlarmManager.load_all": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager.load_all",
-    "lineno": 500
+    "lineno": 536
   },
   "alarm_manager.py:AlarmManager._save": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager._save",
-    "lineno": 517
+    "lineno": 553
   },
   "alarm_manager.py:AlarmManager._save_standby": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager._save_standby",
-    "lineno": 527
+    "lineno": 563
   },
   "alarm_manager.py:AlarmManager.remove_alarm": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager.remove_alarm",
-    "lineno": 541
+    "lineno": 577
   },
   "alarm_manager.py:AlarmManager.delete_alarms": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager.delete_alarms",
-    "lineno": 546
+    "lineno": 582
   },
   "alarm_manager.py:AlarmManager._remove_alarms_by_ids": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager._remove_alarms_by_ids",
-    "lineno": 551
+    "lineno": 587
   },
   "alarm_manager.py:AlarmManager.toggle_alarm": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager.toggle_alarm",
-    "lineno": 562
+    "lineno": 598
   },
   "alarm_manager.py:AlarmManager.snooze_alarm": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager.snooze_alarm",
-    "lineno": 574
+    "lineno": 610
   },
   "alarm_manager.py:AlarmManager.get_next_alarms": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager.get_next_alarms",
-    "lineno": 597
+    "lineno": 633
   },
   "alarm_manager.py:AlarmManager.get_next_alarm": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager.get_next_alarm",
-    "lineno": 627
+    "lineno": 663
   },
   "alarm_manager.py:AlarmManager.get_alarm_settings": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager.get_alarm_settings",
-    "lineno": 637
+    "lineno": 673
   },
   "alarm_manager.py:AlarmManager.get_alarm_by_id": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager.get_alarm_by_id",
-    "lineno": 652
+    "lineno": 688
   },
   "alarm_manager.py:AlarmManager._notify_listeners": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager._notify_listeners",
-    "lineno": 662
+    "lineno": 698
   },
   "alarm_manager.py:AlarmManager.add_listener": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager.add_listener",
-    "lineno": 674
+    "lineno": 710
   },
   "alarm_manager.py:AlarmManager.remove_listener": {
     "file_key": "alarm_manager.py",
     "qualname": "AlarmManager.remove_listener",
-    "lineno": 679
+    "lineno": 715
+  },
+  "alarm_manager.py:AlarmManager.find_due_alarms": {
+    "file_key": "alarm_manager.py",
+    "qualname": "AlarmManager.find_due_alarms",
+    "lineno": 723
+  },
+  "alarm_manager_cycle_controll_options.py:CycleOptions": {
+    "file_key": "alarm_manager_cycle_controll_options.py",
+    "qualname": "CycleOptions",
+    "lineno": 18
+  },
+  "alarm_manager_temp.py:NextAlarmInfo": {
+    "file_key": "alarm_manager_temp.py",
+    "qualname": "NextAlarmInfo",
+    "lineno": 47
+  },
+  "alarm_manager_temp.py:AlarmManager": {
+    "file_key": "alarm_manager_temp.py",
+    "qualname": "AlarmManager",
+    "lineno": 55
+  },
+  "alarm_manager_temp.py:AlarmManager.get_base_dir": {
+    "file_key": "alarm_manager_temp.py",
+    "qualname": "AlarmManager.get_base_dir",
+    "lineno": 66
+  },
+  "alarm_manager_temp.py:AlarmManager.__init__": {
+    "file_key": "alarm_manager_temp.py",
+    "qualname": "AlarmManager.__init__",
+    "lineno": 75
+  },
+  "alarm_manager_temp.py:AlarmManager.tick": {
+    "file_key": "alarm_manager_temp.py",
+    "qualname": "AlarmManager.tick",
+    "lineno": 129
+  },
+  "alarm_manager_temp.py:AlarmManager.internal_clock": {
+    "file_key": "alarm_manager_temp.py",
+    "qualname": "AlarmManager.internal_clock",
+    "lineno": 133
+  },
+  "alarm_manager_temp.py:AlarmManager._where": {
+    "file_key": "alarm_manager_temp.py",
+    "qualname": "AlarmManager._where",
+    "lineno": 145
+  },
+  "alarm_manager_temp.py:AlarmManager._recalc_states": {
+    "file_key": "alarm_manager_temp.py",
+    "qualname": "AlarmManager._recalc_states",
+    "lineno": 162
+  },
+  "alarm_manager_temp.py:AlarmManager._get_state": {
+    "file_key": "alarm_manager_temp.py",
+    "qualname": "AlarmManager._get_state",
+    "lineno": 193
+  },
+  "alarm_manager_temp.py:AlarmManager.get_alarm_by_id": {
+    "file_key": "alarm_manager_temp.py",
+    "qualname": "AlarmManager.get_alarm_by_id",
+    "lineno": 200
+  },
+  "alarm_manager_temp.py:AlarmManager.get_state_by_id": {
+    "file_key": "alarm_manager_temp.py",
+    "qualname": "AlarmManager.get_state_by_id",
+    "lineno": 207
+  },
+  "alarm_manager_temp.py:AlarmManager._update_next_fire_runtime": {
+    "file_key": "alarm_manager_temp.py",
+    "qualname": "AlarmManager._update_next_fire_runtime",
+    "lineno": 214
+  },
+  "alarm_manager_temp.py:AlarmManager._handle_due_alarms": {
+    "file_key": "alarm_manager_temp.py",
+    "qualname": "AlarmManager._handle_due_alarms",
+    "lineno": 230
+  },
+  "alarm_manager_temp.py:AlarmManager._get_or_create_state": {
+    "file_key": "alarm_manager_temp.py",
+    "qualname": "AlarmManager._get_or_create_state",
+    "lineno": 295
+  },
+  "alarm_manager_temp.py:AlarmManager._build_sorted_next_alarm_list": {
+    "file_key": "alarm_manager_temp.py",
+    "qualname": "AlarmManager._build_sorted_next_alarm_list",
+    "lineno": 307
+  },
+  "alarm_manager_temp.py:AlarmManager._fire_alarm": {
+    "file_key": "alarm_manager_temp.py",
+    "qualname": "AlarmManager._fire_alarm",
+    "lineno": 311
+  },
+  "alarm_manager_temp.py:AlarmManager._check_invalid_states": {
+    "file_key": "alarm_manager_temp.py",
+    "qualname": "AlarmManager._check_invalid_states",
+    "lineno": 345
+  },
+  "alarm_manager_temp.py:AlarmManager._repair_invalid_states": {
+    "file_key": "alarm_manager_temp.py",
+    "qualname": "AlarmManager._repair_invalid_states",
+    "lineno": 372
+  },
+  "alarm_manager_temp.py:AlarmManager._normalize_on_boot_and_edit": {
+    "file_key": "alarm_manager_temp.py",
+    "qualname": "AlarmManager._normalize_on_boot_and_edit",
+    "lineno": 441
+  },
+  "alarm_manager_temp.py:AlarmManager._reset_state_for_future": {
+    "file_key": "alarm_manager_temp.py",
+    "qualname": "AlarmManager._reset_state_for_future",
+    "lineno": 475
+  },
+  "alarm_manager_temp.py:AlarmManager.apply_alarm_mutation": {
+    "file_key": "alarm_manager_temp.py",
+    "qualname": "AlarmManager.apply_alarm_mutation",
+    "lineno": 484
+  },
+  "alarm_manager_temp.py:AlarmManager.update_alarm": {
+    "file_key": "alarm_manager_temp.py",
+    "qualname": "AlarmManager.update_alarm",
+    "lineno": 510
+  },
+  "alarm_manager_temp.py:AlarmManager._adjust_state_after_update": {
+    "file_key": "alarm_manager_temp.py",
+    "qualname": "AlarmManager._adjust_state_after_update",
+    "lineno": 548
+  },
+  "alarm_manager_temp.py:AlarmManager._merge_ui": {
+    "file_key": "alarm_manager_temp.py",
+    "qualname": "AlarmManager._merge_ui",
+    "lineno": 565
+  },
+  "alarm_manager_temp.py:AlarmManager.get_next_id": {
+    "file_key": "alarm_manager_temp.py",
+    "qualname": "AlarmManager.get_next_id",
+    "lineno": 581
+  },
+  "alarm_manager_temp.py:AlarmManager.add_alarm": {
+    "file_key": "alarm_manager_temp.py",
+    "qualname": "AlarmManager.add_alarm",
+    "lineno": 590
+  },
+  "alarm_manager_temp.py:AlarmManager._replace_alarm": {
+    "file_key": "alarm_manager_temp.py",
+    "qualname": "AlarmManager._replace_alarm",
+    "lineno": 628
+  },
+  "alarm_manager_temp.py:AlarmManager.delete_alarms": {
+    "file_key": "alarm_manager_temp.py",
+    "qualname": "AlarmManager.delete_alarms",
+    "lineno": 649
+  },
+  "alarm_manager_temp.py:AlarmManager._remove_alarms_by_ids": {
+    "file_key": "alarm_manager_temp.py",
+    "qualname": "AlarmManager._remove_alarms_by_ids",
+    "lineno": 654
+  },
+  "alarm_manager_temp.py:AlarmManager.build_state_view": {
+    "file_key": "alarm_manager_temp.py",
+    "qualname": "AlarmManager.build_state_view",
+    "lineno": 669
+  },
+  "alarm_manager_temp.py:AlarmManager._notify_listeners": {
+    "file_key": "alarm_manager_temp.py",
+    "qualname": "AlarmManager._notify_listeners",
+    "lineno": 687
+  },
+  "alarm_manager_temp.py:AlarmManager.add_listener": {
+    "file_key": "alarm_manager_temp.py",
+    "qualname": "AlarmManager.add_listener",
+    "lineno": 701
+  },
+  "alarm_manager_temp.py:AlarmManager.remove_listener": {
+    "file_key": "alarm_manager_temp.py",
+    "qualname": "AlarmManager.remove_listener",
+    "lineno": 706
+  },
+  "alarm_manager_temp.py:AlarmManager.toggle_alarm": {
+    "file_key": "alarm_manager_temp.py",
+    "qualname": "AlarmManager.toggle_alarm",
+    "lineno": 714
+  },
+  "alarm_manager_temp.py:AlarmManager._check_snooze": {
+    "file_key": "alarm_manager_temp.py",
+    "qualname": "AlarmManager._check_snooze",
+    "lineno": 726
+  },
+  "alarm_manager_temp.py:AlarmManager.snooze_alarm": {
+    "file_key": "alarm_manager_temp.py",
+    "qualname": "AlarmManager.snooze_alarm",
+    "lineno": 766
+  },
+  "alarm_manager_temp.py:AlarmManager.request_stop": {
+    "file_key": "alarm_manager_temp.py",
+    "qualname": "AlarmManager.request_stop",
+    "lineno": 789
+  },
+  "alarm_manager_temp.py:AlarmManager.stop_alarm": {
+    "file_key": "alarm_manager_temp.py",
+    "qualname": "AlarmManager.stop_alarm",
+    "lineno": 794
+  },
+  "alarm_manager_temp.py:AlarmManager.get_active_alarm_state": {
+    "file_key": "alarm_manager_temp.py",
+    "qualname": "AlarmManager.get_active_alarm_state",
+    "lineno": 811
+  },
+  "alarm_manager_temp.py:AlarmManager.load_alarms": {
+    "file_key": "alarm_manager_temp.py",
+    "qualname": "AlarmManager.load_alarms",
+    "lineno": 836
+  },
+  "alarm_manager_temp.py:AlarmManager.load_standby": {
+    "file_key": "alarm_manager_temp.py",
+    "qualname": "AlarmManager.load_standby",
+    "lineno": 851
+  },
+  "alarm_manager_temp.py:AlarmManager.load_all": {
+    "file_key": "alarm_manager_temp.py",
+    "qualname": "AlarmManager.load_all",
+    "lineno": 878
+  },
+  "alarm_manager_temp.py:AlarmManager._save": {
+    "file_key": "alarm_manager_temp.py",
+    "qualname": "AlarmManager._save",
+    "lineno": 896
+  },
+  "alarm_manager_temp.py:AlarmManager._save_standby": {
+    "file_key": "alarm_manager_temp.py",
+    "qualname": "AlarmManager._save_standby",
+    "lineno": 902
+  },
+  "alarm_manager_temp.py:AlarmManager._normalize_states": {
+    "file_key": "alarm_manager_temp.py",
+    "qualname": "AlarmManager._normalize_states",
+    "lineno": 917
+  },
+  "alarm_manager_temp.py:AlarmManager._build_normalized_states_for_save": {
+    "file_key": "alarm_manager_temp.py",
+    "qualname": "AlarmManager._build_normalized_states_for_save",
+    "lineno": 929
+  },
+  "alarm_manager_temp.py:AlarmManager.start_cycle": {
+    "file_key": "alarm_manager_temp.py",
+    "qualname": "AlarmManager.start_cycle",
+    "lineno": 941
+  },
+  "alarm_manager_temp.py:AlarmManager._start_config_changed_cycle": {
+    "file_key": "alarm_manager_temp.py",
+    "qualname": "AlarmManager._start_config_changed_cycle",
+    "lineno": 956
+  },
+  "alarm_manager_temp.py:AlarmManager._start_startup_cycle": {
+    "file_key": "alarm_manager_temp.py",
+    "qualname": "AlarmManager._start_startup_cycle",
+    "lineno": 963
+  },
+  "alarm_manager_temp.py:AlarmManager._start_running_cycle": {
+    "file_key": "alarm_manager_temp.py",
+    "qualname": "AlarmManager._start_running_cycle",
+    "lineno": 970
+  },
+  "alarm_manager_temp.py:AlarmManager.run_cycle": {
+    "file_key": "alarm_manager_temp.py",
+    "qualname": "AlarmManager.run_cycle",
+    "lineno": 980
+  },
+  "alarm_manager_temp.py:AlarmManager._begin_cycle": {
+    "file_key": "alarm_manager_temp.py",
+    "qualname": "AlarmManager._begin_cycle",
+    "lineno": 1026
+  },
+  "alarm_manager_temp.py:AlarmManager._load_phase": {
+    "file_key": "alarm_manager_temp.py",
+    "qualname": "AlarmManager._load_phase",
+    "lineno": 1029
+  },
+  "alarm_manager_temp.py:AlarmManager._recalc_phase": {
+    "file_key": "alarm_manager_temp.py",
+    "qualname": "AlarmManager._recalc_phase",
+    "lineno": 1033
+  },
+  "alarm_manager_temp.py:AlarmManager._fire_phase": {
+    "file_key": "alarm_manager_temp.py",
+    "qualname": "AlarmManager._fire_phase",
+    "lineno": 1038
+  },
+  "alarm_manager_temp.py:AlarmManager._save_phase": {
+    "file_key": "alarm_manager_temp.py",
+    "qualname": "AlarmManager._save_phase",
+    "lineno": 1041
+  },
+  "alarm_manager_temp.py:AlarmManager._stop_phase": {
+    "file_key": "alarm_manager_temp.py",
+    "qualname": "AlarmManager._stop_phase",
+    "lineno": 1064
+  },
+  "alarm_manager_verification_script.py:__functions__._where": {
+    "file_key": "alarm_manager_verification_script.py",
+    "qualname": "__functions__._where",
+    "lineno": 22
+  },
+  "alarm_manager_verification_script.py:__functions__.main": {
+    "file_key": "alarm_manager_verification_script.py",
+    "qualname": "__functions__.main",
+    "lineno": 27
+  },
+  "alarm_manager_verification_script.py:__functions__._validate_single_repeat": {
+    "file_key": "alarm_manager_verification_script.py",
+    "qualname": "__functions__._validate_single_repeat",
+    "lineno": 39
+  },
+  "alarm_manager_verification_script.py:__functions__.test_missing_state_creates_initial_state": {
+    "file_key": "alarm_manager_verification_script.py",
+    "qualname": "__functions__.test_missing_state_creates_initial_state",
+    "lineno": 71
+  },
+  "alarm_manager_verification_script.py:__functions__.test_hard_alarm_sample_json_survives": {
+    "file_key": "alarm_manager_verification_script.py",
+    "qualname": "__functions__.test_hard_alarm_sample_json_survives",
+    "lineno": 100
+  },
+  "alarm_manager_verification_script.py:__functions__.test_next_fire_is_sane_for_all_alarms": {
+    "file_key": "alarm_manager_verification_script.py",
+    "qualname": "__functions__.test_next_fire_is_sane_for_all_alarms",
+    "lineno": 117
+  },
+  "alarm_manager_verification_script.py:__functions__.test_disabled_alarms_never_fire": {
+    "file_key": "alarm_manager_verification_script.py",
+    "qualname": "__functions__.test_disabled_alarms_never_fire",
+    "lineno": 161
+  },
+  "alarm_manager_verification_script.py:__functions__.test_edge_case_alarm_fields_do_not_crash": {
+    "file_key": "alarm_manager_verification_script.py",
+    "qualname": "__functions__.test_edge_case_alarm_fields_do_not_crash",
+    "lineno": 176
   },
   "alarm_player.py:AlarmPlayer": {
     "file_key": "alarm_player.py",
@@ -439,155 +884,135 @@
     "qualname": "AlarmPlayerGUI.stop",
     "lineno": 125
   },
-  "alarm_repeat_date_calculator.py:__functions__._check_last_fire": {
-    "file_key": "alarm_repeat_date_calculator.py",
-    "qualname": "__functions__._check_last_fire",
-    "lineno": 26
+  "alarm_repeat_datetime_checker.py:AlarmDatetimeChecker": {
+    "file_key": "alarm_repeat_datetime_checker.py",
+    "qualname": "AlarmDatetimeChecker",
+    "lineno": 21
   },
-  "alarm_repeat_date_calculator.py:__functions__.match_time": {
-    "file_key": "alarm_repeat_date_calculator.py",
-    "qualname": "__functions__.match_time",
-    "lineno": 35
+  "alarm_repeat_datetime_checker.py:AlarmDatetimeChecker.__init__": {
+    "file_key": "alarm_repeat_datetime_checker.py",
+    "qualname": "AlarmDatetimeChecker.__init__",
+    "lineno": 34
   },
-  "alarm_repeat_date_calculator.py:__functions__.check_daily_rule": {
-    "file_key": "alarm_repeat_date_calculator.py",
-    "qualname": "__functions__.check_daily_rule",
-    "lineno": 53
+  "alarm_repeat_datetime_checker.py:AlarmDatetimeChecker.should_fire": {
+    "file_key": "alarm_repeat_datetime_checker.py",
+    "qualname": "AlarmDatetimeChecker.should_fire",
+    "lineno": 48
   },
-  "alarm_repeat_date_calculator.py:__functions__.check_weekly_rule": {
-    "file_key": "alarm_repeat_date_calculator.py",
-    "qualname": "__functions__.check_weekly_rule",
-    "lineno": 68
-  },
-  "alarm_repeat_date_calculator.py:__functions__.check_monthly_rule": {
-    "file_key": "alarm_repeat_date_calculator.py",
-    "qualname": "__functions__.check_monthly_rule",
-    "lineno": 110
-  },
-  "alarm_repeat_date_calculator.py:__functions__.check_custom_rule": {
-    "file_key": "alarm_repeat_date_calculator.py",
-    "qualname": "__functions__.check_custom_rule",
-    "lineno": 152
-  },
-  "alarm_repeat_date_calculator.py:__functions__.check_single_rule": {
-    "file_key": "alarm_repeat_date_calculator.py",
-    "qualname": "__functions__.check_single_rule",
-    "lineno": 191
-  },
-  "alarm_repeat_date_calculator.py:__functions__.should_fire_alarm": {
-    "file_key": "alarm_repeat_date_calculator.py",
-    "qualname": "__functions__.should_fire_alarm",
-    "lineno": 214
-  },
-  "alarm_repeat_date_calculator.py:__functions__.check_single_rule_debug": {
-    "file_key": "alarm_repeat_date_calculator.py",
-    "qualname": "__functions__.check_single_rule_debug",
-    "lineno": 233
+  "alarm_repeat_datetime_checker.py:AlarmDatetimeChecker._where": {
+    "file_key": "alarm_repeat_datetime_checker.py",
+    "qualname": "AlarmDatetimeChecker._where",
+    "lineno": 95
   },
   "alarm_scheduler.py:AlarmScheduler": {
     "file_key": "alarm_scheduler.py",
     "qualname": "AlarmScheduler",
-    "lineno": 22
+    "lineno": 34
   },
   "alarm_scheduler.py:AlarmScheduler.__init__": {
     "file_key": "alarm_scheduler.py",
     "qualname": "AlarmScheduler.__init__",
-    "lineno": 25
+    "lineno": 37
   },
   "alarm_scheduler.py:AlarmScheduler._base": {
     "file_key": "alarm_scheduler.py",
     "qualname": "AlarmScheduler._base",
-    "lineno": 39
+    "lineno": 51
   },
   "alarm_scheduler.py:AlarmScheduler._with_time": {
     "file_key": "alarm_scheduler.py",
     "qualname": "AlarmScheduler._with_time",
-    "lineno": 49
+    "lineno": 61
   },
   "alarm_scheduler.py:AlarmScheduler.get_next_time": {
     "file_key": "alarm_scheduler.py",
     "qualname": "AlarmScheduler.get_next_time",
-    "lineno": 56
+    "lineno": 68
+  },
+  "alarm_scheduler.py:AlarmScheduler._get_handler": {
+    "file_key": "alarm_scheduler.py",
+    "qualname": "AlarmScheduler._get_handler",
+    "lineno": 85
   },
   "alarm_scheduler.py:AlarmScheduler._next_single": {
     "file_key": "alarm_scheduler.py",
     "qualname": "AlarmScheduler._next_single",
-    "lineno": 75
+    "lineno": 91
   },
   "alarm_scheduler.py:AlarmScheduler._next_daily": {
     "file_key": "alarm_scheduler.py",
     "qualname": "AlarmScheduler._next_daily",
-    "lineno": 82
+    "lineno": 98
+  },
+  "alarm_scheduler.py:AlarmScheduler._next_interval_days": {
+    "file_key": "alarm_scheduler.py",
+    "qualname": "AlarmScheduler._next_interval_days",
+    "lineno": 117
+  },
+  "alarm_scheduler.py:AlarmScheduler._next_weekday_candidate": {
+    "file_key": "alarm_scheduler.py",
+    "qualname": "AlarmScheduler._next_weekday_candidate",
+    "lineno": 138
   },
   "alarm_scheduler.py:AlarmScheduler._next_weekly": {
     "file_key": "alarm_scheduler.py",
     "qualname": "AlarmScheduler._next_weekly",
-    "lineno": 101
-  },
-  "alarm_scheduler.py:AlarmScheduler._next_weekly_x": {
-    "file_key": "alarm_scheduler.py",
-    "qualname": "AlarmScheduler._next_weekly_x",
-    "lineno": 125
+    "lineno": 159
   },
   "alarm_scheduler.py:AlarmScheduler._next_monthly": {
     "file_key": "alarm_scheduler.py",
     "qualname": "AlarmScheduler._next_monthly",
-    "lineno": 150
+    "lineno": 215
   },
   "alarm_scheduler.py:AlarmScheduler._next_custom": {
     "file_key": "alarm_scheduler.py",
     "qualname": "AlarmScheduler._next_custom",
-    "lineno": 192
-  },
-  "alarm_scheduler.py:AlarmScheduler.find_due_alarms": {
-    "file_key": "alarm_scheduler.py",
-    "qualname": "AlarmScheduler.find_due_alarms",
-    "lineno": 237
+    "lineno": 264
   },
   "alarm_storage.py:AlarmStorage": {
     "file_key": "alarm_storage.py",
     "qualname": "AlarmStorage",
-    "lineno": 32
+    "lineno": 33
   },
   "alarm_storage.py:AlarmStorage._atomic_write_json": {
     "file_key": "alarm_storage.py",
     "qualname": "AlarmStorage._atomic_write_json",
-    "lineno": 37
+    "lineno": 39
   },
   "alarm_storage.py:AlarmStorage.load_alarms": {
     "file_key": "alarm_storage.py",
     "qualname": "AlarmStorage.load_alarms",
-    "lineno": 49
+    "lineno": 53
   },
   "alarm_storage.py:AlarmStorage.load_standby": {
     "file_key": "alarm_storage.py",
     "qualname": "AlarmStorage.load_standby",
-    "lineno": 82
+    "lineno": 88
   },
   "alarm_storage.py:AlarmStorage.save_alarms": {
     "file_key": "alarm_storage.py",
     "qualname": "AlarmStorage.save_alarms",
-    "lineno": 136
+    "lineno": 150
   },
   "alarm_storage.py:AlarmStorage.save_standby": {
     "file_key": "alarm_storage.py",
     "qualname": "AlarmStorage.save_standby",
-    "lineno": 150
+    "lineno": 164
   },
   "alarm_storage.py:AlarmStorage.save_all": {
     "file_key": "alarm_storage.py",
     "qualname": "AlarmStorage.save_all",
-    "lineno": 164
+    "lineno": 178
   },
   "alarm_storage.py:AlarmStorage.backup": {
     "file_key": "alarm_storage.py",
     "qualname": "AlarmStorage.backup",
-    "lineno": 184
+    "lineno": 199
   },
   "alarm_storage.py:AlarmStorage.restore_latest": {
     "file_key": "alarm_storage.py",
     "qualname": "AlarmStorage.restore_latest",
-    "lineno": 209
+    "lineno": 224
   },
   "alarm_test_full_condition.py:AlarmTestBase": {
     "file_key": "alarm_test_full_condition.py",
@@ -667,52 +1092,67 @@
   "alarm_ui_mapper.py:__functions__.ui_date_time_to_dt": {
     "file_key": "alarm_ui_mapper.py",
     "qualname": "__functions__.ui_date_time_to_dt",
-    "lineno": 25
+    "lineno": 36
   },
   "alarm_ui_mapper.py:__functions__.ui_default_date_time": {
     "file_key": "alarm_ui_mapper.py",
     "qualname": "__functions__.ui_default_date_time",
-    "lineno": 30
+    "lineno": 40
+  },
+  "alarm_ui_mapper.py:__functions__.any_to_dt": {
+    "file_key": "alarm_ui_mapper.py",
+    "qualname": "__functions__.any_to_dt",
+    "lineno": 57
+  },
+  "alarm_ui_mapper.py:__functions__.dt_to_any": {
+    "file_key": "alarm_ui_mapper.py",
+    "qualname": "__functions__.dt_to_any",
+    "lineno": 63
   },
   "alarm_ui_mapper.py:UItoInternalMapper": {
     "file_key": "alarm_ui_mapper.py",
     "qualname": "UItoInternalMapper",
-    "lineno": 42
+    "lineno": 70
   },
   "alarm_ui_mapper.py:UItoInternalMapper.ui_to_internal": {
     "file_key": "alarm_ui_mapper.py",
     "qualname": "UItoInternalMapper.ui_to_internal",
-    "lineno": 48
+    "lineno": 76
   },
   "alarm_ui_mapper.py:InternaltoUIMapper": {
     "file_key": "alarm_ui_mapper.py",
     "qualname": "InternaltoUIMapper",
-    "lineno": 74
+    "lineno": 104
   },
   "alarm_ui_mapper.py:InternaltoUIMapper.internal_to_ui": {
     "file_key": "alarm_ui_mapper.py",
     "qualname": "InternaltoUIMapper.internal_to_ui",
-    "lineno": 80
+    "lineno": 110
   },
   "alarm_ui_mapper.py:InternaltoViewMapper": {
     "file_key": "alarm_ui_mapper.py",
     "qualname": "InternaltoViewMapper",
-    "lineno": 103
+    "lineno": 134
   },
   "alarm_ui_mapper.py:InternaltoViewMapper.stateinternal_to_stateview": {
     "file_key": "alarm_ui_mapper.py",
     "qualname": "InternaltoViewMapper.stateinternal_to_stateview",
-    "lineno": 109
+    "lineno": 140
   },
   "alarm_ui_model.py:AlarmUI": {
     "file_key": "alarm_ui_model.py",
     "qualname": "AlarmUI",
-    "lineno": 36
+    "lineno": 37
+  },
+  "alarm_ui_model.py:AlarmUIPatch": {
+    "file_key": "alarm_ui_model.py",
+    "qualname": "AlarmUIPatch",
+    "lineno": 69
   },
   "alarm_ui_model.py:AlarmStateView": {
     "file_key": "alarm_ui_model.py",
     "qualname": "AlarmStateView",
-    "lineno": 64
+    "lineno": 99
   },
   "cui.py:__functions__.print_upcoming_alarms": {
     "file_key": "cui.py",
@@ -723,6 +1163,81 @@
     "file_key": "cui.py",
     "qualname": "__functions__.main",
     "lineno": 73
+  },
+  "cui_controller.py:CUIController": {
+    "file_key": "cui_controller.py",
+    "qualname": "CUIController",
+    "lineno": 14
+  },
+  "cui_controller.py:CUIController.__init__": {
+    "file_key": "cui_controller.py",
+    "qualname": "CUIController.__init__",
+    "lineno": 16
+  },
+  "cui_controller.py:CUIController.run": {
+    "file_key": "cui_controller.py",
+    "qualname": "CUIController.run",
+    "lineno": 20
+  },
+  "cui_controller.py:CUIController.stop": {
+    "file_key": "cui_controller.py",
+    "qualname": "CUIController.stop",
+    "lineno": 27
+  },
+  "cui_controller.py:CUIController.on_timer": {
+    "file_key": "cui_controller.py",
+    "qualname": "CUIController.on_timer",
+    "lineno": 31
+  },
+  "cui_datetime_normalizer.py:__functions__.validate_date": {
+    "file_key": "cui_datetime_normalizer.py",
+    "qualname": "__functions__.validate_date",
+    "lineno": 24
+  },
+  "cui_datetime_normalizer.py:__functions__.validate_time": {
+    "file_key": "cui_datetime_normalizer.py",
+    "qualname": "__functions__.validate_time",
+    "lineno": 35
+  },
+  "cui_datetime_normalizer.py:__functions__.normalize_commas": {
+    "file_key": "cui_datetime_normalizer.py",
+    "qualname": "__functions__.normalize_commas",
+    "lineno": 49
+  },
+  "cui_datetime_normalizer.py:__functions__.normalize_date": {
+    "file_key": "cui_datetime_normalizer.py",
+    "qualname": "__functions__.normalize_date",
+    "lineno": 55
+  },
+  "cui_datetime_normalizer.py:__functions__.normalize_time": {
+    "file_key": "cui_datetime_normalizer.py",
+    "qualname": "__functions__.normalize_time",
+    "lineno": 94
+  },
+  "cui_datetime_normalizer.py:__functions__.normalize_base_date": {
+    "file_key": "cui_datetime_normalizer.py",
+    "qualname": "__functions__.normalize_base_date",
+    "lineno": 123
+  },
+  "cui_weekday_normalizer.py:__functions__.normalize_weekday_list": {
+    "file_key": "cui_weekday_normalizer.py",
+    "qualname": "__functions__.normalize_weekday_list",
+    "lineno": 17
+  },
+  "cui_weekday_normalizer.py:__functions__.parse_weekdays_cui": {
+    "file_key": "cui_weekday_normalizer.py",
+    "qualname": "__functions__.parse_weekdays_cui",
+    "lineno": 55
+  },
+  "cui_weekday_normalizer.py:__functions__._looks_numeric_only": {
+    "file_key": "cui_weekday_normalizer.py",
+    "qualname": "__functions__._looks_numeric_only",
+    "lineno": 83
+  },
+  "cui_weekday_normalizer.py:__functions__._extract_ints": {
+    "file_key": "cui_weekday_normalizer.py",
+    "qualname": "__functions__._extract_ints",
+    "lineno": 90
   },
   "date_rule_valid_util.py:__functions__.is_valid_week_of_month": {
     "file_key": "date_rule_valid_util.py",
@@ -847,237 +1362,257 @@
   "gui.py:AlarmGUI": {
     "file_key": "gui.py",
     "qualname": "AlarmGUI",
-    "lineno": 54
+    "lineno": 48
   },
   "gui.py:AlarmGUI.__init__": {
     "file_key": "gui.py",
     "qualname": "AlarmGUI.__init__",
-    "lineno": 59
+    "lineno": 53
   },
   "gui.py:AlarmGUI._info": {
     "file_key": "gui.py",
     "qualname": "AlarmGUI._info",
-    "lineno": 95
+    "lineno": 92
   },
   "gui.py:AlarmGUI._warn": {
     "file_key": "gui.py",
     "qualname": "AlarmGUI._warn",
-    "lineno": 98
+    "lineno": 95
   },
   "gui.py:AlarmGUI._error": {
     "file_key": "gui.py",
     "qualname": "AlarmGUI._error",
-    "lineno": 101
+    "lineno": 98
   },
   "gui.py:AlarmGUI._ask_yes_no": {
     "file_key": "gui.py",
     "qualname": "AlarmGUI._ask_yes_no",
-    "lineno": 104
+    "lineno": 101
   },
   "gui.py:AlarmGUI.get_window_pos_file": {
     "file_key": "gui.py",
     "qualname": "AlarmGUI.get_window_pos_file",
-    "lineno": 110
+    "lineno": 107
   },
   "gui.py:AlarmGUI.save_window_position": {
     "file_key": "gui.py",
     "qualname": "AlarmGUI.save_window_position",
-    "lineno": 114
+    "lineno": 111
   },
   "gui.py:AlarmGUI.load_window_position": {
     "file_key": "gui.py",
     "qualname": "AlarmGUI.load_window_position",
-    "lineno": 120
+    "lineno": 117
   },
   "gui.py:AlarmGUI.start_gui": {
     "file_key": "gui.py",
     "qualname": "AlarmGUI.start_gui",
-    "lineno": 133
+    "lineno": 130
   },
   "gui.py:AlarmGUI.update_clock": {
     "file_key": "gui.py",
     "qualname": "AlarmGUI.update_clock",
-    "lineno": 146
+    "lineno": 144
   },
   "gui.py:AlarmGUI.alarm_check_loop": {
     "file_key": "gui.py",
     "qualname": "AlarmGUI.alarm_check_loop",
-    "lineno": 158
+    "lineno": 156
   },
   "gui.py:AlarmGUI._finish_alarm": {
     "file_key": "gui.py",
     "qualname": "AlarmGUI._finish_alarm",
-    "lineno": 179
+    "lineno": 177
   },
   "gui.py:AlarmGUI.next_alarm_update_loop": {
     "file_key": "gui.py",
     "qualname": "AlarmGUI.next_alarm_update_loop",
-    "lineno": 197
+    "lineno": 195
   },
   "gui.py:AlarmGUI.update_next_alarm_label": {
     "file_key": "gui.py",
     "qualname": "AlarmGUI.update_next_alarm_label",
-    "lineno": 205
+    "lineno": 203
   },
   "gui.py:AlarmGUI._update_remaining_text": {
     "file_key": "gui.py",
     "qualname": "AlarmGUI._update_remaining_text",
-    "lineno": 277
+    "lineno": 275
   },
   "gui.py:AlarmGUI._countdown_loop": {
     "file_key": "gui.py",
     "qualname": "AlarmGUI._countdown_loop",
-    "lineno": 310
+    "lineno": 308
   },
   "gui.py:AlarmGUI.create_cell_editor": {
     "file_key": "gui.py",
     "qualname": "AlarmGUI.create_cell_editor",
-    "lineno": 317
+    "lineno": 315
   },
   "gui.py:AlarmGUI.refresh_tree": {
     "file_key": "gui.py",
     "qualname": "AlarmGUI.refresh_tree",
-    "lineno": 351
+    "lineno": 349
   },
   "gui.py:AlarmGUI.create_menu": {
     "file_key": "gui.py",
     "qualname": "AlarmGUI.create_menu",
-    "lineno": 426
+    "lineno": 424
   },
   "gui.py:AlarmGUI.config_set_default_mode": {
     "file_key": "gui.py",
     "qualname": "AlarmGUI.config_set_default_mode",
-    "lineno": 480
+    "lineno": 478
   },
   "gui.py:AlarmGUI.config_set_dialog_enabled": {
     "file_key": "gui.py",
     "qualname": "AlarmGUI.config_set_dialog_enabled",
-    "lineno": 485
+    "lineno": 483
   },
   "gui.py:AlarmGUI.create_main_widgets": {
     "file_key": "gui.py",
     "qualname": "AlarmGUI.create_main_widgets",
-    "lineno": 492
+    "lineno": 490
   },
   "gui.py:AlarmGUI.on_main_close": {
     "file_key": "gui.py",
     "qualname": "AlarmGUI.on_main_close",
-    "lineno": 555
+    "lineno": 553
   },
   "gui.py:AlarmGUI._set_bg_snooze": {
     "file_key": "gui.py",
     "qualname": "AlarmGUI._set_bg_snooze",
-    "lineno": 570
+    "lineno": 568
   },
   "gui.py:AlarmGUI._set_bg_normal": {
     "file_key": "gui.py",
     "qualname": "AlarmGUI._set_bg_normal",
-    "lineno": 578
+    "lineno": 576
   },
   "gui.py:AlarmGUI.select_sound_file": {
     "file_key": "gui.py",
     "qualname": "AlarmGUI.select_sound_file",
-    "lineno": 589
+    "lineno": 587
   },
   "gui.py:AlarmGUI.place_window_near_parent": {
     "file_key": "gui.py",
     "qualname": "AlarmGUI.place_window_near_parent",
-    "lineno": 617
+    "lineno": 615
   },
   "gui.py:AlarmGUI.on_close": {
     "file_key": "gui.py",
     "qualname": "AlarmGUI.on_close",
-    "lineno": 642
+    "lineno": 640
   },
   "gui.py:AlarmGUI.open_settings_window": {
     "file_key": "gui.py",
     "qualname": "AlarmGUI.open_settings_window",
-    "lineno": 663
+    "lineno": 661
   },
   "gui.py:AlarmGUI.delete_selected_alarms": {
     "file_key": "gui.py",
     "qualname": "AlarmGUI.delete_selected_alarms",
-    "lineno": 842
+    "lineno": 840
   },
   "gui.py:AlarmGUI.add_alarm_action": {
     "file_key": "gui.py",
     "qualname": "AlarmGUI.add_alarm_action",
-    "lineno": 864
+    "lineno": 862
   },
   "gui.py:AlarmGUI.place_subwindow_near_parent": {
     "file_key": "gui.py",
     "qualname": "AlarmGUI.place_subwindow_near_parent",
-    "lineno": 946
+    "lineno": 944
   },
   "gui.py:AlarmGUI._dock_child_window": {
     "file_key": "gui.py",
     "qualname": "AlarmGUI._dock_child_window",
-    "lineno": 960
+    "lineno": 958
   },
   "gui.py:AlarmGUI.select_weekdays_dialog": {
     "file_key": "gui.py",
     "qualname": "AlarmGUI.select_weekdays_dialog",
-    "lineno": 974
+    "lineno": 972
   },
   "gui.py:AlarmGUI.open_custom_dialog": {
     "file_key": "gui.py",
     "qualname": "AlarmGUI.open_custom_dialog",
-    "lineno": 1054
+    "lineno": 1052
   },
   "gui.py:AlarmGUI.pick_weekday": {
     "file_key": "gui.py",
     "qualname": "AlarmGUI.pick_weekday",
-    "lineno": 1161
+    "lineno": 1159
   },
   "gui.py:AlarmGUI.on_repeat_change": {
     "file_key": "gui.py",
     "qualname": "AlarmGUI.on_repeat_change",
-    "lineno": 1180
+    "lineno": 1178
   },
   "gui.py:AlarmGUI.open_custom_from_form": {
     "file_key": "gui.py",
     "qualname": "AlarmGUI.open_custom_from_form",
-    "lineno": 1193
+    "lineno": 1191
   },
   "gui.py:AlarmGUI.on_double_click": {
     "file_key": "gui.py",
     "qualname": "AlarmGUI.on_double_click",
-    "lineno": 1216
+    "lineno": 1214
   },
   "gui.py:AlarmGUI.select_date_dialog": {
     "file_key": "gui.py",
     "qualname": "AlarmGUI.select_date_dialog",
-    "lineno": 1426
+    "lineno": 1424
   },
   "gui.py:AlarmGUI.select_time_dialog": {
     "file_key": "gui.py",
     "qualname": "AlarmGUI.select_time_dialog",
-    "lineno": 1436
+    "lineno": 1434
   },
   "gui.py:AlarmGUI.pick_date": {
     "file_key": "gui.py",
     "qualname": "AlarmGUI.pick_date",
-    "lineno": 1452
+    "lineno": 1450
   },
   "gui.py:AlarmGUI.pick_time": {
     "file_key": "gui.py",
     "qualname": "AlarmGUI.pick_time",
-    "lineno": 1464
+    "lineno": 1462
   },
   "gui.py:AlarmGUI.stop_alarm": {
     "file_key": "gui.py",
     "qualname": "AlarmGUI.stop_alarm",
-    "lineno": 1476
+    "lineno": 1474
   },
   "gui.py:AlarmGUI.snooze_alarm": {
     "file_key": "gui.py",
     "qualname": "AlarmGUI.snooze_alarm",
-    "lineno": 1501
+    "lineno": 1499
   },
   "gui.py:AlarmGUI.start": {
     "file_key": "gui.py",
     "qualname": "AlarmGUI.start",
-    "lineno": 1556
+    "lineno": 1554
+  },
+  "gui_controller.py:GUIController": {
+    "file_key": "gui_controller.py",
+    "qualname": "GUIController",
+    "lineno": 12
+  },
+  "gui_controller.py:GUIController.__init__": {
+    "file_key": "gui_controller.py",
+    "qualname": "GUIController.__init__",
+    "lineno": 14
+  },
+  "gui_controller.py:GUIController.start": {
+    "file_key": "gui_controller.py",
+    "qualname": "GUIController.start",
+    "lineno": 18
+  },
+  "gui_controller.py:GUIController.on_timer": {
+    "file_key": "gui_controller.py",
+    "qualname": "GUIController.on_timer",
+    "lineno": 23
   },
   "json_editor.py:JsonEditor": {
     "file_key": "json_editor.py",
@@ -1274,115 +1809,125 @@
     "qualname": "__functions__.start_gui",
     "lineno": 107
   },
-  "start.py:__functions__.start_gui_mode": {
+  "start.py:__functions__.start_application": {
     "file_key": "start.py",
-    "qualname": "__functions__.start_gui_mode",
-    "lineno": 21
+    "qualname": "__functions__.start_application",
+    "lineno": 34
   },
-  "start.py:__functions__.start_cui_mode": {
+  "start.py:__functions__.start_by_last_mode": {
     "file_key": "start.py",
-    "qualname": "__functions__.start_cui_mode",
-    "lineno": 35
+    "qualname": "__functions__.start_by_last_mode",
+    "lineno": 53
+  },
+  "start.py:__functions__.launch_gui": {
+    "file_key": "start.py",
+    "qualname": "__functions__.launch_gui",
+    "lineno": 71
+  },
+  "start.py:__functions__.launch_cui": {
+    "file_key": "start.py",
+    "qualname": "__functions__.launch_cui",
+    "lineno": 76
   },
   "start.py:__functions__.show_mode_dialog": {
     "file_key": "start.py",
     "qualname": "__functions__.show_mode_dialog",
-    "lineno": 48
+    "lineno": 84
   },
-  "start.py:__functions__.start": {
+  "start.py:__functions__.on_gui_selected": {
     "file_key": "start.py",
-    "qualname": "__functions__.start",
-    "lineno": 77
+    "qualname": "__functions__.on_gui_selected",
+    "lineno": 127
+  },
+  "start.py:__functions__.on_cui_selected": {
+    "file_key": "start.py",
+    "qualname": "__functions__.on_cui_selected",
+    "lineno": 136
+  },
+  "test_alarm_manager_temp.py:TestAlarmManagerTemp": {
+    "file_key": "test_alarm_manager_temp.py",
+    "qualname": "TestAlarmManagerTemp",
+    "lineno": 17
+  },
+  "test_alarm_manager_temp.py:TestAlarmManagerTemp.setUp": {
+    "file_key": "test_alarm_manager_temp.py",
+    "qualname": "TestAlarmManagerTemp.setUp",
+    "lineno": 19
+  },
+  "test_alarm_manager_temp.py:TestAlarmManagerTemp.test_process_sets_next_fire_datetime": {
+    "file_key": "test_alarm_manager_temp.py",
+    "qualname": "TestAlarmManagerTemp.test_process_sets_next_fire_datetime",
+    "lineno": 67
+  },
+  "test_alarm_manager_temp.py:TestAlarmManagerTemp.test_next_fire_times_updated_via_process": {
+    "file_key": "test_alarm_manager_temp.py",
+    "qualname": "TestAlarmManagerTemp.test_next_fire_times_updated_via_process",
+    "lineno": 86
+  },
+  "test_alarm_manager_temp.py:TestAlarmManagerTemp.test_no_alarms_fire_before_due_time": {
+    "file_key": "test_alarm_manager_temp.py",
+    "qualname": "TestAlarmManagerTemp.test_no_alarms_fire_before_due_time",
+    "lineno": 108
+  },
+  "test_alarm_manager_temp.py:TestAlarmManagerTemp.test_alarm_fires_when_due": {
+    "file_key": "test_alarm_manager_temp.py",
+    "qualname": "TestAlarmManagerTemp.test_alarm_fires_when_due",
+    "lineno": 131
+  },
+  "test_alarm_manager_temp.py:TestAlarmManagerTemp.test_startup_sync": {
+    "file_key": "test_alarm_manager_temp.py",
+    "qualname": "TestAlarmManagerTemp.test_startup_sync",
+    "lineno": 154
   },
   "test_alarm_state_internal_model.py:TestNextFireDatetime": {
     "file_key": "test_alarm_state_internal_model.py",
     "qualname": "TestNextFireDatetime",
-    "lineno": 10
+    "lineno": 15
   },
   "test_alarm_state_internal_model.py:TestNextFireDatetime.setUp": {
     "file_key": "test_alarm_state_internal_model.py",
     "qualname": "TestNextFireDatetime.setUp",
-    "lineno": 13
+    "lineno": 18
   },
   "test_alarm_state_internal_model.py:TestNextFireDatetime.test_setter_with_none": {
     "file_key": "test_alarm_state_internal_model.py",
     "qualname": "TestNextFireDatetime.test_setter_with_none",
-    "lineno": 17
+    "lineno": 22
   },
   "test_alarm_state_internal_model.py:TestNextFireDatetime.test_setter_with_datetime_object": {
     "file_key": "test_alarm_state_internal_model.py",
     "qualname": "TestNextFireDatetime.test_setter_with_datetime_object",
-    "lineno": 22
+    "lineno": 27
   },
   "test_alarm_state_internal_model.py:TestNextFireDatetime.test_setter_with_iso_format_datetime_string": {
     "file_key": "test_alarm_state_internal_model.py",
     "qualname": "TestNextFireDatetime.test_setter_with_iso_format_datetime_string",
-    "lineno": 28
-  },
-  "test_alarm_state_internal_model.py:TestNextFireDatetime.test_setter_with_date_only_string": {
-    "file_key": "test_alarm_state_internal_model.py",
-    "qualname": "TestNextFireDatetime.test_setter_with_date_only_string",
-    "lineno": 34
+    "lineno": 33
   },
   "test_alarm_state_internal_model.py:TestNextFireDatetime.test_setter_with_invalid_string": {
     "file_key": "test_alarm_state_internal_model.py",
     "qualname": "TestNextFireDatetime.test_setter_with_invalid_string",
-    "lineno": 40
+    "lineno": 45
   },
   "test_alarm_state_internal_model.py:TestNextFireDatetime.test_setter_with_invalid_type": {
     "file_key": "test_alarm_state_internal_model.py",
     "qualname": "TestNextFireDatetime.test_setter_with_invalid_type",
-    "lineno": 46
+    "lineno": 51
   },
   "test_alarm_state_internal_model.py:TestNextFireDatetime.test_getter_after_initialization": {
     "file_key": "test_alarm_state_internal_model.py",
     "qualname": "TestNextFireDatetime.test_getter_after_initialization",
-    "lineno": 51
+    "lineno": 56
   },
   "test_alarm_state_internal_model.py:TestNextFireDatetime.test_multiple_assignments": {
     "file_key": "test_alarm_state_internal_model.py",
     "qualname": "TestNextFireDatetime.test_multiple_assignments",
-    "lineno": 55
+    "lineno": 60
   },
   "test_alarm_state_internal_model.py:TestNextFireDatetime.test_setter_with_microseconds": {
     "file_key": "test_alarm_state_internal_model.py",
     "qualname": "TestNextFireDatetime.test_setter_with_microseconds",
-    "lineno": 68
-  },
-  "ui_datetime_normalizer.py:__functions__.validate_date": {
-    "file_key": "ui_datetime_normalizer.py",
-    "qualname": "__functions__.validate_date",
-    "lineno": 24
-  },
-  "ui_datetime_normalizer.py:__functions__.validate_time": {
-    "file_key": "ui_datetime_normalizer.py",
-    "qualname": "__functions__.validate_time",
-    "lineno": 35
-  },
-  "ui_datetime_normalizer.py:__functions__.normalize_commas": {
-    "file_key": "ui_datetime_normalizer.py",
-    "qualname": "__functions__.normalize_commas",
-    "lineno": 49
-  },
-  "ui_datetime_normalizer.py:__functions__.normalize_date": {
-    "file_key": "ui_datetime_normalizer.py",
-    "qualname": "__functions__.normalize_date",
-    "lineno": 55
-  },
-  "ui_datetime_normalizer.py:__functions__.normalize_time": {
-    "file_key": "ui_datetime_normalizer.py",
-    "qualname": "__functions__.normalize_time",
-    "lineno": 94
-  },
-  "ui_datetime_normalizer.py:__functions__.normalize_base_date": {
-    "file_key": "ui_datetime_normalizer.py",
-    "qualname": "__functions__.normalize_base_date",
-    "lineno": 123
-  },
-  "ui_weekday_normalizer.py:__functions__.normalize_weekday_list": {
-    "file_key": "ui_weekday_normalizer.py",
-    "qualname": "__functions__.normalize_weekday_list",
-    "lineno": 17
+    "lineno": 73
   },
   "utils.py:__functions__.datetime_to_dict": {
     "file_key": "utils.py",
@@ -1422,7 +1967,7 @@
   "weekday_formatter.py:__functions__.weekday_to_str": {
     "file_key": "weekday_formatter.py",
     "qualname": "__functions__.weekday_to_str",
-    "lineno": 12
+    "lineno": 16
   },
   "window_geometry.py:WindowGeometry": {
     "file_key": "window_geometry.py",
@@ -1748,6 +2293,16 @@
     "file_key": "utils/text_utils.py",
     "qualname": "__functions__.strip_or_none",
     "lineno": 39
+  },
+  "utils/text_utils.py:__functions__.normalize_alarm_name": {
+    "file_key": "utils/text_utils.py",
+    "qualname": "__functions__.normalize_alarm_name",
+    "lineno": 50
+  },
+  "utils/text_utils.py:__functions__.validate_alarm_name": {
+    "file_key": "utils/text_utils.py",
+    "qualname": "__functions__.validate_alarm_name",
+    "lineno": 66
   },
   "utils/weekday_utils.py:__functions__.weekday_to_str": {
     "file_key": "utils/weekday_utils.py",

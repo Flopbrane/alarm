@@ -18,7 +18,7 @@ from typing import Any, List, cast
 from alarm_json_model import AlarmJson, AlarmStateJson
 from env_paths import ALARM_PATH, BACKUP_DIR, STANDBY_PATH
 
-#🔴 今後の注意点（今は問題なし）
+# 🔴 今後の注意点（今は問題なし）
 # 1️⃣ JSON schema 変更時
 # AlarmStateJson に field を追加したとき：
 # load_standby
@@ -26,15 +26,19 @@ from env_paths import ALARM_PATH, BACKUP_DIR, STANDBY_PATH
 # この2点を 必ず同時に確認してください。
 # （今は完璧に揃っています）
 
+
 # =========================================================
 # 🔹 JSON I/O 専用クラス（Dataclassを扱わない）
 # =========================================================
 class AlarmStorage:
     """📁 JSON保存・読み込み専用（Internalに触れない）"""
+
     # ==============================
     # 原子書き込み（atomic write）
     # ==============================
-    def _atomic_write_json(self, path: Path, data: dict[str, list[dict[str, Any]]]) -> None:
+    def _atomic_write_json(
+        self, path: Path, data: dict[str, list[dict[str, Any]]]
+    ) -> None:
         """不可分（atomic）なJSON書き込み。途中状態を残さない。"""
         tmp: Path = path.with_suffix(".tmp")
         with open(tmp, "w", encoding="utf-8") as f:
@@ -48,7 +52,9 @@ class AlarmStorage:
     # ==============================
     def load_alarms(self) -> List[AlarmJson]:
         """alarmsの読み込み"""
-        raw_any: Any  # 本来ならDict[str, Any]なんだけど、ファイル破損の可能性も考慮している
+        raw_any: (
+            Any  # 本来ならDict[str, Any]なんだけど、ファイル破損の可能性も考慮している
+        )
 
         # alarm.jsonのPathがない(alarm.jsonが存在しない)場合、[]を返す
         if not ALARM_PATH.exists():
@@ -86,12 +92,18 @@ class AlarmStorage:
             list[dict[str, Any]]  # value の一例(ここのAnyは"str|int|bool|list")
         ]
         """
-        raw_any: Any  # 本来ならDict[str, Any]なんだけど、ファイル破損の可能性も考慮してのAny
-        raw: dict[str, Any]  # standby.jsonのPathがない(standby.jsonが存在しない)場合、[]を返す
+        raw_any: (
+            Any  # 本来ならDict[str, Any]なんだけど、ファイル破損の可能性も考慮してのAny
+        )
+        raw: dict[
+            str, Any
+        ]  # standby.jsonのPathがない(standby.jsonが存在しない)場合、[]を返す
         # standby_raw は list になる前提で later cast する
         standby_raw: Any  # standby.jsonのstandbyキーがlistでない場合、[]を返す
-        states: list[AlarmStateJson] = [] # standby.jsonの初期化
-        state: AlarmStateJson|None = None # standby.jsonの中身がdictでない場合、スキップする
+        states: list[AlarmStateJson] = []  # standby.jsonの初期化
+        state: AlarmStateJson | None = (
+            None  # standby.jsonの中身がdictでない場合、スキップする
+        )
         s_dict: dict[str, Any]
         # standby.jsonが存在しない場合、[]を返す
         if not STANDBY_PATH.exists():
@@ -109,7 +121,9 @@ class AlarmStorage:
             print("[ERROR] standby.json format invalid (not dict)")
             return []
         # ② dict として信じる
-        raw = cast(dict[str, Any], raw_any) # 第一段階のDict["standby", Any](このAnyはlist[Dict[str, Any]])
+        raw = cast(
+            dict[str, Any], raw_any
+        )  # 第一段階のDict["standby", Any](このAnyはlist[Dict[str, Any]])
         # ③ standby は list か？
         standby_raw: Any = raw.get("standby", [])
         if not isinstance(standby_raw, list):
@@ -176,6 +190,7 @@ class AlarmStorage:
             raise  # 将来、loggerを作成したときにログ出力に変える
         else:
             self.backup()
+
     # ==========backup関連============
 
     # ===============================

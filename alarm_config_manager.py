@@ -46,6 +46,9 @@ class Config:
     show_dialog: bool = True  # 起動モード選択ダイアログを表示するかどうか
     # 🔴 追加
     last_shutdown_clean: bool = True  # 前回正常終了フラグ
+    tick_interval_sec: float = 1.0
+    auto_start: bool = True
+
 # ==============================
 # 🔹 ConfigManager クラス
 # ==============================
