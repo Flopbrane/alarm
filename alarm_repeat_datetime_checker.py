@@ -39,7 +39,9 @@ class AlarmDatetimeChecker:
 
         # ❶ 異常状態は即拒否（ログ対象）
         if self.state.is_invalid_state:
-            # TODO: manager.logger.error("invalid state", state=self.state)
+            print(f"[ERROR] Invalid alarm state detected: id={self.state.id}, "
+                  f"next_fire_datetime={self.state.next_fire_datetime}, "
+                  f"lifecycle_finished={self.state.lifecycle_finished}")
             return False
 
         # ❷ 未計算・終了状態は鳴らさない
