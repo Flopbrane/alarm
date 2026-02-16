@@ -233,7 +233,10 @@ class AlarmStateInternal:
         → is_finished() が True
         next_fire_datetime != None & lifecycle_finished == True  → エラー状態
         → is_invalid_state() が True
+<<<<<<< HEAD
         _needs_recalc は Scheduler が参照 / 書き込み
+=======
+>>>>>>> d2d7f4750c98bc7b8db33fdf03ac1e740a9fdc27
     """
 
     id: str ="" # 行識別子（必ず先頭）(UUIDに変更)

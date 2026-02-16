@@ -83,6 +83,21 @@ REPEAT_DISPLAY: Final[dict[str, str]] = {
 
 ## 設定ウインドウのアラーム一覧表カラム名変換
 
+COLUMN_LABELS: Final[dict[str, str]] = {
+    "id": "ID", # 一覧表示用ID(実稼働時は削除予定)
+    "name": "アラーム名",
+    "date": "日付",
+    "time": "時刻",
+    "repeat": "繰返し",
+    "weekday": "曜日",
+    "enabled": "有効/無効",
+    "skip_holiday": "祝日スキップ",
+    "duration_time": "再生分数",
+    "snooze_limit": "スヌーズ回数上限",
+    "end_at": "アラーム有効期限終了日時",
+    "custom_desc": "詳細設定",
+}
+
 この部分に記述されている項目のセル部分をクリックすると、
 編集と同じ様な、小ウインドが出現して、
 一番下の"登録ボタン"をクリックすると、新規データとして、アラーム一覧表に反映、自動保存
