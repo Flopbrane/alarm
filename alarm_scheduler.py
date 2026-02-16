@@ -25,12 +25,16 @@ from collections.abc import Callable
 from datetime import datetime, timedelta
 
 from alarm_internal_model import AlarmInternal
+<<<<<<< HEAD
 from cui_datetime_normalizer import normalize_base_date
 
 # 型エイリアスをクラス外で定義
 CallableType = Callable[[AlarmInternal, datetime], datetime | None]
 # 上限定数
 MAX_SINGLE_DAYS = 366  # 閏年考慮
+=======
+from ui_datetime_normalizer import normalize_base_date
+>>>>>>> d2d7f4750c98bc7b8db33fdf03ac1e740a9fdc27
 
 
 class AlarmScheduler:
@@ -38,7 +42,12 @@ class AlarmScheduler:
 
     def __init__(self) -> None:
         # インスタンス固有の戦略表
+<<<<<<< HEAD
         self._handlers: dict[str, CallableType] = {
+=======
+        self.schedulers: dict[str, Callable[[AlarmInternal, datetime], datetime | None]]
+        self.schedulers = {
+>>>>>>> d2d7f4750c98bc7b8db33fdf03ac1e740a9fdc27
             "single": self._next_single,
             "daily": self._next_daily,
             "weekly": self._next_weekly,
@@ -64,6 +73,7 @@ class AlarmScheduler:
         t: datetime = alarm.datetime_
         return d.replace(hour=t.hour, minute=t.minute, second=0, microsecond=0)
 
+<<<<<<< HEAD
     # ---------------------------------------
     # 次回アラーム時刻を取得
     # ---------------------------------------
@@ -87,6 +97,8 @@ class AlarmScheduler:
     def _get_handler(self, repeat: str) -> CallableType | None:
         return self._handlers.get(repeat)
 
+=======
+>>>>>>> d2d7f4750c98bc7b8db33fdf03ac1e740a9fdc27
     # --------------------------------------------------------------
     # 🔹 single（単発アラーム）
     # --------------------------------------------------------------
@@ -121,8 +133,8 @@ class AlarmScheduler:
             candidate += timedelta(days=1)
 
         return candidate
-
     # --------------------------------------------------------------
+<<<<<<< HEAD
     # 🔹 interval_days(◯日おき)
     # --------------------------------------------------------------
     def _next_interval_days(
@@ -203,15 +215,58 @@ class AlarmScheduler:
             return candidate
 
         # n週おき: base週との差分が interval の倍数になるまで進める
+=======
+    # 🔹 weekly（毎週 / n週おき）
+    # --------------------------------------------------------------
+    def _next_weekly(self, alarm: AlarmInternal, now: datetime) -> datetime:
+        """weekly（毎週 / n週おき 共通）"""
+
+        interval: int = alarm.interval_weeks or 1
+
+        # ① 起点（日付）
+        start: datetime = max(now, self._base(alarm))
+
+        # ② 目標曜日（0=月〜6=日）
+        target_weekday: int = alarm.datetime_.weekday()
+
+        # ③ 次の該当曜日までの日数
+        days_ahead: int = (target_weekday - start.weekday()) % 7
+
+        # ④ 日付を進めて、時刻を合成
+        candidate: datetime = self._with_time(
+            start + timedelta(days=days_ahead),
+            alarm,
+        )
+
+        # ⑤ 毎週（interval == 1）
+        if interval == 1:
+            if candidate <= now:
+                candidate += timedelta(weeks=1)
+            return candidate
+
+        # ⑥ n週おき（interval >= 2）
+>>>>>>> d2d7f4750c98bc7b8db33fdf03ac1e740a9fdc27
         base: datetime | None = normalize_base_date(self._base(alarm), candidate)
         if not base:
             base = candidate
 
+<<<<<<< HEAD
         # ★ここがコツ：週を進めるときも「次の曜日候補」で探す
         while True:
             weeks_diff: int = (candidate.date() - base.date()).days // 7
             if weeks_diff % interval == 0 and candidate > now:
                 return candidate
+=======
+        while True:
+            if candidate <= now:
+                candidate += timedelta(weeks=1)
+                continue
+            weeks_diff: int = (candidate - base).days // 7
+            if weeks_diff % interval != 0:
+                candidate += timedelta(weeks=1)
+                continue
+            break
+>>>>>>> d2d7f4750c98bc7b8db33fdf03ac1e740a9fdc27
 
             # 次候補へ（翌日から探す→同週内/次週内を自動で拾う）
             start2: datetime = (candidate + timedelta(days=1)).replace(
@@ -224,11 +279,15 @@ class AlarmScheduler:
     # 🔹 monthly
     # --------------------------------------------------------------
     def _next_monthly(self, alarm: AlarmInternal, now: datetime) -> datetime:
+<<<<<<< HEAD
         """monthly（毎月）の次回時刻を計算
         monthly はこういう存在です：
         ・毎月 1 回
         ・「日付＋時刻」を基準に
         ・次に来る 1回分 の日時を返すだけ"""
+=======
+        """monthly（毎月）の次回時刻を計算"""
+>>>>>>> d2d7f4750c98bc7b8db33fdf03ac1e740a9fdc27
         # monthly は「存在しない日付は月末に丸める」方針
 
         start: datetime = max(now, self._base(alarm))
