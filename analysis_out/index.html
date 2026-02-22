@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="ja">
+<meta charset="utf-8">
+<title>Alarm Project Visualizer - Index</title>
+<style>
+body {
+    font-family: "Segoe UI", sans-serif;
+    line-height: 1.45;
+    margin: 20px;
+}
+h1, h2, h3 { margin-top: 1.2em; }
+code {
+    background: #f4f4f4;
+    padding: 0.08em 0.3em;
+    border-radius: 4px;
+}
+.box {
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    padding: 12px;
+    margin: 12px 0;
+}
+.small {
+    color: #666;
+    font-size: 0.92em;
+}
+ul { margin-top: 0.4em; }
+</style>
+<body><h1>Alarm Project Visualizer - Index</h1><div class='box'>
+<p><b>PROJECT_ROOT:</b> <code>D:\PC\Python\alarm</code></p>
+<p>このページは Alarm プロジェクト可視化の入口です。</p>
+</div>
+<h2>生成ファイル</h2>
+<ul>
+<li><a href='manager_phase_graph.svg'>manager_phase_graph.svg</a> … phase順の全体構造</li>
+<li><a href='manager_call_graph.svg'>manager_call_graph.svg</a> … 重要メソッド中心の call graph</li>
+<li><a href='manager_cluster_graph.svg'>manager_cluster_graph.svg</a> … 分割候補クラスタ単位の graph</li>
+<li><a href='project_import_graph.svg'>project_import_graph.svg</a> … プロジェクト全体の import 依存</li>
+<li><a href='analysis_summary.json'>analysis_summary.json</a> … 要約JSON</li>
+</ul>
+<h2>読み方</h2>
+<div class='box'>
+<p><b>phase graph</b> は Manager の主幹です。ここがまず正しいか確認します。</p>
+<p><b>call graph</b> は重要メソッド中心に絞っています。全量表示より読みやすさ優先です。</p>
+<p><b>cluster graph</b> は分割候補単位です。ファイル分割の足場に使います。</p>
+<p><b>import graph</b> は gui / manager / storage / model の依存を見ます。</p>
+</div>
+<h2>summary</h2>
+<pre>
+{
+  "project_root": "D:\\PC\\Python\\alarm",
+  "manager_file": "D:\\PC\\Python\\alarm\\alarm_manager_temp.py",
+  "manager_class": "AlarmManager",
+  "methods_total": 63,
+  "internal_edges_total": 121,
+  "cluster_counts": {
+    "helper_misc": 27,
+    "runtime": 4,
+    "config_state": 10,
+    "fire_notify": 2,
+    "phase_core": 8,
+    "runtime_index": 2,
+    "storage": 5,
+    "public_api": 2,
+    "cycle_control": 3
+  },
+  "top_connected_methods": [
+    {
+      "name": "internal_clock",
+      "lineno": 148,
+      "cluster": "helper_misc",
+      "inbound": 15,
+      "outbound": 1
+    },
+    {
+      "name": "_where",
+      "lineno": 160,
+      "cluster": "helper_misc",
+      "inbound": 14,
+      "outbound": 0
+    },
+    {
+      "name": "run_cycle",
+      "lineno": 1219,
+      "cluster": "public_api",
+      "inbound": 3,
+      "outbound": 8
+    },
+    {
+      "name": "load_all",
+      "lineno": 1052,
+      "cluster": "storage",
+      "inbound": 1,
+      "outbound": 9
+    },
+    {
+      "name": "save",
+      "lineno": 1097,
+      "cluster": "storage",
+      "inbound": 10,
+      "outbound": 0
+    },
+    {
+      "name": "_get_or_create_state",
+      "lineno": 336,
+      "cluster": "config_state",
+      "inbound": 9,
+      "outbound": 0
+    },
+    {
+      "name": "apply_alarm_mutation",
+      "lineno": 560,
+      "cluster": "helper_misc",
+      "inbound": 0,
+      "outbound": 9
+    },
+    {
+      "name": "_update_alarm",
+      "lineno": 647,
+      "cluster": "runtime",
+      "inbound": 1,
+      "outbound": 8
+    },
+    {
+      "name": "_add_alarm",
+      "lineno": 732,
+      "cluster": "helper_misc",
+      "inbound": 1,
+      "outbound": 8
+    },
+    {
+      "name": "_save_phase",
+      "lineno": 1283,
+      "cluster": "phase_core",
+      "inbound": 1,
+      "outbound": 8
+    },
+    {
+      "name": "_handle_due_alarms",
+      "lineno": 271,
+      "cluster": "helper_misc",
+      "inbound": 1,
+      "outbound": 7
+    },
+    {
+      "name": "save_standby",
+      "lineno": 1119,
+      "cluster": "storage",
+      "inbound": 6,
+      "outbound": 1
+    },
+    {
+      "name": "_recalc_states",
+      "lineno": 177,
+      "cluster": "runtime",
+      "inbound": 2,
+      "outbound": 4
+    },
+    {
+      "name": "get_alarm_by_id",
+      "lineno": 218,
+      "cluster": "helper_misc",
+      "inbound": 6,
+      "outbound": 0
+    },
+    {
+      "name": "_remove_alarms_by_ids",
+      "lineno": 801,
+      "cluster": "helper_misc",
+      "inbound": 1,
+      "outbound": 5
+    },
+    {
+      "name": "_repair_invalid_states",
+      "lineno": 413,
+      "cluster": "runtime",
+      "inbound": 1,
+      "outbound": 4
+    },
+    {
+      "name": "build_alarm_fingerprint",
+      "lineno": 596,
+      "cluster": "runtime_index",
+      "inbound": 5,
+      "outbound": 0
+    },
+    {
+      "name": "_notify_listeners",
+      "lineno": 852,
+      "cluster": "phase_core",
+      "inbound": 5,
+      "outbound": 0
+    },
+    {
+      "name": "stop_alarm",
+      "lineno": 968,
+      "cluster": "helper_misc",
+      "inbound": 0,
+      "outbound": 4
+    },
+    {
+      "name": "_ensure_state_id_integrity",
+      "lineno": 1133,
+      "cluster": "config_state",
+      "inbound": 3,
+      "outbound": 1
+    }
+  ]
+}
+</pre></body></html>

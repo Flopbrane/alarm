@@ -352,5 +352,17 @@ def main() -> int:
 
 
 if __name__ == "__main__":
+    import sys
+
+    if len(sys.argv) == 1:
+        sys.argv.extend(
+            [
+                "--root",
+                "D:\\PC\\Python\\alarm",
+                "--out",
+                "D:\\PC\\Python\\alarm\\grep_report.html",
+                "--terms",
+                "uuid",
+            ]
+        )
     raise SystemExit(main())
-# alarm_manager_temp.py

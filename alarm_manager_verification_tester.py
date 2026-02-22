@@ -14,9 +14,10 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import List, Literal
 
-from alarm_internal_model import AlarmInternal, AlarmStateInternal
+from alarm_internal_model import AlarmInternal
+from alarm_states_model import AlarmStateInternal
 from alarm_irregular_logger import AlarmLogger, LogWhere
-from alarm_manager_cycle_controll_options import TEST_CONFIG_CHANGED
+from alarm_manager_cycle_control_options import TEST_CONFIG_CHANGED
 from alarm_manager_temp import AlarmManager
 
 # NEXT: AlarmStateJson の欠損時は initial を追加（test 追加）
@@ -101,7 +102,7 @@ def run_cycle_for_test(mgr: AlarmManager, condition: str) -> None:
     if condition == "startup":
         mgr.start_cycle("startup")
     elif condition == "config_change":
-        mgr.run_cycle(TEST_CONFIG_CHANGED)
+        mgr.start_cycle("config_change")
     elif condition == "loop":
         mgr.start_cycle("loop")
 
@@ -288,6 +289,13 @@ def test_edge_case_alarm_fields_do_not_crash() -> None:
     rt.startup()
     extreme_alarms: List[AlarmInternal] = [
         AlarmInternal(
+            id="1000",
+            name="Recent time Alarm",
+            datetime_=datetime(2026, 3, 8,17, 20),
+            repeat="single",
+            enabled=True,
+        ),
+        AlarmInternal(
             id="9999",
             name="Extreme Past Alarm",
             datetime_=datetime(1970, 1, 1, 0, 0),
@@ -328,7 +336,7 @@ def test_config_change_recalculates_states() -> None:
     rt.loop()
 
     # ここで alarm / state を意図的に変更してもOK
-    # テスト開始前にstandbay.jsonの内容を削除しておく
+    # テスト開始前にstandby.jsonの内容を削除しておく
     # あるは、イレギュラーな状態にしておく
     # 例えば、No.1アラームの有効/無効を切り替えるなど
     # mgr.toggle_alarm(1) など

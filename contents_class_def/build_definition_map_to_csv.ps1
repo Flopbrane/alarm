@@ -16,9 +16,20 @@
 # 他のスクリプトで利用して、再帰的に*.pyファイルを解析し、
 # 参照先、参照元、未使用定義の検出などに活用できる。
 # ===============================
+param(
+    [string]$ProjectRoot = ""
+)
 
 # この .ps1 が置かれているフォルダ
 $scriptDir = $PSScriptRoot
+
+if ($ProjectRoot -eq "") {
+    $projectRoot = Resolve-Path (Join-Path $scriptDir "..")
+}
+else {
+    $projectRoot = Resolve-Path $ProjectRoot
+}
+
 
 # プロジェクトルート（通常は scriptDir の1つ上）
 # 他プロジェクトで使う場合は、絶対パスに変更可能
@@ -79,6 +90,6 @@ Get-ChildItem $projectRoot -Recurse -Filter *.py |
 
 $rows |
     ConvertTo-Csv -NoTypeInformation |
-    Set-Content -Path $outCsv -Encoding utf8
+        Set-Content -Path $outCsv -Encoding utf8
 Write-Host "Definition map CSV generated at: $outCsv"
 # ===============================

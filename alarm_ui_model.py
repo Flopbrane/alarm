@@ -26,13 +26,12 @@
 # 　UI dataclass(UIモデル → 人間との境界)
 #########################
 # 標準ライブラリ
+from datetime import datetime
 from dataclasses import dataclass, field
 from typing import List, Optional, Union, cast
 
 # 自作モジュール
 from constants import DEFAULT_SOUND
-
-
 
 @dataclass
 class AlarmUI:
@@ -112,4 +111,14 @@ class AlarmStateView:
     triggered_at: Optional[str] = None  # 鳴動開始時刻
     last_fired_at: Optional[str] = None  # 最終鳴動時刻
     next_fire_datetime: Optional[str] = None  # 次回鳴動予定日
+
+
+@dataclass(frozen=True)
+class AlarmListItem:
+    """CUI表示用のアラームリストアイテム"""
+    alarm_id: str
+    alarm_ui: AlarmUI
+    next_datetime: datetime | None
+
+
 # --- EOF ---

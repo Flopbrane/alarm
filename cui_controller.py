@@ -10,7 +10,6 @@ import time
 
 from alarm_manager_temp import AlarmManager
 
-
 class CUIController:
     """CUI 開始コントローラクラス"""
 
@@ -28,8 +27,10 @@ class CUIController:
         self._started = True
 
         while not self._stop:
-            self.on_timer()
-            time.sleep(1)
+            sleep_seconds: float = self.manager.get_sleep_seconds()
+            if sleep_seconds > 0:
+                time.sleep(sleep_seconds)
+            self.manager.start_cycle(condition="loop")
 
     def stop(self) -> None:
         """CUI メインループを停止する"""

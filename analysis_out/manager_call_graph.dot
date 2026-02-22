@@ -1,0 +1,187 @@
+digraph G {
+rankdir=LR;
+graph [overlap=false, splines=true, nodesep=0.55, ranksep=1.0];
+node [shape=ellipse, style=filled, fillcolor=white, fontsize=10];
+edge [penwidth=1.4];
+subgraph cluster_helper_misc {
+label="helper_misc";
+style=filled;
+fillcolor=lightgray;
+"tick" [shape=ellipse, fillcolor=white];
+"internal_clock" [shape=ellipse, fillcolor=white];
+"_where" [shape=ellipse, fillcolor=white];
+"get_alarm_by_id" [shape=ellipse, fillcolor=white];
+"_handle_due_alarms" [shape=ellipse, fillcolor=white];
+"get_next_alarms" [shape=ellipse, fillcolor=white];
+"apply_alarm_mutation" [shape=ellipse, fillcolor=white];
+"_add_alarm" [shape=ellipse, fillcolor=white];
+"_remove_alarms_by_ids" [shape=ellipse, fillcolor=white];
+"stop_alarm" [shape=ellipse, fillcolor=white];
+"needs_migration" [shape=ellipse, fillcolor=white];
+"create_alarm" [shape=ellipse, fillcolor=white];
+}
+subgraph cluster_runtime {
+label="runtime";
+style=filled;
+fillcolor=moccasin;
+"_recalc_states" [shape=ellipse, fillcolor=white];
+"_update_next_fire_runtime" [shape=ellipse, fillcolor=white];
+"_repair_invalid_states" [shape=ellipse, fillcolor=white];
+"_update_alarm" [shape=ellipse, fillcolor=white];
+}
+subgraph cluster_config_state {
+label="config_state";
+style=filled;
+fillcolor=lavender;
+"_get_state" [shape=ellipse, fillcolor=white];
+"_get_or_create_state" [shape=ellipse, fillcolor=white];
+"_normalize_on_boot_and_edit" [shape=ellipse, fillcolor=white];
+"_ensure_state_id_integrity" [shape=ellipse, fillcolor=white];
+"_normalize_for_persistence" [shape=ellipse, fillcolor=white];
+"_normalize_alarms_by_id" [shape=ellipse, fillcolor=white];
+}
+subgraph cluster_fire_notify {
+label="fire_notify";
+style=filled;
+fillcolor=lightpink;
+"_fire_alarm" [shape=ellipse, fillcolor=white];
+}
+subgraph cluster_phase_core {
+label="phase_core";
+style=filled;
+fillcolor=lightgoldenrod1;
+"_check_invalid_states" [shape=box, fillcolor=white];
+"_notify_listeners" [shape=box, fillcolor=white];
+"_begin_cycle" [shape=box, fillcolor=white];
+"_load_phase" [shape=box, fillcolor=white];
+"_recalc_phase" [shape=box, fillcolor=white];
+"_fire_phase" [shape=box, fillcolor=white];
+"_save_phase" [shape=box, fillcolor=white];
+"_stop_phase" [shape=box, fillcolor=white];
+}
+subgraph cluster_runtime_index {
+label="runtime_index";
+style=filled;
+fillcolor=khaki1;
+"build_alarm_fingerprint" [shape=ellipse, fillcolor=white];
+}
+subgraph cluster_storage {
+label="storage";
+style=filled;
+fillcolor=palegreen;
+"load_alarms" [shape=ellipse, fillcolor=white];
+"load_standby" [shape=ellipse, fillcolor=white];
+"load_all" [shape=ellipse, fillcolor=white];
+"save" [shape=ellipse, fillcolor=white];
+"save_standby" [shape=ellipse, fillcolor=white];
+}
+subgraph cluster_public_api {
+label="public_api";
+style=filled;
+fillcolor=lightskyblue;
+"start_cycle" [shape=box, fillcolor=white];
+"run_cycle" [shape=box, fillcolor=white];
+}
+subgraph cluster_cycle_control {
+label="cycle_control";
+style=filled;
+fillcolor=lightcyan;
+"_start_config_changed_cycle" [shape=ellipse, fillcolor=white];
+"_start_startup_cycle" [shape=ellipse, fillcolor=white];
+"_start_running_cycle" [shape=ellipse, fillcolor=white];
+}
+"internal_clock" -> "tick" [color=gray35, tooltip="line 151"];
+"_recalc_states" -> "internal_clock" [color=darkorange3, tooltip="line 179"];
+"_recalc_states" -> "_get_state" [color=darkorange3, tooltip="line 182"];
+"_recalc_states" -> "_get_or_create_state" [color=darkorange3, tooltip="line 186"];
+"_recalc_states" -> "_where" [color=darkorange3, tooltip="line 189"];
+"_handle_due_alarms" -> "internal_clock" [color=gray35, tooltip="line 274"];
+"_handle_due_alarms" -> "get_alarm_by_id" [color=gray35, tooltip="line 277"];
+"_handle_due_alarms" -> "_get_or_create_state" [color=gray35, tooltip="line 279"];
+"_handle_due_alarms" -> "_where" [color=gray35, tooltip="line 284"];
+"_handle_due_alarms" -> "_where" [color=gray35, tooltip="line 314"];
+"_handle_due_alarms" -> "_where" [color=gray35, tooltip="line 323"];
+"_handle_due_alarms" -> "_fire_alarm" [color=gray35, tooltip="line 334"];
+"_fire_alarm" -> "internal_clock" [color=firebrick3, tooltip="line 358"];
+"_fire_alarm" -> "_where" [color=firebrick3, tooltip="line 371"];
+"_check_invalid_states" -> "internal_clock" [color=goldenrod4, tooltip="line 388"];
+"_check_invalid_states" -> "_where" [color=goldenrod4, tooltip="line 394"];
+"_repair_invalid_states" -> "internal_clock" [color=darkorange3, tooltip="line 415"];
+"_repair_invalid_states" -> "_where" [color=darkorange3, tooltip="line 421"];
+"_repair_invalid_states" -> "get_alarm_by_id" [color=darkorange3, tooltip="line 435"];
+"_repair_invalid_states" -> "_where" [color=darkorange3, tooltip="line 450"];
+"get_next_alarms" -> "internal_clock" [color=gray35, tooltip="line 467"];
+"get_next_alarms" -> "_update_next_fire_runtime" [color=gray35, tooltip="line 471"];
+"get_next_alarms" -> "get_alarm_by_id" [color=gray35, tooltip="line 476"];
+"_normalize_on_boot_and_edit" -> "_recalc_states" [color=mediumpurple4, tooltip="line 547"];
+"apply_alarm_mutation" -> "_add_alarm" [color=gray35, tooltip="line 568"];
+"apply_alarm_mutation" -> "get_alarm_by_id" [color=gray35, tooltip="line 574"];
+"apply_alarm_mutation" -> "_update_alarm" [color=gray35, tooltip="line 578"];
+"apply_alarm_mutation" -> "_normalize_on_boot_and_edit" [color=gray35, tooltip="line 587"];
+"apply_alarm_mutation" -> "save" [color=gray35, tooltip="line 590"];
+"apply_alarm_mutation" -> "save_standby" [color=gray35, tooltip="line 591"];
+"_update_alarm" -> "get_alarm_by_id" [color=darkorange3, tooltip="line 654"];
+"_update_alarm" -> "build_alarm_fingerprint" [color=darkorange3, tooltip="line 662"];
+"_update_alarm" -> "build_alarm_fingerprint" [color=darkorange3, tooltip="line 675"];
+"_update_alarm" -> "save" [color=darkorange3, tooltip="line 679"];
+"_update_alarm" -> "_notify_listeners" [color=darkorange3, tooltip="line 680"];
+"_add_alarm" -> "_where" [color=gray35, tooltip="line 745"];
+"_add_alarm" -> "internal_clock" [color=gray35, tooltip="line 748"];
+"_add_alarm" -> "build_alarm_fingerprint" [color=gray35, tooltip="line 764"];
+"_add_alarm" -> "_get_or_create_state" [color=gray35, tooltip="line 768"];
+"_add_alarm" -> "save" [color=gray35, tooltip="line 771"];
+"_add_alarm" -> "_notify_listeners" [color=gray35, tooltip="line 772"];
+"_remove_alarms_by_ids" -> "_where" [color=gray35, tooltip="line 816"];
+"_remove_alarms_by_ids" -> "internal_clock" [color=gray35, tooltip="line 823"];
+"_remove_alarms_by_ids" -> "save" [color=gray35, tooltip="line 843"];
+"_remove_alarms_by_ids" -> "save_standby" [color=gray35, tooltip="line 844"];
+"_remove_alarms_by_ids" -> "_notify_listeners" [color=gray35, tooltip="line 847"];
+"stop_alarm" -> "internal_clock" [color=gray35, tooltip="line 976"];
+"stop_alarm" -> "save" [color=gray35, tooltip="line 978"];
+"stop_alarm" -> "save_standby" [color=gray35, tooltip="line 980"];
+"load_standby" -> "_get_or_create_state" [color=forestgreen, tooltip="line 1041"];
+"load_standby" -> "_where" [color=forestgreen, tooltip="line 1044"];
+"load_all" -> "load_alarms" [color=forestgreen, tooltip="line 1054"];
+"load_all" -> "load_standby" [color=forestgreen, tooltip="line 1055"];
+"load_all" -> "needs_migration" [color=forestgreen, tooltip="line 1068"];
+"load_all" -> "_ensure_state_id_integrity" [color=forestgreen, tooltip="line 1072"];
+"load_all" -> "needs_migration" [color=forestgreen, tooltip="line 1077"];
+"load_all" -> "_get_state" [color=forestgreen, tooltip="line 1080"];
+"load_all" -> "_ensure_state_id_integrity" [color=forestgreen, tooltip="line 1088"];
+"load_all" -> "save" [color=forestgreen, tooltip="line 1091"];
+"load_all" -> "save_standby" [color=forestgreen, tooltip="line 1092"];
+"save_standby" -> "_normalize_for_persistence" [color=forestgreen, tooltip="line 1121"];
+"_ensure_state_id_integrity" -> "_get_or_create_state" [color=mediumpurple4, tooltip="line 1153"];
+"_normalize_for_persistence" -> "_get_or_create_state" [color=mediumpurple4, tooltip="line 1167"];
+"start_cycle" -> "_start_startup_cycle" [color=deepskyblue4, tooltip="line 1188"];
+"start_cycle" -> "_start_running_cycle" [color=deepskyblue4, tooltip="line 1190"];
+"start_cycle" -> "_start_config_changed_cycle" [color=deepskyblue4, tooltip="line 1192"];
+"_start_config_changed_cycle" -> "run_cycle" [color=cadetblue4, tooltip="line 1199"];
+"_start_startup_cycle" -> "run_cycle" [color=cadetblue4, tooltip="line 1206"];
+"_start_running_cycle" -> "run_cycle" [color=cadetblue4, tooltip="line 1213"];
+"run_cycle" -> "_begin_cycle" [color=deepskyblue4, tooltip="line 1225"];
+"run_cycle" -> "_load_phase" [color=deepskyblue4, tooltip="line 1231"];
+"run_cycle" -> "_recalc_phase" [color=deepskyblue4, tooltip="line 1236"];
+"run_cycle" -> "_fire_phase" [color=deepskyblue4, tooltip="line 1242"];
+"run_cycle" -> "_save_phase" [color=deepskyblue4, tooltip="line 1248"];
+"run_cycle" -> "_notify_listeners" [color=deepskyblue4, tooltip="line 1254"];
+"run_cycle" -> "_check_invalid_states" [color=deepskyblue4, tooltip="line 1257"];
+"run_cycle" -> "_stop_phase" [color=deepskyblue4, tooltip="line 1262"];
+"_begin_cycle" -> "tick" [color=goldenrod4, tooltip="line 1266"];
+"_load_phase" -> "load_all" [color=goldenrod4, tooltip="line 1270"];
+"_recalc_phase" -> "_repair_invalid_states" [color=goldenrod4, tooltip="line 1274"];
+"_recalc_phase" -> "_recalc_states" [color=goldenrod4, tooltip="line 1275"];
+"_recalc_phase" -> "_update_next_fire_runtime" [color=goldenrod4, tooltip="line 1276"];
+"_fire_phase" -> "_handle_due_alarms" [color=goldenrod4, tooltip="line 1280"];
+"_save_phase" -> "_normalize_alarms_by_id" [color=goldenrod4, tooltip="line 1288"];
+"_save_phase" -> "_ensure_state_id_integrity" [color=goldenrod4, tooltip="line 1289"];
+"_save_phase" -> "save_standby" [color=goldenrod4, tooltip="line 1292"];
+"_save_phase" -> "_where" [color=goldenrod4, tooltip="line 1296"];
+"_save_phase" -> "internal_clock" [color=goldenrod4, tooltip="line 1299"];
+"_save_phase" -> "save" [color=goldenrod4, tooltip="line 1303"];
+"_save_phase" -> "_where" [color=goldenrod4, tooltip="line 1307"];
+"_save_phase" -> "internal_clock" [color=goldenrod4, tooltip="line 1310"];
+"create_alarm" -> "build_alarm_fingerprint" [color=gray35, tooltip="line 1361"];
+"create_alarm" -> "_get_or_create_state" [color=gray35, tooltip="line 1388"];
+"create_alarm" -> "save" [color=gray35, tooltip="line 1408"];
+}
