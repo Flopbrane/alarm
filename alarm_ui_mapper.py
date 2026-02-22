@@ -24,10 +24,11 @@ UI ↔ Internal 変換・受け渡し専用モジュール
 #########################
 
 from dataclasses import fields
-from datetime import datetime
+from datetime import datetime, time
 from typing import Any
 
-from alarm_internal_model import AlarmInternal, AlarmStateInternal
+from alarm_internal_model import AlarmInternal
+from alarm_states_model import AlarmStateInternal
 from alarm_ui_model import AlarmStateView, AlarmUI, AlarmUIPatch
 from constants import DEFAULT_SOUND
 
@@ -35,14 +36,14 @@ from constants import DEFAULT_SOUND
 # ==========================================================
 # 🔹 ユーティリティ関数
 # ==========================================================
-def ui_date_time_to_dt(date: str, time: str) -> datetime:
+def ui_date_time_to_dt(date_str: str, time_str: str) -> datetime:
     """AlarmUI の date, time から datetime を生成"""
-    return datetime.fromisoformat(f"{date}T{time}")
+    return datetime.fromisoformat(f"{date_str}T{time_str}")
 
 
 def ui_default_date_time(
-    date: str | None,
-    time: str | None,
+    date_str: str | None,
+    time_str: str | None,
 ) -> tuple[str, str]:
     """
     AlarmUI の date, time のデフォルト補完
@@ -53,8 +54,8 @@ def ui_default_date_time(
     """
     now: datetime = datetime.now()  # UI 層専用の現在時刻取得なので、問題なし
     return (
-        date or now.strftime("%Y-%m-%d"),
-        time or now.strftime("%H:%M"),
+        date_str or now.strftime("%Y-%m-%d"),
+        time_str or now.strftime("%H:%M"),
     )
 
 
@@ -82,14 +83,14 @@ class UItoInternalMapper:
         """AlarmUI → AlarmInternal"""
 
         # ---- 日付・時刻の補完（空なら現在時刻） ----
-        date: str
-        time: str
-        date, time = ui_default_date_time(ui.date, ui.time)
+        date_str: str
+        time_str: str
+        date_str, time_str = ui_default_date_time(ui.date, ui.time)
 
         return AlarmInternal(
             id=ui.id or "0",  # 仮ID（正式IDは AlarmManager 側）
             name=(ui.name.strip() if ui.name else f"Alarm{ui.id}"),
-            datetime_=ui_date_time_to_dt(date, time),
+            datetime_=ui_date_time_to_dt(date_str, time_str),
             repeat=ui.repeat,
             weekday=[int(x) for x in (ui.weekday or [])],
             week_of_month=[int(x) for x in (ui.week_of_month or [])],
@@ -115,12 +116,18 @@ class InternaltoUIMapper:
     @staticmethod
     def internal_to_ui(alarm: AlarmInternal) -> AlarmUI:
         """AlarmInternal → AlarmUI"""
-        if alarm.datetime_ is not None:
-            date_str: str = alarm.datetime_.date().strftime("%Y-%m-%d")
-            time_str: str = alarm.datetime_.time().strftime("%H:%M")
+        date_str: str = ""
+        time_str: str = ""
+
+        dt: datetime | time | None = alarm.datetime_
+
+        if isinstance(dt, datetime):
+            date_str = dt.strftime("%Y-%m-%d")
+            time_str = dt.strftime("%H:%M")
         else:
-            date_str = ""
-            time_str = ""
+            date_str = alarm.base_date_.strftime("%Y-%m-%d") if alarm.base_date_ else ""
+            time_str = dt.strftime("%H:%M") if isinstance(dt, time) else ""
+
 
         return AlarmUI(
             id=alarm.id,

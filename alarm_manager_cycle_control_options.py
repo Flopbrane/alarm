@@ -13,7 +13,6 @@ for alarm manager cycles.
 
 from dataclasses import dataclass
 
-
 @dataclass(frozen=True)
 class CycleOptions:
     """Alarm manager cycle control options."""
@@ -21,7 +20,7 @@ class CycleOptions:
     fire: bool = False
     save: bool = False
     notify: bool = False
-    validate: bool = True
+    validate: bool = False
 
 
 # ===== 実働モード用定義（モジュール定数）=====
@@ -39,22 +38,22 @@ STARTUP = CycleOptions(
     load=True,
     fire=False,
     save=True,
-    notify=False,
+    notify=True,
     validate=True,
 )
 # =====manager.on_alarm_config_changed()用=====
 CONFIG_CHANGED = CycleOptions(
     load=False,
-    fire=True,
-    save=False,
+    fire=False,
+    save=True,
     notify=True,
     validate=True,
 )
 # =========test_config_changed===================================
 TEST_CONFIG_CHANGED = CycleOptions(
-    load=False,
+    load=True,
     fire=True,
-    save=False,  # ★ テストでは必ず False
+    save=True,  # ★ テストでは必ず False→True に変更しないと、saveの動作が確認できないため、True に設定
     notify=True,
     validate=True,
 )

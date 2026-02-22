@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="ja">
+<meta charset="utf-8">
+<title>Alarm File Dependencies</title>
+<style>
+body {
+    font-family: "Segoe UI", sans-serif;
+    margin: 20px;
+    line-height: 1.45;
+}
+h1, h2, h3 {
+    margin-top: 1.2em;
+}
+code {
+    background: #f4f4f4;
+    padding: 0.1em 0.3em;
+    border-radius: 4px;
+}
+table {
+    border-collapse: collapse;
+    width: 100%;
+    margin-top: 0.8em;
+}
+th, td {
+    border: 1px solid #d8d8d8;
+    padding: 6px 8px;
+    vertical-align: top;
+}
+th {
+    background: #f7f7f7;
+    position: sticky;
+    top: 0;
+}
+ul {
+    margin-top: 0.4em;
+}
+.small {
+    color: #666;
+    font-size: 0.92em;
+}
+.box {
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    padding: 12px;
+    margin: 12px 0;
+}
+.badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: #eef3ff;
+    margin-right: 6px;
+}
+.warn {
+    background: #fff4db;
+}
+.good {
+    background: #e9f8ec;
+}
+</style>
+<body><h1>Alarm File Dependencies</h1><p class='small'>PROJECT_ROOT: <code>D:\PC\Python\alarm</code></p><div class='box'><b>見方:</b> 上流 = このファイルを import している側 / 下流 = このファイルが import している側</div><h2><code>alarm_manager_temp.py</code></h2><table><tr><th>項目</th><th>内容</th></tr><tr><td>Open</td><td><a href='vscode://file/D:/PC/Python/alarm/alarm_manager_temp.py:1'>VS Codeで開く</a></td></tr><tr><td>上流（import元）</td><td><ul><li><a href='vscode://file/D:/PC/Python/alarm/alarm_manager_verification_tester.py:1'><code>alarm_manager_verification_tester.py</code></a></li><li><a href='vscode://file/D:/PC/Python/alarm/cui.py:1'><code>cui.py</code></a></li><li><a href='vscode://file/D:/PC/Python/alarm/cui_controller.py:1'><code>cui_controller.py</code></a></li><li><a href='vscode://file/D:/PC/Python/alarm/gui_controller.py:1'><code>gui_controller.py</code></a></li><li><a href='vscode://file/D:/PC/Python/alarm/manager_minimum_test.py:1'><code>manager_minimum_test.py</code></a></li><li><a href='vscode://file/D:/PC/Python/alarm/migrate_ids_to_uuid.py:1'><code>migrate_ids_to_uuid.py</code></a></li><li><a href='vscode://file/D:/PC/Python/alarm/start.py:1'><code>start.py</code></a></li><li><a href='vscode://file/D:/PC/Python/alarm/test_alarm_manager_temp.py:1'><code>test_alarm_manager_temp.py</code></a></li></ul></td></tr><tr><td>下流（import先）</td><td><ul><li><a href='vscode://file/D:/PC/Python/alarm/alarm_data_json_mapper.py:1'><code>alarm_data_json_mapper.py</code></a></li><li><a href='vscode://file/D:/PC/Python/alarm/alarm_internal_model.py:1'><code>alarm_internal_model.py</code></a></li><li><a href='vscode://file/D:/PC/Python/alarm/alarm_irregular_logger.py:1'><code>alarm_irregular_logger.py</code></a></li><li><a href='vscode://file/D:/PC/Python/alarm/alarm_json_model.py:1'><code>alarm_json_model.py</code></a></li><li><a href='vscode://file/D:/PC/Python/alarm/alarm_manager_cycle_controll_options.py:1'><code>alarm_manager_cycle_controll_options.py</code></a></li><li><a href='vscode://file/D:/PC/Python/alarm/alarm_player.py:1'><code>alarm_player.py</code></a></li><li><a href='vscode://file/D:/PC/Python/alarm/alarm_repeat_datetime_checker.py:1'><code>alarm_repeat_datetime_checker.py</code></a></li><li><a href='vscode://file/D:/PC/Python/alarm/alarm_scheduler.py:1'><code>alarm_scheduler.py</code></a></li><li><a href='vscode://file/D:/PC/Python/alarm/alarm_storage.py:1'><code>alarm_storage.py</code></a></li><li><a href='vscode://file/D:/PC/Python/alarm/alarm_ui_mapper.py:1'><code>alarm_ui_mapper.py</code></a></li><li><a href='vscode://file/D:/PC/Python/alarm/alarm_ui_model.py:1'><code>alarm_ui_model.py</code></a></li><li><a href='vscode://file/D:/PC/Python/alarm/constants.py:1'><code>constants.py</code></a></li><li><a href='vscode://file/D:/PC/Python/alarm/env_paths.py:1'><code>env_paths.py</code></a></li></ul></td></tr><tr><td>import文</td><td><ul><li>line 18: <code>inspect</code></li><li>line 19: <code>sys</code></li><li>line 20: <code>threading</code></li><li>line 21: <code>uuid</code></li><li>line 22: <code>from dataclasses import replace</code></li><li>line 23: <code>from datetime import datetime, time, timedelta</code></li><li>line 24: <code>from pathlib import Path</code></li><li>line 25: <code>from types import CodeType, FrameType</code></li><li>line 26: <code>from typing import Any, Callable, Literal, Optional, TypedDict</code></li><li>line 29: <code>from alarm_data_json_mapper import InternalToJsonMapper, JsonToInternalMapper</code></li><li>line 30: <code>from alarm_internal_model import AlarmInternal, AlarmStateInternal</code></li><li>line 31: <code>from alarm_irregular_logger import AlarmLogger, LogWhere</code></li><li>line 32: <code>from alarm_json_model import AlarmJson, AlarmStateJson</code></li><li>line 33: <code>from alarm_manager_cycle_controll_options import CONFIG_CHANGED, RUNNING, STARTUP, CycleOptions</code></li><li>line 39: <code>from alarm_player import AlarmPlayer</code></li><li>line 40: <code>from alarm_repeat_datetime_checker import AlarmDatetimeChecker</code></li><li>line 41: <code>from alarm_scheduler import AlarmScheduler</code></li><li>line 42: <code>from alarm_storage import AlarmStorage</code></li><li>line 43: <code>from alarm_ui_mapper import InternaltoUIMapper, UItoInternalMapper, UIpatchtoInternalMapper</code></li><li>line 48: <code>from alarm_ui_model import AlarmUI, AlarmUIPatch, AlarmListItem</code></li><li>line 49: <code>from constants import DEFAULT_SOUND</code></li><li>line 50: <code>from env_paths import ALARM_PATH, BACKUP_DIR, DATA_DIR, STANDBY_PATH</code></li></ul></td></tr></table><h2><code>gui.py</code></h2><table><tr><th>項目</th><th>内容</th></tr><tr><td>Open</td><td><a href='vscode://file/D:/PC/Python/alarm/gui.py:1'>VS Codeで開く</a></td></tr><tr><td>上流（import元）</td><td><ul><li><a href='vscode://file/D:/PC/Python/alarm/gui_controller.py:1'><code>gui_controller.py</code></a></li></ul></td></tr><tr><td>下流（import先）</td><td><ul><li><a href='vscode://file/D:/PC/Python/alarm/alarm_config_manager.py:1'><code>alarm_config_manager.py</code></a></li><li><a href='vscode://file/D:/PC/Python/alarm/alarm_player.py:1'><code>alarm_player.py</code></a></li><li><a href='vscode://file/D:/PC/Python/alarm/alarm_storage.py:1'><code>alarm_storage.py</code></a></li><li><a href='vscode://file/D:/PC/Python/alarm/constants.py:1'><code>constants.py</code></a></li><li><a href='vscode://file/D:/PC/Python/alarm/gui_controller.py:1'><code>gui_controller.py</code></a></li><li><a href='vscode://file/D:/PC/Python/alarm/json_editor.py:1'><code>json_editor.py</code></a></li><li><a href='vscode://file/D:/PC/Python/alarm/mini_calendar.py:1'><code>mini_calendar.py</code></a></li><li><a href='vscode://file/D:/PC/Python/alarm/utils/utils.py:1'><code>utils/utils.py</code></a></li><li><a href='vscode://file/D:/PC/Python/alarm/window_keys.py:1'><code>window_keys.py</code></a></li><li><a href='vscode://file/D:/PC/Python/alarm/window_position_store.py:1'><code>window_position_store.py</code></a></li></ul></td></tr><tr><td>import文</td><td><ul><li>line 11: <code>math</code></li><li>line 12: <code>os</code></li><li>line 15: <code>tkinter</code></li><li>line 16: <code>from datetime import datetime, timedelta</code></li><li>line 17: <code>from tkinter import filedialog, messagebox, ttk</code></li><li>line 18: <code>from typing import TYPE_CHECKING, Literal</code></li><li>line 20: <code>from alarm_config_manager import Config, ConfigManager</code></li><li>line 23: <code>from alarm_player import AlarmPlayerGUI</code></li><li>line 24: <code>from alarm_storage import AlarmStorage</code></li><li>line 25: <code>from constants import COLUMN_BASE, COLUMN_LABELS, DEFAULT_SOUND, REPEAT_DISPLAY, REPEAT_INTERNAL, REPEAT_OPTIONS_GUI, WEEKDAY_LABELS, WEEKS_CUSTOM_INTERNAL</code></li><li>line 35: <code>from gui_controller import GUIController</code></li><li>line 36: <code>from json_editor import JsonEditor</code></li><li>line 37: <code>from mini_calendar import MiniCalendar, TimePicker</code></li><li>line 38: <code>from utils.utils import save_config, to_hankaku, validate_date, validate_time, weekday_to_str</code></li><li>line 39: <code>from window_keys import WINDOW_KEYS</code></li><li>line 40: <code>from window_position_store import WindowPositionStore</code></li><li>line 44: <code>from gui_controller import GUIController</code></li></ul></td></tr></table></body></html>

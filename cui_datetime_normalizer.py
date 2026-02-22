@@ -54,7 +54,7 @@ def normalize_commas(text: str) -> str:
 
 def normalize_date(text: str) -> str | None:
     """
-    CUI or Json_Editer 用：
+    CUI or Json_Editor 用：
     YYYY-MM-DD / YYYY/MM/DD のみ許可
     それ以外は ValueError(例：令和Y年m月d日などの和暦はNG)
     海外表記の

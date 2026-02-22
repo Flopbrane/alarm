@@ -10,7 +10,8 @@ import unittest
 from datetime import datetime, timedelta
 from unittest.mock import MagicMock, patch
 
-from alarm_internal_model import AlarmInternal, AlarmStateInternal
+from alarm_internal_model import AlarmInternal
+from alarm_states_model import AlarmStateInternal
 from alarm_manager_temp import AlarmManager, CycleOptions
 
 
@@ -38,7 +39,7 @@ class TestAlarmManagerTemp(unittest.TestCase):
 
         # ---- ダミーアラーム1件 ----
         alarm = AlarmInternal(
-            id=1,
+            id="test_alarm_id",
             name="TEST_ALARM",
             datetime_=self.fixed_now,
             repeat="single",
@@ -69,7 +70,8 @@ class TestAlarmManagerTemp(unittest.TestCase):
         mock_datetime.now.return_value = self.fixed_now
         mock_datetime.side_effect = datetime
 
-        self.mgr.run_cycle(
+        self.mgr.start_cycle(
+            'loop',
             CycleOptions(
                 load=False,
                 fire=False,
@@ -88,7 +90,8 @@ class TestAlarmManagerTemp(unittest.TestCase):
         mock_datetime.now.return_value = self.fixed_now
         mock_datetime.side_effect = datetime
 
-        self.mgr.run_cycle(
+        self.mgr.start_cycle(
+            'loop',
             CycleOptions(
                 load=False,
                 fire=False,
@@ -113,7 +116,8 @@ class TestAlarmManagerTemp(unittest.TestCase):
         # play メソッドを明示的にモック化
         self.mgr.player.play = MagicMock()
 
-        self.mgr.run_cycle(
+        self.mgr.start_cycle(
+            'loop',
             CycleOptions(
                 load=False,
                 fire=False,
@@ -139,7 +143,8 @@ class TestAlarmManagerTemp(unittest.TestCase):
 
         self.mgr.player.play = MagicMock()
 
-        self.mgr.run_cycle(
+        self.mgr.start_cycle(
+            'loop',
             CycleOptions(
                 load=False,
                 fire=True,
@@ -153,7 +158,8 @@ class TestAlarmManagerTemp(unittest.TestCase):
     # --------------------------------------------------
     def test_startup_sync(self) -> None:
         """startup_sync が例外なく完走する"""
-        self.mgr.run_cycle(
+        self.mgr.start_cycle(
+            'startup',
             CycleOptions(
                 load=True,
                 fire=False,

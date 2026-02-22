@@ -38,4 +38,4 @@ class GUIController:
         if not self._started:
             return
         # 再描画・ラベル更新など
-        self.gui.update_display()
+        self.gui.load_alarms()

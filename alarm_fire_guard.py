@@ -10,8 +10,7 @@ alarm + now + actual_now → True/False
 #########################
 from datetime import datetime
 
-from alarm_internal_model import AlarmStateInternal
-
+from alarm_states_model import AlarmStateInternal
 
 # --------------------------------------------------------------
 # 🔹 二重鳴動防止

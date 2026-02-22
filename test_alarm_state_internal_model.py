@@ -9,7 +9,7 @@
 import unittest
 from datetime import datetime
 
-from alarm_internal_model import AlarmStateInternal
+from alarm_states_model import AlarmStateInternal
 
 
 class TestNextFireDatetime(unittest.TestCase):
@@ -17,7 +17,7 @@ class TestNextFireDatetime(unittest.TestCase):
 
     def setUp(self) -> None:
         """Initialize test fixture"""
-        self.state = AlarmStateInternal(id=1)
+        self.state = AlarmStateInternal(id="test_alarmstate_id")
 
     def test_setter_with_none(self) -> None:
         """Test setting next_fire_datetime to None"""

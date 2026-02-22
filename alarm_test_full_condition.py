@@ -17,7 +17,7 @@ class AlarmTestBase:
 
     def __init__(self) -> None:
         self.base_alarm = AlarmInternal(
-            id=0,
+            id="test_alarm",
             name="test",
             datetime_=datetime(2025, 1, 1, 10, 5),
             repeat="none",
@@ -27,7 +27,7 @@ class AlarmTestBase:
             base_date_=datetime(2024, 12, 15, 16, 30),
         )
 
-    def make_alarm(self, **kwargs) -> AlarmInternal:
+    def make_alarm(self, **kwargs: Any) -> AlarmInternal:
         """テストごとの差分を指定して AlarmInternal を生成する"""
         alarm: AlarmInternal = copy.deepcopy(self.base_alarm)
         for k, v in kwargs.items():
@@ -42,7 +42,7 @@ def print_header(title: str) -> None:
     print("=" * 60)
 
 
-def show(result, expect=None) -> None:
+def show(result: datetime | None, expect: datetime | None = None) -> None:
     """次のアラームを表示"""
     print(f"➡ next = {result}")
     if expect:
@@ -55,14 +55,14 @@ def test_once() -> None:
 
     base = AlarmTestBase()
     alarm: AlarmInternal = base.make_alarm(
-        id=1,
+        id="test_alarm",
         repeat="none",
     )
     sch = AlarmScheduler()
-    now: datetime = alarm.datetime_
+    now: datetime = alarm.datetime_ # pyright: ignore[reportAssignmentType]
     # 単発は繰り返しテストは行いません。
     # なぜなら、2回目以降に"None"が返ってくるからです。
-    next_time = sch.get_next_time(alarm, now)
+    next_time: datetime | None = sch.get_next_time(alarm, now)
     show(next_time)
 
 
@@ -72,7 +72,7 @@ def test_daily() -> None:
     now = datetime(2025, 1, 1, 9, 0)
     base = AlarmTestBase()
     alarm: AlarmInternal = base.make_alarm(
-        id=2,
+        id="test_alarm",
         name="daily",
         datetime_=datetime(2025, 1, 1, 10, 5),
         repeat="daily",
@@ -95,7 +95,7 @@ def test_weekly() -> None:
     now = datetime(2025, 1, 1, 10, 30)
     base = AlarmTestBase()
     alarm: AlarmInternal = base.make_alarm(
-        id=3,
+        id="test_alarm",
         name="weekly",
         datetime_=datetime(2025, 1, 1, 10, 5),  # 水曜10:05
         repeat="weekly",
@@ -115,11 +115,11 @@ def test_weekly_x() -> None:
     """week_xテスト"""
     print_header("隔週 / 3週おき (weekly_n)")
     now = datetime(2025, 1, 1, 10, 30)
-    next_time: Any | None
+    next_time: datetime | None
 
     base = AlarmTestBase()
     alarm: AlarmInternal = base.make_alarm(
-        id=4,
+        id="test_alarm",
         name="weekly_x",
         datetime_=datetime(2025, 1, 1, 10, 5),  # 水曜10:05
         repeat="weekly",
@@ -140,10 +140,10 @@ def test_monthly() -> None:
     """毎月設定テスト"""
     print_header("毎月 (monthly)")
     now = datetime(2025, 1, 15, 12, 0)
-    next_time: Any | None
+    next_time: datetime | None
     base = AlarmTestBase()
     alarm: AlarmInternal = base.make_alarm(
-        id=5,
+        id="test_alarm",
         name="monthly",
         datetime_=datetime(2025, 1, 31, 10, 5),  # 31日
         repeat="monthly",
@@ -164,11 +164,11 @@ def test_monthly() -> None:
 def test_custom_weekday_only() -> None:
     """曜日のみ指定"""
     print_header("custom（曜日のみ指定）")
-    next_time: Any | None
+    next_time: datetime | None
     now = datetime(2025, 1, 1, 10, 30)
     test_base = AlarmTestBase()
     alarm: AlarmInternal = test_base.make_alarm(
-        id=7,
+        id="test_alarm",
         name="custom_weekday",
         datetime_=datetime(2025, 1, 1, 10, 5),
         repeat="custom",
@@ -189,11 +189,11 @@ def test_custom_weekday_only() -> None:
 def test_custom_week_of_month_only() -> None:
     """第n週のみ指定"""
     print_header("custom（第n週のみ指定）")
-    next_time: Any | None
+    next_time: datetime | None
     now = datetime(2025, 1, 1, 10, 30)
     test_base = AlarmTestBase()
     alarm: AlarmInternal = test_base.make_alarm(
-        id=8,
+        id="test_alarm",
         name="custom_week_of_month",
         datetime_=datetime(2025, 1, 1, 10, 5),
         repeat="custom",
@@ -214,11 +214,11 @@ def test_custom_week_of_month_only() -> None:
 def test_custom_interval_weeks_only() -> None:
     """n週おきのみ指定"""
     print_header("custom（n週おきのみ指定）")
-    next_time: Any | None
+    next_time: datetime | None
     now = datetime(2025, 1, 1, 10, 30)
     test_base = AlarmTestBase()
     alarm: AlarmInternal = test_base.make_alarm(
-        id=9,
+        id="test_alarm",
         name="custom_interval",
         datetime_=datetime(2025, 1, 1, 10, 5),
         repeat="custom",
@@ -239,11 +239,11 @@ def test_custom_interval_weeks_only() -> None:
 def test_custom_full_combo() -> None:
     """曜日 + 第n週 + n週おき（最終確認）"""
     print_header("custom（曜日 + 第n週 + n週おき全組合わせ）")
-    next_time: Any | None
+    next_time: datetime | None
     now = datetime(2025, 1, 1, 10, 30)
     test_base = AlarmTestBase()
     alarm: AlarmInternal = test_base.make_alarm(
-        id=10,
+        id="test_alarm",
         name="custom_full",
         datetime_=datetime(2025, 1, 1, 10, 5),
         repeat="custom",
@@ -264,11 +264,11 @@ def test_custom_full_combo() -> None:
 def test_custom() -> None:
     """custom設定テスト"""
     print_header("custom（曜日 + 第n週 + 週おき）")
-    next_time: Any | None
+    next_time: datetime | None
     now = datetime(2025, 1, 1, 10, 30)  # 水曜
     base = AlarmTestBase()
     alarm: AlarmInternal = base.make_alarm(
-        id=6,
+        id="test_alarm",
         name="custom",
         datetime_=datetime(2025, 1, 1, 10, 5),
         repeat="custom",

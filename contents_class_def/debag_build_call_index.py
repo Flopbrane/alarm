@@ -1,11 +1,19 @@
 # -*- coding: utf-8 -*-
+from __future__ import annotations
+import ast
+import csv
+import html
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Dict, List, Optional, Set, Tuple, Any
+
 """どのファイルのどの関数で、何処の関数が呼ばれているかを調査するユーティリティ"""
 #########################
 # Author: F.Kurokawa
 # Description:
-#
+# - Python AST で「関数/メソッド → 呼び出し名」を抽出し、CSV/HTMLに出力する。
+# - 解析対象: project_root 以下の .py
 #########################
-# -*- coding: utf-8 -*-
 """
 build_call_index.py
 Python AST で「関数/メソッド → 呼び出し名」を抽出し、CSV/HTMLに出力する。
@@ -19,34 +27,24 @@ Python AST で「関数/メソッド → 呼び出し名」を抽出し、CSV/HT
   ここで出すのは「見えている呼び出し名の一覧（実務で十分役立つ）」です。
 """
 
-
-from __future__ import annotations
-
-import ast
-import csv
-import html
-from dataclasses import dataclass
-from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple
-
 # ==========================
 # 設定（黒川さんの環境向け）
 # ==========================
 # この .py が置かれているフォルダ（contents_class_def）を基準にする
-SCRIPT_DIR = Path(__file__).resolve().parent
+SCRIPT_DIR: Path = Path(__file__).resolve().parent
 
 # プロジェクトのルート: contents_class_def の1つ上（D:\PC\Python\alarm）
-PROJECT_ROOT = (SCRIPT_DIR / "..").resolve()
+PROJECT_ROOT: Path = (SCRIPT_DIR / "..").resolve()
 
 # PowerShellで作った「ファイル別HTML」置き場（必要なら変更）
 # 例: contents_class_def/html_index に出ている想定
-PS_HTML_DIR = (SCRIPT_DIR / "html_index").resolve()
+PS_HTML_DIR: Path = (SCRIPT_DIR / "html_index").resolve()
 
 # 出力先
-OUTPUT_DIR = (SCRIPT_DIR / "call_index_out").resolve()
+OUTPUT_DIR: Path = (SCRIPT_DIR / "call_index_out").resolve()
 
 # 除外したいフォルダ名（必要に応じて増やしてOK）
-EXCLUDE_DIR_NAMES = {
+EXCLUDE_DIR_NAMES: Set[str] = {
     "venv",
     ".venv",
     "__pycache__",
@@ -71,7 +69,7 @@ class FuncRow:
 
 
 def is_excluded(path: Path) -> bool:
-    parts = {p.lower() for p in path.parts}
+    parts: Set[str] = {p.lower() for p in path.parts}
     for x in EXCLUDE_DIR_NAMES:
         if x.lower() in parts:
             return True
@@ -92,7 +90,7 @@ def dotted_name(expr: ast.AST) -> Optional[str]:
     if isinstance(expr, ast.Name):
         return expr.id
     if isinstance(expr, ast.Attribute):
-        left = dotted_name(expr.value)
+        left: str | None = dotted_name(expr.value)
         if left:
             return f"{left}.{expr.attr}"
         return expr.attr
@@ -113,7 +111,7 @@ def parse_import_aliases(tree: ast.AST) -> Dict[str, str]:
                 if a.asname:
                     alias_map[a.asname] = a.name
         elif isinstance(node, ast.ImportFrom):
-            mod = node.module or ""
+            mod: str = node.module or ""
             for a in node.names:
                 if a.asname:
                     alias_map[a.asname] = f"{mod}.{a.name}" if mod else a.name
@@ -122,7 +120,7 @@ def parse_import_aliases(tree: ast.AST) -> Dict[str, str]:
 
 class CallCollector(ast.NodeVisitor):
     def __init__(self, alias_map: Dict[str, str]) -> None:
-        self.alias_map = alias_map
+        self.alias_map: Dict[str, str] = alias_map
         self.class_stack: List[str] = []
         self.func_stack: List[Tuple[str, int]] = []  # (qualname, lineno)
         self.calls_by_func: Dict[Tuple[str, int], Set[str]] = {}
@@ -148,13 +146,13 @@ class CallCollector(ast.NodeVisitor):
         self._exit_func()
 
     def _enter_func(self, node: ast.AST) -> None:
-        name = getattr(node, "name", "<func>")
-        lineno = getattr(node, "lineno", 1)
+        name: Any | str = getattr(node, "name", "<func>")
+        lineno: int = getattr(node, "lineno", 1)
         if self.class_stack:
-            qual = ".".join(self.class_stack + [name])
+            qual: str = ".".join(self.class_stack + [name])
         else:
             qual = name
-        key = (qual, lineno)
+        key: Tuple[str, int] = (qual, lineno)
         self.func_stack.append(key)
         self.calls_by_func.setdefault(key, set())
 
@@ -162,12 +160,12 @@ class CallCollector(ast.NodeVisitor):
         self.func_stack.pop()
 
     def visit_Call(self, node: ast.Call) -> None:
-        key = self.current_func_key()
+        key: Tuple[str, int] | None = self.current_func_key()
         if key is None:
             self.generic_visit(node)
             return
 
-        name = dotted_name(node.func)
+        name: str | None = dotted_name(node.func)
         if name:
             # alias解決（先頭が alias の場合だけ置換）
             # 例: u.foo() -> utils.foo()
@@ -286,15 +284,15 @@ code { background: #f5f5f5; padding: 0.05em 0.25em; border-radius: 4px; }
     )
 
     for r in rows:
-        file_html = html.escape(r.file)
-        func_html = html.escape(f"{r.qualname} (L{r.lineno})")
-        calls_html = html.escape(r.calls)
+        file_html: str = html.escape(r.file)
+        func_html: str = html.escape(f"{r.qualname} (L{r.lineno})")
+        calls_html: str = html.escape(r.calls)
 
-        links = []
+        links: List[str] = []
         links.append(f"<a href='{html.escape(r.vscode_link)}'>VS Code</a>")
         if r.ps_html_link:
             links.append(f"<a href='{html.escape(r.ps_html_link)}'>PS HTML</a>")
-        links_html = " / ".join(links)
+        links_html: str = " / ".join(links)
 
         parts.append(
             f"<tr>"

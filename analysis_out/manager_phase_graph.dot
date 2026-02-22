@@ -1,0 +1,43 @@
+digraph G {
+rankdir=TB;
+graph [overlap=false, splines=polyline, ranksep=0.9, nodesep=0.5];
+node [shape=box, style=filled, fillcolor=white, fontsize=11];
+edge [penwidth=1.6, color=gray30];
+subgraph cluster_entry {
+label="entry / dispatch";
+style=filled;
+fillcolor=lightskyblue1;
+"start_cycle" [shape=box, fillcolor=aliceblue];
+"_start_startup_cycle" [shape=box, fillcolor=aliceblue];
+"_start_running_cycle" [shape=box, fillcolor=aliceblue];
+"_start_config_changed_cycle" [shape=box, fillcolor=aliceblue];
+}
+subgraph cluster_engine {
+label="engine";
+style=filled;
+fillcolor=lightgoldenrod1;
+"run_cycle" [shape=box, fillcolor=white];
+"_begin_cycle" [shape=box, fillcolor=white];
+"_load_phase" [shape=box, fillcolor=white];
+"_recalc_phase" [shape=box, fillcolor=white];
+"_fire_phase" [shape=box, fillcolor=white];
+"_save_phase" [shape=box, fillcolor=white];
+"_notify_listeners" [shape=box, fillcolor=white];
+"_check_invalid_states" [shape=box, fillcolor=white];
+"_stop_phase" [shape=box, fillcolor=white];
+}
+"start_cycle" -> "_start_startup_cycle" [color=deepskyblue4];
+"start_cycle" -> "_start_running_cycle" [color=deepskyblue4];
+"start_cycle" -> "_start_config_changed_cycle" [color=deepskyblue4];
+"_start_startup_cycle" -> "run_cycle" [color=cadetblue4];
+"_start_running_cycle" -> "run_cycle" [color=cadetblue4];
+"_start_config_changed_cycle" -> "run_cycle" [color=cadetblue4];
+"run_cycle" -> "_begin_cycle" [color=goldenrod4];
+"_begin_cycle" -> "_load_phase" [color=goldenrod4];
+"_load_phase" -> "_recalc_phase" [color=goldenrod4];
+"_recalc_phase" -> "_fire_phase" [color=goldenrod4];
+"_fire_phase" -> "_save_phase" [color=goldenrod4];
+"_save_phase" -> "_notify_listeners" [color=goldenrod4];
+"_notify_listeners" -> "_check_invalid_states" [color=goldenrod4];
+"_check_invalid_states" -> "_stop_phase" [color=goldenrod4];
+}

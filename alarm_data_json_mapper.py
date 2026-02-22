@@ -23,11 +23,21 @@ Internal ↔ JSON dataclass 変換・受け渡し専用モジュール
 # dataclass変換・受渡し(チェック済み)
 #########################
 # 標準ライブラリ
+import inspect
+from types import FrameType, CodeType
 from datetime import date, datetime
 
 # 自作モジュール
-from alarm_internal_model import AlarmInternal, AlarmStateInternal
+from alarm_internal_model import AlarmInternal
+from alarm_states_model import AlarmStateInternal
 from alarm_json_model import AlarmJson, AlarmStateJson
+from alarm_irregular_logger import AlarmLogger, LogWhere
+
+
+# ===============================
+# モジュールレベルのロガーインスタンス
+# ===============================
+_logger_instance: AlarmLogger | None = None
 
 
 # ===============================
@@ -59,6 +69,30 @@ def dt_to_any(dt: datetime | None) -> str | None: # Jsonへの変換用
         return None
     return dt.isoformat()
 
+def where(method_name: str) -> LogWhere:
+    """ログ用の位置情報を生成する（呼び出し元を指す）"""
+    frame: FrameType | None = inspect.currentframe()
+    caller: FrameType | None = frame.f_back if frame else None  # ← 1つ上
+
+    lineno: int = caller.f_lineno if caller else -1
+    code: CodeType | None = caller.f_code if caller else None
+    log_where: LogWhere = {
+        "line": lineno,
+        "module": code.co_filename if code else __name__,
+        "file": code.co_filename if code else "",
+        "class_name": "alarm_data_json_mapper",  # 固定値
+        "method_name": method_name,
+        "function": code.co_name if code else method_name,
+    }
+    return log_where
+
+
+def logger() -> AlarmLogger | None:
+    """Get the logger instance if available (for use in mappers)"""
+    # ここではグローバルなロガーインスタンスを返す実装例
+    # 実際の実装では、ロガーの管理方法に応じて適切に変更してください
+    return _logger_instance
+
 # =========================================================
 # 🔹 Jsonモデル → Internalモデル マッパー
 # =========================================================
@@ -80,7 +114,7 @@ class JsonToInternalMapper:
 
         # 発火基準 datetime（最重要）
         alarm_dt: datetime = datetime.fromisoformat(f"{a.date}T{a.time}")
-        
+
         # 🔑 base_date は date-only → time を合成する
         base_dt: datetime | None = None
 
@@ -92,7 +126,7 @@ class JsonToInternalMapper:
                 alarm_dt.time()
             )
 
-        return AlarmInternal(
+        alarm_internal = AlarmInternal(
             id=a.id,
             name=a.name,
             datetime_=alarm_dt,
@@ -111,6 +145,17 @@ class JsonToInternalMapper:
             snooze_limit=a.snooze_limit,
             end_at=any_to_dt(a.end_at),
         )
+        alarm_internal: AlarmInternal = self._repair_alarm(alarm_internal)
+        return alarm_internal
+
+    def _repair_alarm(self, alarm: AlarmInternal) -> AlarmInternal:
+
+        if alarm.base_date_ is None:
+
+            if isinstance(alarm.datetime_, datetime):
+                alarm.base_date_ = alarm.datetime_
+
+        return alarm
 
     # --------------------------------------------------------
     # 🔹 AlarmStateJson → AlarmStateInternal
@@ -134,10 +179,25 @@ class InternalToJsonMapper(JsonToInternalMapper):
     # -------------------------------------------------------
     # 🔹 AlarmInternal → AlarmJson
     # -------------------------------------------------------
-    def alarm_internal_to_json(self, a: AlarmInternal) -> AlarmJson:
+    def alarm_internal_to_json(self, a: AlarmInternal) -> AlarmJson | None:
         """AlarmInternal → AlarmJson（ISO8601ベース）"""
 
         # datetime_ → ISO8601 → date / time 分離
+        if not a.datetime_:
+            log: AlarmLogger | None = logger()
+            if log:
+                log.warning(
+                    message="AlarmInternal の datetime_ が None です。正確な繰り返し計算のためには、datetime_ を設定してください。",
+                    where=where("alarm_internal_to_json"),
+                    alarm_id=a.id,
+                    context={
+                        "alarm_id": a.id,
+                        "alarm_name": a.name,
+                        "repeat": a.repeat,
+                    },
+                )
+            print(f"AlarmInternal の datetime_ が無効です id={a.id} name={a.name}")    
+            return None
         dt_iso: str = a.datetime_.isoformat(timespec="minutes")
         date_str: str
         time_str: str

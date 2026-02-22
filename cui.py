@@ -15,15 +15,19 @@ import sys
 from datetime import datetime
 from typing import Any, Literal, TextIO, cast
 
-from alarm_internal_model import AlarmInternal, AlarmStateInternal
+
 
 # 自作モジュール（順序を整理）
-from alarm_manager import AlarmManager, NextAlarmInfo
-from alarm_ui_model import AlarmUI
+from alarm_manager_temp import AlarmManager
+from alarm_ui_model import (
+    AlarmUI,
+    AlarmListItem,
+)  # ← UI層のAlarmState定義
 from constants import DEFAULT_SOUND, REPEAT_INTERNAL
-from ui_datetime_normalizer import normalize_commas
-from ui_weekday_normalizer import normalize_weekday_list
-from utils import select_sound_file, validate_date, validate_time
+from cui_controller import CUIController
+from cui_datetime_normalizer import normalize_commas, validate_date, validate_time
+from cui_weekday_normalizer import normalize_weekday_list
+from utils.utils import select_sound_file
 from utils.text_utils import to_hankaku
 
 # stdout の文字コードを UTF-8 に強制設定（Windows 対応）
@@ -38,11 +42,20 @@ InputMode = Literal["raw", "half", "half_commas"]
 
 
 # ======================================================
-# 次のアラーム表示(cui.py デバッグ用)
+# 次のアラーム表示のための型ヒント定義
 # ======================================================
-def print_upcoming_alarms(manager: AlarmManager, count: int = 5) -> None:
+# class NextAlarmInfo(TypedDict):
+# """型ヒントの定義"""
+
+# alarm: AlarmInternal
+# next_datetime: datetime
+# time_until: float
+
+def print_upcoming_alarms(manager: AlarmManager) -> None:
     """次のアラームの表示(5件)"""
-    next_infos: list[NextAlarmInfo] = manager.get_next_alarms(count)
+    manager.start_cycle("loop")
+    now: datetime = manager.internal_clock()
+    next_infos: list[AlarmListItem] = manager.get_alarm_list()
     if not next_infos:
         print("📭 有効なアラームがありません。")
         return
@@ -50,21 +63,36 @@ def print_upcoming_alarms(manager: AlarmManager, count: int = 5) -> None:
     print(f"\n⏰ 次に鳴動予定のアラーム（{len(next_infos)}件）:")
     print("-" * 60)
 
+    display_id: int = 0
+
     for i, info in enumerate(next_infos, 1):
-        alarm: AlarmInternal = info["alarm"]
-        next_dt: datetime = info["next_datetime"]
-        time_until: float = info["time_until"]
+        display_id: int = i  # UI専用番号
+        alarm_id: str = info.alarm_id
+        alarm_ui: AlarmUI = info.alarm_ui
+        next_datetime: datetime | None = info.next_datetime
 
-        hours = int(time_until // 3600)
-        minutes = int((time_until % 3600) // 60)
-        time_str: str = f"{hours}時間{minutes}分後" if hours > 0 else f"{minutes}分後"
+        if next_datetime:
+            time_until: float = (next_datetime - now).total_seconds()
+            time_until = max(time_until, 0)
 
-        print(f"{i}. [{alarm.id}] {alarm.name}")
-        print(f"   ⏰ {next_dt.strftime('%Y/%m/%d %H:%M')} ({time_str})")
-        print(f"   🔁 繰り返し: {alarm.repeat}")
+            hours = int(time_until // 3600)
+            minutes = int((time_until % 3600) // 60)
 
-        if alarm.weekday:
-            print(f"   📅 曜日指定: {', '.join(str(w) for w in alarm.weekday)}")
+            time_str: str = f"{hours}時間{minutes}分後" if hours > 0 else f"{minutes}分後"
+        else:
+            time_str = "不明"
+
+        print(f"{display_id}. [{alarm_id}] {alarm_ui.name}")
+
+        if next_datetime:
+            print(f"   ⏰ {next_datetime.strftime('%Y/%m/%d %H:%M')} ({time_str})")
+        else:
+            print("   ⏰ 不明")
+
+        print(f"   🔁 繰り返し: {alarm_ui.repeat}")
+
+        if alarm_ui.weekday:
+            print(f"   📅 曜日指定: {', '.join(str(w) for w in alarm_ui.weekday)}")
 
 
 # ------------------------------------------
@@ -73,14 +101,16 @@ def print_upcoming_alarms(manager: AlarmManager, count: int = 5) -> None:
 def main() -> None:
     """メニュー表示"""
     manager = AlarmManager()
+    controller = CUIController(manager)
 
-    def run_alarm_monitor(manager: AlarmManager) -> None:
+    def run_alarm_monitor(controller: CUIController) -> None:
         """アラーム監視ループを開始する（CUI補助）"""
         print("🔁 アラーム監視開始（Ctrl+Cで停止）")
         try:
-            manager.run()
+            controller.run()
         except KeyboardInterrupt:
-            manager.driving_stop()
+            controller.stop()
+            print("🛑 監視停止")
 
     def normalize_basic(text: str) -> str:
         """CUI入力向けの最低限の整形"""
@@ -128,8 +158,8 @@ def main() -> None:
             mode="half_commas",
             default="",
         )
-        result: list[int] | None = normalize_weekday_list(raw)
-        return result if result is not None else []
+        result: list[int] = normalize_weekday_list(raw)
+        return result
 
     def input_week_of_month() -> list[int]:
         s: str = input_with_mode("第n週（1-5をカンマ区切り、空欄可）", mode="half")
@@ -178,132 +208,98 @@ def main() -> None:
                     print("アラーム名は必須です。")
                     continue
 
-                date_str: str = input_with_mode(
-                    "日付 (YYYY-MM-DD、省略可)", mode="half"
-                )
-                if not validate_date(date_str):
+                date_str: str = input_with_mode("日付 (YYYY-MM-DD、省略可)", mode="half")
+                if date_str and not validate_date(date_str):
                     print("年月日の値が不適合です。")
                     continue
+
                 time_str: str = input_with_mode("時刻 (HH:MM)", mode="half")
                 if not validate_time(time_str):
                     print("時刻の値が不適合です。")
                     continue
 
                 repeat: str = input_repeat()
+
                 weekday: list[int] = []
                 week_of_month: list[int] = []
-                interval_weeks = 1
+                interval_weeks: int = 0
+                interval_days: int = 0
 
                 if repeat == "weekly":
                     weekday = input_weekday_list()
                     interval_weeks = int(
-                        input_with_mode(
-                            "間隔(週)（デフォルト1）", mode="half", default="1"
-                        )
+                        input_with_mode("間隔(週)（デフォルト1）", mode="half", default="1")
                     )
 
                 elif repeat == "custom":
                     weekday = input_weekday_list()
                     week_of_month = input_week_of_month()
                     interval_weeks = int(
-                        input_with_mode(
-                            "間隔(週)（デフォルト1）", mode="half", default="1"
-                        )
+                        input_with_mode("間隔(週)（デフォルト1）", mode="half", default="1")
                     )
+
+                elif repeat == "daily":
+                    interval_days = 1
 
                 sound_input: str = input_with_mode(
                     "音ファイル名 (default.wav、省略可、'select'で選択)",
                     mode="half",
                     default=str(DEFAULT_SOUND),
                 )
+
                 if sound_input.lower() == "select":
                     sound: str = select_sound_file()
-                elif sound_input == "":
-                    sound = str(DEFAULT_SOUND)
                 else:
-                    sound: str = sound_input
+                    sound = sound_input or str(DEFAULT_SOUND)
 
-                try:
-                    duration = int(
-                        input_with_mode("鳴動時間(秒)", mode="half", default="10")
-                    )
-                except (ValueError, TypeError):
-                    duration = 5
-
+                duration: int = int(input_with_mode("鳴動時間(秒)", mode="half", default="10"))
+                snooze_limit: int = int(
+                    input_with_mode("スヌーズ上限(回、デフォルト3)", mode="half", default="3")
+                )
                 skip_holiday: bool = input_bool("祝日スキップしますか", default=False)
-                try:
-                    snooze_limit = int(
-                        input_with_mode(
-                            "スヌーズ上限(回、デフォルト3)", mode="half", default="3"
-                        )
-                    )
-                except (ValueError, TypeError):
-                    snooze_limit = 3
 
+                # ✅ UIモデルだけ作る
                 ui_alarm = AlarmUI(
+                    id=None,  # Managerが付与
                     name=name,
                     date=date_str,
                     time=time_str,
                     repeat=repeat,
-                    weekday=weekday,
+                    weekday=cast(list[int | str], weekday),
                     week_of_month=week_of_month,
                     interval_weeks=interval_weeks,
+                    interval_days=interval_days,
+                    custom_desc="",
                     enabled=True,
                     sound=str(sound),
                     skip_holiday=skip_holiday,
                     duration=duration,
                     snooze_minutes=manager.snooze_default,
                     snooze_limit=snooze_limit,
+                    end_at=None,
                 )
 
-                ui_state = AlarmStateUI(
-                    _snoozed_until=None,  # スヌーズ解除予定時刻
-                    _snooze_count=0,  # 現在のスヌーズ回数
-                    _triggered=False,  # 現在鳴動中かどうか
-                    _triggered_at=None,  # 鳴動開始時刻
-                    _last_fired_at=None,  # 最後に鳴動した時刻（多重発火防止用）
-                )
-
-                internal_alarm: AlarmInternal = ui_to_internal(ui_alarm)
-                internal_state: AlarmStateInternal = stateui_to_stateinternal(ui_state)
-
-                # 呼び出し時のシグネチャ差異に強靭に対応する（静的解析のエラー回避および複数実装の互換性）
-                add_fn = getattr(manager, "add_alarm", None)
-                if callable(add_fn):
-                    try:
-                        add_fn(json_alarm, json_state)
-                    except TypeError:
-                        try:
-                            add_fn(json_alarm=json_alarm, json_state=json_state)
-                        except TypeError:
-                            # 追加の名前候補にフォールバック
-                            if hasattr(manager, "add_alarm_from_json"):
-                                manager.add_alarm_from_json(json_alarm, json_state)
-                            elif hasattr(manager, "add_from_json"):
-                                manager.add_from_json(json_alarm, json_state)
-                            else:
-                                raise
-                else:
-                    raise AttributeError(
-                        "AlarmManager has no callable 'add_alarm' method"
-                    )
+                # 🔥 ここが重要
+                manager.apply_alarm_mutation("add", ui_alarm)
+                print("✅ アラームを追加しました。")
 
             except KeyboardInterrupt:
-                print("入力をキャンセルしました。メニューに戻ります。")
+                print("入力をキャンセルしました。")
+
 
         elif choice == "2":
             print_upcoming_alarms(manager)
 
         elif choice == "3":
             alarm_id = int(input("削除するID: "))
-            manager.remove_alarm(alarm_id)
+            manager.apply_alarm_mutation("delete", alarm_id)
 
         elif choice == "4":
             alarm_id = int(input("切替するID: "))
-            manager.toggle_alarm(alarm_id)
+            manager.apply_alarm_mutation("toggle", alarm_id)
 
         elif choice == "5":
-            run_alarm_monitor(manager)
+            run_alarm_monitor(controller)
 
         elif choice == "0":
             print("終了します。")

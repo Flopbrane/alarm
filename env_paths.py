@@ -45,6 +45,11 @@ BACKUP_DIR.mkdir(exist_ok=True)
 CONFIG_PATH: Path = DATA_DIR / "config.json"
 CONFIG_PATH.parent.mkdir(exist_ok=True)
 WINDOW_POSITION_PATH: Path = DATA_DIR / "window_positions.json"
+# ==============================
+# 🔹 その他パス
+# ==============================
+LOGS_DIR: Path = BASE_DIR / "logs"
+LOGS_DIR.mkdir(exist_ok=True)
 
 # ==============================
 # 🔹 ディレクトリ作成ユーティリティ
@@ -53,3 +58,4 @@ def ensure_dirs() -> None:
     """必要なディレクトリを作成"""
     DATA_DIR.mkdir(exist_ok=True)
     BACKUP_DIR.mkdir(exist_ok=True)
+    LOGS_DIR.mkdir(exist_ok=True)

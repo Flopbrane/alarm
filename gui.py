@@ -35,7 +35,7 @@ from constants import (
 from gui_controller import GUIController
 from json_editor import JsonEditor
 from mini_calendar import MiniCalendar, TimePicker
-from utils import save_config, to_hankaku, validate_date, validate_time, weekday_to_str
+from utils.utils import save_config, to_hankaku, validate_date, validate_time, weekday_to_str
 from window_keys import WINDOW_KEYS
 from window_position_store import WindowPositionStore
 

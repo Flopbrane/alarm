@@ -6,7 +6,7 @@ import sys
 import unittest
 from datetime import datetime
 
-from alarm_internal_model import AlarmStateInternal
+from alarm_states_model import AlarmStateInternal
 from alarm_repeat_datetime_checker import AlarmDatetimeChecker
 
 
@@ -32,7 +32,7 @@ class TestAlarmDatetimeChecker(unittest.TestCase):
         checker = AlarmDatetimeChecker(state, now)
         
         # Call should_fire() - it should return False
-        result = checker.should_fire()
+        result: bool = checker.should_fire()
         
         # Restore stdout
         sys.stdout = sys.__stdout__
@@ -67,7 +67,7 @@ class TestAlarmDatetimeChecker(unittest.TestCase):
         checker = AlarmDatetimeChecker(state, now)
         
         # Call should_fire() - it should check other conditions
-        result = checker.should_fire()
+        result: bool = checker.should_fire()
         
         # Restore stdout
         sys.stdout = sys.__stdout__
