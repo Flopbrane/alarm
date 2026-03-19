@@ -60,11 +60,11 @@ def show_mode_dialog() -> None:
     btn_frame.pack(pady=5)
 
     ttk.Button(
-        btn_frame, text="GUI で起動", width=15, command=lambda: start_gui_mode(root)
+        btn_frame, text="ウインドで起動", width=15, command=lambda: start_gui_mode(root)
     ).grid(row=0, column=0, padx=5)
 
     ttk.Button(
-        btn_frame, text="CUI で起動", width=15, command=lambda: start_cui_mode(root)
+        btn_frame, text="ターミナルで起動", width=15, command=lambda: start_cui_mode(root)
     ).grid(row=0, column=1, padx=5)
 
     ttk.Button(btn_frame, text="キャンセル", width=15, command=root.destroy).grid(
