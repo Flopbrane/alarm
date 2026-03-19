@@ -57,7 +57,7 @@ Three parallel dataclass hierarchies handle data at different stages:
 ### 1. Enum-like Constants in constants.py
 Use nested dicts for bidirectional mapping:
 ```python
-REPEAT_INTERNAL = {"単発": "none", "毎日": "daily", "毎週": "weekly_1"}
+REPEAT_INTERNAL = {"単発": "none", "毎日": "daily", "毎週": "weekly", "毎月": "monthly"}
 REPEAT_DISPLAY = {v: k for k, v in REPEAT_INTERNAL.items()}
 WEEKDAY_LABELS = ["月", "火", "水", "木", "金", "土", "日"]
 WEEKDAY_TO_INDEX = {label: i for i, label in enumerate(WEEKDAY_LABELS)}
