@@ -15,11 +15,21 @@
     "**/contents_class_def/**", 
     "**/node_modules", 
     "**/.*", 
-    "venv-alarm312"
+    "venv-alarm312",
+    "**/Lib",
+    "**/typeshed",
   ],
   "typeCheckingMode": "strict",
-  "useLibraryCodeForTypes": true,
+  "useLibraryCodeForTypes": false,
   "reportMissingTypeStubs": false,
   "reportUnusedImport": false,
-  "reportUnusedVariable": false
+  "reportUnusedVariable": false,
+  "python.analysis.diagnosticSeverityOverrides": {
+      "reportUnknownMemberType": "warning",
+      "reportUnknownVariableType": "warning",
+      "reportAny": "warning",
+      "reportMissingTypeStubs": "none",
+      "reportUnusedImport": "none",
+      "reportUnusedVariable": "none"
+    }
 }

@@ -1,5 +1,10 @@
 # -*- coding: utf-8 -*-
-"""アラームログ記録ユーティリティモジュール"""
+"""旧ロガー（非推奨）
+logs/multi_info_logger.py に移行済み
+"""
+
+# ⚠️ このファイルは使用しないこと
+# 将来的に.deprecatedディレクトリに移す予定
 #########################
 # Author: F.Kurokawa
 # Description:
@@ -11,6 +16,8 @@ from datetime import datetime
 from enum import Enum
 from pathlib import Path
 from typing import Any, TypedDict, cast
+import inspect
+from types import FrameType, CodeType
 
 from env_paths import LOGS_DIR
 
@@ -36,20 +43,19 @@ class LogWhere(TypedDict, total=False):
 
 class LogWhat(TypedDict):
     """ログ内容情報"""
-
-    message: str
-    alarm_id: str | None
+    id: str | None
 
 
 class LogRecord(TypedDict):
-    """ログ記録フォーマット"""
-
+    """ログ記録情報"""
+    what: LogWhat
     level: str
     time: datetime
     where: LogWhere
-    what: LogWhat
+    message: str
     context: dict[str, Any]
     output: str
+    trace_id: str | None
 
 
 class AlarmLogger:
@@ -73,6 +79,13 @@ class AlarmLogger:
     # ------------------------------
     # 内部共通処理
     # ------------------------------
+    def _ensure_current_log_file(self) -> None:
+        """日付が変わったらログファイルを更新"""
+        current_file: Path = self._get_log_file()
+        if current_file != self.log_file:
+            self.log_file = current_file
+            self.log_file.touch(exist_ok=True)
+
     def _json_safe(self, obj: Any) -> Any:
         """JSONに書けない型を安全に変換する"""
         if isinstance(obj, datetime):
@@ -94,20 +107,22 @@ class AlarmLogger:
         output: LogOutput | None = None,
     ) -> None:
         """ログ記録の共通処理"""
+        self._ensure_current_log_file()  # ← 追加
         actual_output: LogOutput = output or self.default_output
         safe_alarm_id: str = alarm_id if alarm_id else "UNASSIGNED"
 
         event_time: datetime = timestamp or datetime.now()
         record: LogRecord = {
-            "level": level,
-            "time": event_time.replace(microsecond=0).isoformat(),
-            "where": where,
             "what": {
-                "message": message,
-                "alarm_id": safe_alarm_id,
+                "id": safe_alarm_id,
             },
+            "level": level,
+            "time": event_time.replace(microsecond=0),
+            "where": where,
+            "message": message,
             "context": context or {},
             "output": actual_output.value,
+            "trace_id": None
         }
 
         safe_record: Any = self._json_safe(record)
@@ -117,18 +132,11 @@ class AlarmLogger:
 
         if actual_output in (LogOutput.FILE, LogOutput.BOTH):
             try:
-                with self._get_log_file().open("a", encoding="utf-8") as f:
+                with self.log_file.open("a", encoding="utf-8") as f:
                     f.write(json.dumps(safe_record, ensure_ascii=False) + "\n")
                     f.flush()
             except (OSError, IOError, json.JSONDecodeError) as e:
                 print(f"[{level}] {message} @ {where.get('method_name')}: {e}")
-
-    def where_here(self, function: str) -> LogWhere:
-        """現在のログ発生箇所情報を取得"""
-        return {
-            "module": __name__,
-            "function": function,
-        }
 
     # ------------------------------
     # 公開 API
@@ -195,8 +203,10 @@ class AlarmLogger:
 
     def has_errors(self) -> bool:
         """エラーログが存在するかどうかを返す"""
+        self._ensure_current_log_file()  # ← 追加
         try:
-            with self._get_log_file().open("r", encoding="utf-8") as f:
+            with self.log_file.open("r", encoding="utf-8") as f:
+
                 for line in f:
                     record: dict[str, Any] = json.loads(line)
                     if record.get("level") == "ERROR":
@@ -206,5 +216,28 @@ class AlarmLogger:
             return True
         return False
 
+    def where(
+        self,
+        class_name: str | None = None,
+        method_name: str | None = None,
+    ) -> LogWhere:
+        """呼び出し元の位置情報を自動取得"""
+        frame: FrameType | None = inspect.currentframe()
+        try:
+            caller: FrameType | None = frame.f_back if frame else None
+
+            lineno: int | Any = caller.f_lineno if caller else -1
+            code: CodeType | None = caller.f_code if caller else None
+
+            return {
+                "line": lineno,
+                "module": code.co_filename if code else __name__,
+                "file": code.co_filename if code else "",
+                "class_name": class_name or "",
+                "method_name": method_name or (code.co_name if code else ""),
+                "function": code.co_name if code else "",
+            }
+        finally:
+            del frame  # ← これ超重要
 
 # EOF

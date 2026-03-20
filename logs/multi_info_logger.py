@@ -1,0 +1,266 @@
+# -*- coding: utf-8 -*-
+"""汎用JSONロガーモジュール
+
+どのプロジェクトでも使える汎用ロガー。
+1行1JSON（JSON Lines）形式でログを保存する。
+
+主な機能:
+- コンソール / ファイル / 両方 出力
+- 日付変更時のログファイル自動切替
+- trace_id による処理追跡
+- 呼び出し元情報(where)の自動取得
+- datetime / Path / Enum / set / tuple などのJSON安全化
+"""
+
+# -*- coding: utf-8 -*-
+from __future__ import annotations
+
+import inspect
+import json
+import uuid
+from contextvars import ContextVar
+from dataclasses import asdict, is_dataclass
+from datetime import date, datetime, time
+from enum import Enum
+from pathlib import Path
+from types import CodeType, FrameType
+from typing import Any, TypedDict, cast, Iterable
+
+# ==========================================================
+# trace_id 管理
+# ==========================================================
+_TRACE_ID_VAR: ContextVar[str | None] = ContextVar("trace_id", default=None)
+
+
+def new_trace_id() -> str:
+    """新しい trace_id を生成してセットする"""
+    trace_id = str(uuid.uuid4())
+    _TRACE_ID_VAR.set(trace_id)
+    return trace_id
+
+
+def get_trace_id() -> str | None:
+    """現在の trace_id を取得する"""
+    return _TRACE_ID_VAR.get()
+
+
+# ==========================================================
+# 型
+# ==========================================================
+class LogOutput(Enum):
+    """出力先の指定"""
+    CONSOLE = "console"
+    FILE = "file"
+    BOTH = "both"
+
+
+class LogLevel(Enum):
+    """ログレベルの指定"""
+    DEBUG = "DEBUG"
+    INFO = "INFO"
+    WARNING = "WARNING"
+    ERROR = "ERROR"
+    CRITICAL = "CRITICAL"
+
+
+class LogWhere(TypedDict, total=False):
+    """ログの発生箇所情報"""
+    line: int
+    module: str
+    file: str
+    function: str
+
+
+class LogWhat(TypedDict, total=False):
+    """ログの内容情報"""
+    message: str
+    action: str
+    status: str
+    category: str
+
+
+class LogRecord(TypedDict):
+    """ログレコードの情報"""
+    level: str
+    time: datetime | str
+    trace_id: str | None
+    where: LogWhere
+    what: LogWhat
+    context: dict[str, Any]
+    output: str
+
+
+# ==========================================================
+# Logger
+# ==========================================================
+class AppLogger:
+    """アプリケーション用ロガークラス"""
+    def __init__(
+        self,
+        log_dir: Path,
+        *,
+        app_name: str = "app",
+        default_output: LogOutput = LogOutput.BOTH,
+    ) -> None:
+        self.log_dir: Path = log_dir
+        self.app_name: str = app_name
+        self.default_output: LogOutput = default_output
+
+        self.log_dir.mkdir(parents=True, exist_ok=True)
+        self.log_file: Path = self._get_log_file()
+        self.log_file.touch(exist_ok=True)
+
+    # -----------------------------
+    # ファイル管理
+    # -----------------------------
+    def _get_log_file(self) -> Path:
+        """現在のログファイルパスを取得する"""
+        today: str = datetime.now().strftime("%Y-%m-%d")
+        return self.log_dir / f"{self.app_name}_{today}.log"
+
+    def _ensure_file(self) -> None:
+        current: Path = self._get_log_file()
+        if current != self.log_file:
+            self.log_file = current
+            self.log_file.touch(exist_ok=True)
+
+    # -----------------------------
+    # where（自動取得）
+    # -----------------------------
+    def get_where_auto(self) -> LogWhere:
+        """呼び出し元情報を自動で取得する"""
+        frame: FrameType | None = inspect.currentframe()
+
+        try:
+            for _ in range(10):
+                if frame is None:
+                    break
+
+                code: CodeType = frame.f_code
+                filename: str = code.co_filename
+
+                if filename != __file__:
+                    return {
+                        "line": frame.f_lineno,
+                        "module": filename,
+                        "file": filename,
+                        "function": code.co_name,
+                    }
+
+                frame = frame.f_back
+
+            return {
+                "line": -1,
+                "module": "",
+                "file": "",
+                "function": "",
+            }
+
+        finally:
+            del frame  # 循環参照防止のためにフレームを削除
+    # -----------------------------
+    # JSON安全化
+    # -----------------------------
+    def _safe(self, obj: Any) -> Any:
+        """JSON記述用変換関数"""
+        if obj is None:
+            return None
+
+        if isinstance(obj, (str, int, float, bool)):
+            return obj
+
+        if isinstance(obj, datetime):
+            return obj.replace(microsecond=0).isoformat()
+
+        if isinstance(obj, date):
+            return obj.isoformat()
+
+        if isinstance(obj, time):
+            return obj.replace(microsecond=0).isoformat()
+
+        if isinstance(obj, Path):
+            return str(obj)
+
+        if isinstance(obj, Enum):
+            return obj.value
+
+        if is_dataclass(obj) and not isinstance(obj, type):
+            return self._safe(asdict(obj))
+
+        if isinstance(obj, dict):
+            obj_dict: dict[Any, Any] = cast(dict[Any, Any], obj)
+            return {str(k): self._safe(v) for k, v in obj_dict.items()}
+
+        if isinstance(obj, (list, tuple, set)):
+            iterable: Iterable[Any] = cast(Iterable[Any], obj)
+            return [self._safe(v) for v in iterable]
+
+        return str(obj)
+
+    # -----------------------------
+    # 書き込み
+    # -----------------------------
+    def _log(
+        self,
+        level: LogLevel,
+        message: str,
+        *,
+        context: dict[str, Any] | None = None,
+        output: LogOutput | None = None,
+    ) -> None:
+        """ログを記録する"""
+        self._ensure_file()
+
+        record: LogRecord = {
+            "level": level.value,
+            "time": datetime.now().replace(microsecond=0),
+            "trace_id": get_trace_id(),
+            "where": self.get_where_auto(),
+            "what": {"message": message},
+            "context": context or {},
+            "output": (output or self.default_output).value,
+        }
+
+        safe: dict[str, Any] = self._safe(record)
+
+        # console
+        if (output or self.default_output) in (LogOutput.CONSOLE, LogOutput.BOTH):
+            trace: str | None = safe.get("trace_id")
+            if trace:
+                print(f"[{level.value}] [{trace}] {message}")
+            else:
+                print(f"[{level.value}] {message}")
+
+        # file
+        if (output or self.default_output) in (LogOutput.FILE, LogOutput.BOTH):
+            try:
+                with self.log_file.open("a", encoding="utf-8") as f:
+                    f.write(json.dumps(safe, ensure_ascii=False) + "\n")
+            except Exception as e: # pylint: disable=broad-exception-caught
+                print(f"[LOGGER ERROR] {e}")
+            # pylint: enable=broad-exception-caught
+    # -----------------------------
+    # -----------------------------
+    # public API
+    # -----------------------------
+    # ここにログレベルごとのメソッドを定義
+    # -----------------------------
+    def debug(self, message: str, **kw: Any) -> None:
+        """デバッグレベルのログを記録する"""
+        self._log(LogLevel.DEBUG, message, **kw)
+
+    def info(self, message: str, **kw: Any) -> None:
+        """情報レベルのログを記録する"""
+        self._log(LogLevel.INFO, message, **kw)
+
+    def warning(self, message: str, **kw: Any) -> None:
+        """警告レベルのログを記録する"""
+        self._log(LogLevel.WARNING, message, **kw)
+
+    def error(self, message: str, **kw: Any) -> None:
+        """エラーレベルのログを記録する"""
+        self._log(LogLevel.ERROR, message, **kw)
+
+    def critical(self, message: str, **kw: Any) -> None:
+        """クリティカルレベルのログを記録する"""
+        self._log(LogLevel.CRITICAL, message, **kw)

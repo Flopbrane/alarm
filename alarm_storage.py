@@ -6,9 +6,8 @@
 # alarm_storage.py(チェック済み)
 #########################
 from __future__ import annotations
+
 # 標準モジュール
-import inspect
-from types import CodeType, FrameType
 import json
 import os
 import shutil
@@ -17,13 +16,18 @@ from datetime import datetime
 from json import JSONDecodeError
 from pathlib import Path
 from typing import Any, List, cast
+from typing import TYPE_CHECKING
 
 # Local modules
-from alarm_irregular_logger import AlarmLogger, LogWhere, LogOutput
-
-
+from log_app import get_logger
 from alarm_json_model import AlarmJson, AlarmStateJson
 from env_paths import ALARM_PATH, BACKUP_DIR, STANDBY_PATH
+# 実行時にも必要なもの
+from logs.multi_info_logger import LogOutput
+# 型だけ必要なもの
+if TYPE_CHECKING:
+    from .logs.multi_info_logger import AppLogger
+
 
 # 🔴 今後の注意点（今は問題なし）
 # 1️⃣ JSON schema 変更時
@@ -46,31 +50,10 @@ class AlarmStorage:
             return Path(sys.executable).resolve().parent
         return Path(__file__).resolve().parent
 
-    def __init__(self) -> None:
+    def __init__(self, logger: AppLogger) -> None:
         self.base_dir: Path = self.get_base_dir()
-        self.logger = AlarmLogger()
-    # ======================================================
-    # 🔹 ログ用の位置情報生成
-    # ======================================================
-    def _where(self, method_name: str) -> LogWhere:
-        """ログ用の位置情報を生成する（呼び出し元を指す）"""
-        frame: FrameType | None = inspect.currentframe()
-        caller: FrameType | None = frame.f_back if frame else None  # ← 1つ上
-        try:
-            lineno: int | Any = caller.f_lineno if caller else -1
-            code: CodeType | None = caller.f_code if caller else None
-            where: LogWhere = {
-                "line": lineno,
-                "module": code.co_filename if code else __name__,
-                "file": code.co_filename if code else "",
-                "class_name": self.__class__.__name__,
-                "method_name": method_name,
-                "function": code.co_name if code else method_name,
-            }
-            return where
-        finally:
-            del frame  # 循環参照を避けるために明示的に削除
-            del caller # 循環参照を避けるために明示的に削除
+        self.logger: AppLogger = logger if logger else get_logger()
+        # ロガーは遅延初期化する（このクラスは起動直後から呼ばれるため、先にロガーを作ると循環参照になる可能性がある）
 
     # ==============================
     # 原子書き込み（atomic write）
@@ -98,13 +81,9 @@ class AlarmStorage:
         # alarm.jsonのPathがない(alarm.jsonが存在しない)場合、[]を返す
         if not ALARM_PATH.exists():
             self.logger.info(
-                "[Info] alarm.json が存在しません（初回起動の可能性）",
-                where=self._where(method_name="load_alarms"),
-                alarm_id=None,
-                context=None,
-                timestamp=datetime.now().isoformat(),
-                output=LogOutput.BOTH,
-            )
+                "alarm.json が存在しません",
+                context={"path": str(ALARM_PATH)}
+)
             return []
         # alarm.jsonが破損している場合[]を返す
         try:
@@ -116,7 +95,7 @@ class AlarmStorage:
                 where=self._where(method_name="load_alarms"),
                 alarm_id=None,
                 context=None,
-                timestamp=datetime.now().isoformat(),
+                timestamp=datetime.now(),
                 output=LogOutput.BOTH,
             )
             return []
@@ -127,7 +106,7 @@ class AlarmStorage:
                 where=self._where(method_name="load_alarms"),
                 alarm_id=None,
                 context=None,
-                timestamp=datetime.now().isoformat(),
+                timestamp=datetime.now(),
                 output=LogOutput.BOTH,
             )
             return []
@@ -144,7 +123,7 @@ class AlarmStorage:
                     where=self._where(method_name="load_alarms"),
                     alarm_id=None,
                     context=None,
-                    timestamp=datetime.now().isoformat(),
+                    timestamp=datetime.now(),
                     output=LogOutput.BOTH,
                 )
                 continue
@@ -180,7 +159,7 @@ class AlarmStorage:
                 where=self._where(method_name="load_standby"),
                 alarm_id=None,
                 context=None,
-                timestamp=datetime.now().isoformat(),
+                timestamp=datetime.now(),
                 output=LogOutput.BOTH,
             )
             return []
@@ -194,7 +173,7 @@ class AlarmStorage:
                 where=self._where(method_name="load_standby"),
                 alarm_id=None,
                 context=None,
-                timestamp=datetime.now().isoformat(),
+                timestamp=datetime.now(),
                 output=LogOutput.BOTH,
             )
             return []
@@ -205,7 +184,7 @@ class AlarmStorage:
                 where=self._where(method_name="load_standby"),
                 alarm_id=None,
                 context=None,
-                timestamp=datetime.now().isoformat(),
+                timestamp=datetime.now(),
                 output=LogOutput.BOTH,
             )
             return []
@@ -221,7 +200,7 @@ class AlarmStorage:
                 where=self._where(method_name="load_standby"),
                 alarm_id=None,
                 context=None,
-                timestamp=datetime.now().isoformat(),
+                timestamp=datetime.now(),
                 output=LogOutput.BOTH,
             )
             return []
@@ -234,7 +213,7 @@ class AlarmStorage:
                     where=self._where(method_name="load_standby"),
                     alarm_id=None,
                     context=None,
-                    timestamp=datetime.now().isoformat(),
+                    timestamp=datetime.now(),
                     output=LogOutput.BOTH,
                 )
                 continue
@@ -248,7 +227,7 @@ class AlarmStorage:
                     where=self._where(method_name="load_standby"),
                     alarm_id=None,
                     context=None,
-                    timestamp=datetime.now().isoformat(),
+                    timestamp=datetime.now(),
                     output=LogOutput.BOTH,
                 )
                 continue
@@ -270,7 +249,7 @@ class AlarmStorage:
                 where=self._where(method_name="save_alarms"),
                 alarm_id=None,
                 context=None,
-                timestamp=datetime.now().isoformat(),
+                timestamp=datetime.now(),
                 output=LogOutput.BOTH,
             )
             raise
@@ -291,7 +270,7 @@ class AlarmStorage:
                 where=self._where(method_name="save_standby"),
                 alarm_id=None,
                 context=None,
-                timestamp=datetime.now().isoformat(),
+                timestamp=datetime.now(),
                 output=LogOutput.BOTH,
             )
             raise
@@ -315,7 +294,7 @@ class AlarmStorage:
                 where=self._where(method_name="save_all"),
                 alarm_id=None,
                 context=None,
-                timestamp=datetime.now().isoformat(),
+                timestamp=datetime.now(),
                 output=LogOutput.BOTH,
             )
             raise  # 将来、loggerを作成したときにログ出力に変える
@@ -341,7 +320,7 @@ class AlarmStorage:
                     where=self._where(method_name="backup"),
                     alarm_id=None,
                     context=None,
-                    timestamp=datetime.now().isoformat(),
+                    timestamp=datetime.now(),
                     output=LogOutput.BOTH,
                     )
 
@@ -353,7 +332,7 @@ class AlarmStorage:
                     where=self._where(method_name="backup"),
                     alarm_id=None,
                     context=None,
-                    timestamp=datetime.now().isoformat(),
+                    timestamp=datetime.now(),
                     output=LogOutput.BOTH,
                     )
 
@@ -362,7 +341,7 @@ class AlarmStorage:
                 where=self._where(method_name="backup"),
                 alarm_id=None,
                 context=None,
-                timestamp=datetime.now().isoformat(),
+                timestamp=datetime.now(),
                 output=LogOutput.BOTH,
                 )
         except OSError as e:
@@ -372,7 +351,7 @@ class AlarmStorage:
                 where=self._where(method_name="backup"),
                 alarm_id=None,
                 context=None,
-                timestamp=datetime.now().isoformat(),
+                timestamp=datetime.now(),
                 output=LogOutput.BOTH,
                 )
 
@@ -390,7 +369,7 @@ class AlarmStorage:
                     where=self._where(method_name="restore_latest"),
                     alarm_id=None,
                     context=None,
-                    timestamp=datetime.now().isoformat(),
+                    timestamp=datetime.now(),
                     output=LogOutput.BOTH,
                     )
                 return
@@ -407,7 +386,7 @@ class AlarmStorage:
                     where=self._where(method_name="restore_latest"),
                     alarm_id=None,
                     context=None,
-                    timestamp=datetime.now().isoformat(),
+                    timestamp=datetime.now(),
                     output=LogOutput.BOTH,
                     )
             else:
@@ -416,7 +395,7 @@ class AlarmStorage:
                     where=self._where(method_name="restore_latest"),
                     alarm_id=None,
                     context=None,
-                    timestamp=datetime.now().isoformat(),
+                    timestamp=datetime.now(),
                     output=LogOutput.BOTH,
                     )
         except OSError as e:
@@ -425,6 +404,6 @@ class AlarmStorage:
                 where=self._where(method_name="restore_latest"),
                 alarm_id=None,
                 context=None,
-                timestamp=datetime.now().isoformat(),
+                timestamp=datetime.now(),
                 output=LogOutput.BOTH,
                 )

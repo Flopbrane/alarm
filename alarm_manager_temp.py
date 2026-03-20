@@ -52,7 +52,7 @@ from alarm_json_model import AlarmJson, AlarmStateJson
 from alarm_ui_model import AlarmListItem, AlarmUI, AlarmUIPatch
 
 # === utils ===
-from alarm_irregular_logger import AlarmLogger, LogWhere
+from log_app import AppLogger
 
 # === controller ===
 from alarm_manager_cycle_control_options import (
@@ -135,6 +135,8 @@ class AlarmManager:
         self,
         alarm_path: Path = ALARM_PATH,
         standby_path: Path = STANDBY_PATH,
+        logger: AppLogger | None = None,
+        trace_id: str | None = None,
     ) -> None:
         # === paths ===
         self.base_dir: Path = self.get_base_dir()
@@ -171,7 +173,9 @@ class AlarmManager:
         # === clock jump detection ===
         self._last_tick: datetime | None = None
         # === irregular logger ===
-        self.logger = AlarmLogger(log_dir=self.base_dir / "logs")
+        self.logger: AppLogger | None = logger
+        # === trace_id ===
+        self.trace_id: str | None = trace_id
         # === runtime_cache ===
         self.cache: RuntimeCache = RuntimeCache()
         # ====================================================
@@ -224,11 +228,11 @@ class AlarmManager:
 
             self.logger.warning(
                 message="Clock jump detected",
-                where=self._where(method_name="_detect_clock_jump"),
+                where=self.logger.where(),
                 alarm_id=None,
                 context={"jump_seconds": diff},
                 timestamp=now,
-            )
+)
 
             # 全アラーム再計算
             for state in self.states:
@@ -236,25 +240,7 @@ class AlarmManager:
                     state.needs_recalc = True
 
         self._last_tick = now
-    # ======================================================
-    # 🔹 ログ用の位置情報生成
-    # ======================================================
-    def _where(self, method_name: str) -> LogWhere:
-        """ログ用の位置情報を生成する（呼び出し元を指す）"""
-        frame: FrameType | None = inspect.currentframe()
-        caller: FrameType | None = frame.f_back if frame else None  # ← 1つ上
 
-        lineno: int | Any = caller.f_lineno if caller else -1
-        code: CodeType | None = caller.f_code if caller else None
-        where: LogWhere = {
-            "line": lineno,
-            "module": code.co_filename if code else __name__,
-            "file": code.co_filename if code else "",
-            "class_name": self.__class__.__name__,
-            "method_name": method_name,
-            "function": code.co_name if code else method_name,
-        }
-        return where
     # ======================================================
     # 🔹 AlarmStateInternal関係の更新処理
     # ======================================================
