@@ -13,11 +13,12 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime, time, date as date_class
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional
 
 # 自作モジュール
 from alarm_types import DateType, TimeType
 from constants import DEFAULT_SOUND, REPEAT_INTERNAL
+
 
 # ユーティリティ関数：list[int] のデフォルト値用
 def _int_list() -> list[int]:
@@ -53,7 +54,7 @@ class AlarmInternal:
     # =========================
     # 🔹 発火時刻の基準（最重要）
     # =========================
-    datetime_: datetime | TimeType = None
+    datetime_: datetime | None = None
     # 🔑 【最重要フィールド】
     # このアラームが「何時に鳴るか」を決める唯一の基準
     #
@@ -158,9 +159,29 @@ class AlarmInternal:
     # ----------------------------------------------------
     # 🔥 time（TimeType）の getter/setter
     @property
+    def dt(self) -> datetime | None:
+        """datetimeのgetter"""
+        return self.datetime_
+
+    @dt.setter
+    def dt(self, v: datetime | str | None) -> None:
+
+        if v is None:
+            self.datetime_ = None
+            return
+
+        if isinstance(v, str):
+            try:
+                v = datetime.fromisoformat(v)
+            except (ValueError, TypeError):
+                return
+        # ここで v は必ず datetime になっている
+        self.datetime_ = v.replace(second=0, microsecond=0)
+
+    @property
     def date(self) -> DateType:
-        """dateのgetter"""
-        if self.datetime_ is None or isinstance(self.datetime_, time):
+        """dateのgetter（表示用）"""
+        if self.datetime_ is None:
             return None
         return self.datetime_.date()
 
@@ -174,30 +195,28 @@ class AlarmInternal:
         if self.datetime_ is None:
             # 時刻がない場合は 00:00 を補完
             self.datetime_ = datetime.combine(v, time(0, 0))
-        elif isinstance(self.datetime_, datetime):
+        else:
+            # datetimeは確定しているのでそのまま使う
             self.datetime_ = datetime.combine(v, self.datetime_.time())
-
 
     @property
     def time(self) -> TimeType:
         """timeのgetter（表示用）"""
         if self.datetime_ is None:
             return None
-        if isinstance(self.datetime_, datetime):
-            return self.datetime_.time()
-        return self.datetime_
-
+        return self.datetime_.time()
 
     @time.setter
     def time(self, v: TimeType) -> None:
         """time を差し替える（日付は保持）"""
         if v is None:
-            return  # UI側で None を許さないなら何もしない
+            return  # UI仕様に従う
 
         if self.datetime_ is None:
-            # 日付がない場合は「今日」を補完（または base_date）
+            # 日付がない場合は今日を補完
             self.datetime_ = datetime.combine(date_class.today(), v)
-        elif isinstance(self.datetime_, datetime):
+        else:
+            # datetimeは確定している
             self.datetime_ = datetime.combine(self.datetime_.date(), v)
 
     # ----------------------------------------------------

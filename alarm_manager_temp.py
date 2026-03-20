@@ -26,15 +26,24 @@ save_phase
 from __future__ import annotations
 
 # Standard library
-from dataclasses import dataclass, field, replace
-import inspect
+from dataclasses import dataclass, field
 import sys
 import threading
+import time
 import uuid
-from datetime import datetime, time, timedelta
+from datetime import datetime as DateTimeType
+from datetime import time as TimeType, timedelta
 from pathlib import Path
-from types import CodeType, FrameType
 from typing import Any, Callable, Literal, TypedDict, Optional
+from typing import TYPE_CHECKING, overload
+
+# Third party
+
+try:
+    import msvcrt
+except ImportError:
+    msvcrt = None
+
 
 # Local modules
 # === mapper ===
@@ -52,7 +61,8 @@ from alarm_json_model import AlarmJson, AlarmStateJson
 from alarm_ui_model import AlarmListItem, AlarmUI, AlarmUIPatch
 
 # === utils ===
-from log_app import AppLogger
+from log_app import get_logger
+from constants import DEFAULT_SOUND
 
 # === controller ===
 from alarm_manager_cycle_control_options import (
@@ -69,26 +79,29 @@ from alarm_player import AlarmPlayer
 from alarm_repeat_datetime_checker import AlarmDatetimeChecker
 from alarm_scheduler import AlarmScheduler
 from alarm_storage import AlarmStorage
-from constants import DEFAULT_SOUND
 from env_paths import ALARM_PATH, BACKUP_DIR, DATA_DIR, STANDBY_PATH
+from alarm_payloads import AddPayload, UpdatePayload, DeletePayload
+
+if TYPE_CHECKING:
+    from logs.multi_info_logger import AppLogger
 
 
 class NextAlarmInfo(TypedDict): # UI表示用の次回鳴動予定アラーム情報
     """型ヒントの定義"""
     alarm: AlarmInternal
-    next_datetime: datetime
+    next_datetime: DateTimeType
     time_until: float
 
 # ======================================================
 # 🔹 RuntimeCache クラスの型定義関数
 # =====================================================
-def _new_next_fire_map() -> dict[str, datetime]:
+def _new_next_fire_map() -> dict[str, DateTimeType]:
     """次回鳴動予定日時のキャッシュを初期化するための関数"""
     return {}
 def _new_fingerprint_map() -> dict[str, str]:
     """フィンガープリントのキャッシュを初期化するための関数"""
     return {}
-def _new_event_queue() -> list[tuple[datetime, str]]:
+def _new_event_queue() -> list[tuple[DateTimeType, str]]:
     """イベントキューを初期化するための関数"""
     return []
 def _new_just_created_id_list() -> list[str]:
@@ -99,9 +112,9 @@ def _new_just_created_id_list() -> list[str]:
 class RuntimeCache:
     """AlarmManager 内で再計算の結果をキャッシュするためのクラス"""
     # 🔹 Scheduler runtime cache "dict{alarm.id_str: state(alarm_id).next_fire_datetime}"
-    next_fire_map: dict[str, datetime] = field(default_factory=_new_next_fire_map)
+    next_fire_map: dict[str, DateTimeType] = field(default_factory=_new_next_fire_map)
     # future scheduler optimization のためのキャッシュ（alarm_id → next_fire_datetime）
-    event_queue: list[tuple[datetime, str]] = field(default_factory=_new_event_queue)
+    event_queue: list[tuple[DateTimeType, str]] = field(default_factory=_new_event_queue)
     # 🔹 Management cache"dict{alarm.id_str: fingerprint_value}"
     fingerprint_map: dict[str, str] = field(default_factory=_new_fingerprint_map)
     # 🔹 just created ids (stateが作られたばかりのidを保持して、次のサイクルで発火をスキップするためのリスト)
@@ -110,8 +123,7 @@ class RuntimeCache:
 
 class AlarmManager:
     """アラーム設定を管理するクラス（STOP制御統一版）"""
-    _MAX_BACKUPS = 3
-    SnoozeResult = Literal["none", "expired", "limit", "toggle"]
+    SnoozeResult = Literal["none", "expired", "limit"]
     # "none": 何もしない
     # "expired": 時刻到達で解除（次を鳴らして良い）
     # "limit": 回数オーバー解除（強制終了）
@@ -150,30 +162,33 @@ class AlarmManager:
         self.states: list[AlarmStateInternal] = []
         self._states_map: dict[str, AlarmStateInternal] = {}
         # === settings ===
-        self.snooze_default: int = 10
+        self.snooze_default: int = 30
         self._stop_requested: bool = False
 
         # === mapper ===
         self.json_to_internal_mapper = JsonToInternalMapper()
         self.internal_to_json_mapper = InternalToJsonMapper()
+
         self.ui_to_internal_mapper = UItoInternalMapper()
         self.internal_to_ui_mapper = InternaltoUIMapper()
         self.ui_patch_to_internal_mapper = UIpatchtoInternalMapper()
         # === core ===
         self.player = AlarmPlayer()
-        self.storage = AlarmStorage()
+        self.logger: AppLogger = logger or get_logger()
+        self.storage = AlarmStorage(
+            self.logger,
+            alarm_path=self.alarm_file_path,
+            standby_path=self.standby_path,
+        )
         self.scheduler = AlarmScheduler()
         # === time ===
         # _now は「1サイクル内で共有される現在時刻」
         # internal_clock() からのみ設定される
-        self._now: datetime | None = None
-        self._last_stop_time: datetime | None = None
+        self._now: DateTimeType | None = None
         # ソフト起動時刻（内部クロック基準）
-        self._boot_datetime: datetime = self.internal_clock()
+        self._boot_datetime: DateTimeType = self.internal_clock()
         # === clock jump detection ===
-        self._last_tick: datetime | None = None
-        # === irregular logger ===
-        self.logger: AppLogger | None = logger
+        self._last_tick: DateTimeType | None = None
         # === trace_id ===
         self.trace_id: str | None = trace_id
         # === runtime_cache ===
@@ -186,6 +201,14 @@ class AlarmManager:
         # 🔹 UI listeners
         # =====================================================
         self._listeners: list[Callable[[], None]] = []
+    # =====================================================
+    # 🔹 起動時の状態リセット
+    # =====================================================
+    def _mark_skip_fire_this_cycle(self, alarm_id: str) -> None:
+        """このサイクル中は発火を抑止したい alarm_id を記録する"""
+        if alarm_id not in self.cache.just_created_ids:
+            self.cache.just_created_ids.append(alarm_id)
+    # ======================================================
     # ======================================================
     # 🔹 AlarmManager 内部クロック管理(ソフト内基準日時)
     # ======================================================
@@ -197,12 +220,12 @@ class AlarmManager:
     # main_loop は 指揮者なので、
     # テンポを決める必要がある。
 
-    def tick(self) -> datetime:
+    def tick(self) -> DateTimeType:
         """1ループ開始時に now を確定"""
-        self._now = datetime.now().replace(microsecond=0)
+        self._now = DateTimeType.now().replace(microsecond=0)
         return self._now
 
-    def internal_clock(self) -> datetime:
+    def internal_clock(self) -> DateTimeType:
         """AlarmManager 内部で一貫して使用する現在時刻を返す"""
         if self._now is None:
             self.tick()
@@ -214,7 +237,7 @@ class AlarmManager:
     # ======================================================
     # 🔹 時計ジャンプ検出（スリープ復帰対策）
     # ======================================================
-    def _detect_clock_jump(self, now: datetime) -> None:
+    def _detect_clock_jump(self, now: DateTimeType) -> None:
         """PCスリープや時計変更による時間ジャンプを検出する"""
 
         if self._last_tick is None:
@@ -228,11 +251,7 @@ class AlarmManager:
 
             self.logger.warning(
                 message="Clock jump detected",
-                where=self.logger.where(),
-                alarm_id=None,
-                context={"jump_seconds": diff},
-                timestamp=now,
-)
+                context={"jump_seconds": diff},)
 
             # 全アラーム再計算
             for state in self.states:
@@ -246,22 +265,18 @@ class AlarmManager:
     # ======================================================
     def _recalc_states(self) -> None:
         """状態の正規化と next_fire_datetime 再計算（副作用なし）"""
-        now: datetime = self.internal_clock()
+        now: DateTimeType = self.internal_clock()
 
         for alarm in self.alarms:
-            state: AlarmStateInternal | None = self._get_state(alarm.id)
+            state: AlarmStateInternal | None = self.get_state_by_id(alarm.id)
 
             # state が無ければ作る（初回・破損対応）
             if state is None:
-                state = self._get_or_create_state(alarm.id)
+                state = self._create_state(alarm.id)
                 self.logger.warning(
                     message="State not found, created new state",
-                    where=self._where(method_name="_recalc_states"),
-                    alarm_id=alarm.id,
-                    context={},
-                    timestamp=now,
-                )
-                self.cache.just_created_ids.append(alarm.id)
+                    alarm_id=alarm.id,)
+                self._mark_skip_fire_this_cycle(alarm.id)
 
             # 終了済みは触らない
             if state.lifecycle_finished:
@@ -272,15 +287,11 @@ class AlarmManager:
 
             # 再計算が必要 or 未計算
             if state.needs_recalc or state.is_uncomputed:
-                next_dt: datetime | None = self.scheduler.get_next_time(alarm, now)
+                next_dt: DateTimeType | None = self.scheduler.get_next_time(alarm, now)
                 state.next_fire_datetime = next_dt
                 state.needs_recalc = False
-            elif state.next_fire_datetime is None or state.next_fire_datetime <= now:
+            elif state.next_fire_datetime is None:
                 state.next_fire_datetime = self.scheduler.get_next_time(alarm, now)
-
-    def _get_state(self, alarm_id: str) -> AlarmStateInternal | None:
-        """alarm_id に対応する AlarmStateInternal を取得（存在しない場合は None）"""
-        return self._states_map.get(alarm_id)
 
     def get_alarm_by_id(self, alarm_id: str) -> AlarmInternal | None:
         """alarm_id に対応する AlarmInternal を取得"""
@@ -290,8 +301,16 @@ class AlarmManager:
         return None
 
     def get_state_by_id(self, alarm_id: str) -> AlarmStateInternal | None:
-        """alarm_id に対応する AlarmStateInternal を取得"""
-        return self._states_map.get(alarm_id)
+        """alarm_id に対応する AlarmStateInternal を返す"""
+        state: AlarmStateInternal | None = self._states_map.get(alarm_id)
+
+        if state is None:
+            # 🔥 不整合チェック
+            for s in self.states:
+                if s.id == alarm_id:
+                    raise RuntimeError("states_map不整合🔥")
+
+        return state
 
     def get_alarm_list(self) -> list[AlarmListItem]:
         """CUI表示用管理アラーム一覧（UUIDを隠蔽）"""
@@ -300,7 +319,7 @@ class AlarmManager:
 
         for alarm in self.alarms:
 
-            state: AlarmStateInternal | None = self._states_map.get(alarm.id)
+            state: AlarmStateInternal | None = self.get_state_by_id(alarm.id)
 
             result.append(AlarmListItem(
                 alarm_id=alarm.id,          # 内部UUID
@@ -312,29 +331,10 @@ class AlarmManager:
 
         return result
 
-    def _update_next_fire_runtime(self) -> None:
-        """state から next_fire_map を再構築（ソート込み）"""
-        # 先に alarm を辞書化して O(1) 参照にする
-        alarm_by_id: dict[str, AlarmInternal] = {a.id: a for a in self.alarms}
-
-        pairs: list[tuple[str, datetime]] = []
-        for state in self.states:
-            next_dt: datetime | None = state.next_fire_datetime
-            if next_dt is None or state.lifecycle_finished:
-                continue
-
-            alarm: AlarmInternal | None = alarm_by_id.get(state.id)
-            if alarm is None or not alarm.enabled:
-                continue
-
-            pairs.append((state.id, next_dt))
-
-        self.cache.next_fire_map = dict(sorted(pairs, key=lambda x: x[1]))
-
     def _handle_due_alarms(self) -> None:  # 実際に鳴らす処理
         """次回鳴動予定日時に達したアラームを処理する（自己修復型）"""
 
-        now: datetime = self.internal_clock()
+        now: DateTimeType = self.internal_clock()
 
         for alarm_id in self.cache.next_fire_map:
 
@@ -356,20 +356,12 @@ class AlarmManager:
             if checker.should_fire() and alarm_id not in self.cache.just_created_ids:
                 self._fire_alarm(alarm, state)
 
-    def _get_or_create_state(self, alarm_id: str) -> AlarmStateInternal:
+    def _create_state(self, alarm_id: str) -> AlarmStateInternal:
         """alarm_id に対応する AlarmStateInternal を取得（存在しない場合は新規作成）"""
-        state: AlarmStateInternal | None = self._states_map.get(alarm_id)
-
-        if state is not None:
-            return state
-
         new_state: AlarmStateInternal = AlarmStateInternal.initial(alarm_id)
-
         self.states.append(new_state)
         self._states_map[alarm_id] = new_state
-
-        self.cache.just_created_ids.append(alarm_id)
-
+        self._mark_skip_fire_this_cycle(alarm_id)
         return new_state
 
     def _fire_alarm(self, alarm: AlarmInternal, state: AlarmStateInternal) -> None:
@@ -377,8 +369,9 @@ class AlarmManager:
 
         self.player.play(str(alarm.sound), duration=alarm.duration)
 
-        now: datetime = self.internal_clock()
+        now: DateTimeType = self.internal_clock()
 
+        state.triggered = True
         state.triggered_at = now
         state.last_fired_at = now
 
@@ -388,7 +381,7 @@ class AlarmManager:
             state.needs_recalc = False
 
         elif alarm.enabled:
-            next_fire_dt: datetime | None = self.scheduler.get_next_time(alarm, now)
+            next_fire_dt: DateTimeType | None = self.scheduler.get_next_time(alarm, now)
 
             if next_fire_dt is None:
                 state.lifecycle_finished = True
@@ -396,15 +389,12 @@ class AlarmManager:
 
                 self.logger.error(
                     message="Failed to calculate next fire datetime",
-                    where=self._where(method_name="_fire_alarm"),
                     alarm_id=alarm.id,
                     context={
                         "state_id": state.id,
                         "repeat": alarm.repeat,
                         "now": now,
-                    },
-                    timestamp=now,
-                )
+                    },)
 
             else:
                 state.next_fire_datetime = next_fire_dt
@@ -413,13 +403,11 @@ class AlarmManager:
 
     def _check_invalid_states(self) -> None:
         """不正なアラーム状態をチェックしてログ出力する"""
-        now: datetime = self.internal_clock()
 
         for state in self.states:
             if state.is_invalid_state:
                 self.logger.error(
                     message="Invalid alarm state",
-                    where=self._where(method_name="_check_invalid_states"),
                     alarm_id=state.id,
                     context={
                         "value": {
@@ -435,18 +423,16 @@ class AlarmManager:
                             ).__name__,
                         },
                     },
-                    timestamp=now,  # ← ここが基準時刻
                 )
 
     def _repair_invalid_states(self) -> None:
         """不正なアラーム状態を修復する"""
-        now: datetime = self.internal_clock()
+        now: DateTimeType = self.internal_clock()
 
         for state in self.states:
             if state.is_invalid_state:
                 self.logger.warning(
                     message="Repairing invalid alarm state",
-                    where=self._where(method_name="_repair_invalid_states"),
                     alarm_id=state.id,
                     context={
                         "before": {
@@ -454,7 +440,6 @@ class AlarmManager:
                             "lifecycle_finished": state.lifecycle_finished,
                         },
                     },
-                    timestamp=now,
                 )
                 # 修復処理
                 state.next_fire_datetime = None
@@ -475,7 +460,6 @@ class AlarmManager:
 
                 self.logger.warning(
                     message="Repaired invalid alarm state",
-                    where=self._where(method_name="_repair_invalid_states"),
                     alarm_id=state.id,
                     context={
                         "after": {
@@ -483,17 +467,16 @@ class AlarmManager:
                             "lifecycle_finished": state.lifecycle_finished,
                         },
                     },
-                    timestamp=now,
-                )
+                    )
 
     def get_next_alarms(self, count: int = 5) -> list[NextAlarmInfo]:
         """
         次回鳴動予定アラームを最大 count 件返す（★UI表示専用★）
         発火ロジックには影響しない
         """
-        now: datetime = self.internal_clock()
+        now: DateTimeType = self.internal_clock()
 
-        self._update_next_fire_runtime()
+        self._rebuild_runtime_cache()
 
         results: list[NextAlarmInfo] = []
 
@@ -540,7 +523,7 @@ class AlarmManager:
     # 過去ログ（last_fired_at）は消す必要なし
 
     def _normalize_on_boot_and_edit(self, reason: Literal["boot", "edit"]) -> None:
-        boot: datetime = self._boot_datetime
+        boot: DateTimeType = self._boot_datetime
         targets: list[AlarmStateInternal] = []
 
         if reason == "boot":
@@ -564,9 +547,6 @@ class AlarmManager:
         for state in targets:
             self._reset_state_for_future(state)
 
-        print(f"target_list: {[s.id for s in targets]}")
-        print(f"_just_created_id_list: {self.cache.just_created_ids}")
-
         # 再計算は一括で1回だけ
         if targets:
             self._recalc_states()
@@ -586,43 +566,92 @@ class AlarmManager:
     # 🔹 UIからの編集リクエストを全て受け取る入口
     # ======================================================
     # ======================================================
+    @overload
     def apply_alarm_mutation(
         self,
-        action: Literal["add", "update", "delete", "toggle"],
-        payload: Any,
+        action: Literal["add"],
+        payload: AddPayload,
+    ) -> AlarmInternal:
+        ...
+
+    @overload
+    def apply_alarm_mutation(
+        self,
+        action: Literal["update"],
+        payload: UpdatePayload,
+    ) -> AlarmInternal:
+        ...
+
+    @overload
+    def apply_alarm_mutation(
+        self,
+        action: Literal["delete"],
+        payload: DeletePayload,
     ) -> None:
-        """★編集処理の入口は apply_alarm_mutation だけ★"""
+        ...
+    # ======================================================
+    # 本メソッドはUIからの編集処理の入口であり、以下のルールで動作します。
+    # ① actionに応じてアラームデータを mutation する
+    # ② mutation 後のデータを正規化する（必要に応じて）
+    # ③ 状態を再計算する（重要）
+    # ④ runtime cache を再構築する（🔥追加ポイント）
+    # ⑤ 保存（必要に応じて）
+    # ======================================================
+    def apply_alarm_mutation(
+        self,
+        action: Literal["add", "update", "delete"],
+        payload: AddPayload | UpdatePayload | DeletePayload,
+    ) -> AlarmInternal | None:
+        """★UIからの編集処理の入口は apply_alarm_mutation だけ★"""
+        result_alarm: AlarmInternal | None = None
 
         # =========================================
         # ① mutation
         # =========================================
-        if action == "add":
-            alarm: AlarmInternal | None = self._add_alarm(payload)
-            if alarm:
-                self.cache.just_created_ids.append(alarm.id)
+        match action:
+            case "add":
+                assert isinstance(payload, AddPayload)
+                result_alarm = self._add_alarm(payload.ui_alarm)
 
-        elif action == "update":
-            alarm_id: str
-            patch: AlarmUIPatch
-            alarm_id, patch = payload
+            case "update":
+                assert isinstance(payload, UpdatePayload)
 
-            existing: AlarmInternal | None = self.get_alarm_by_id(alarm_id)
-            if existing is not None:
-                base_ui: AlarmUI = self.internal_to_ui_mapper.internal_to_ui(existing)
-                merged_ui: AlarmUI = self._merge_ui(base_ui, patch)
-                updated: AlarmInternal | None = self._update_alarm(alarm_id, merged_ui)
-                if updated:
-                    self.cache.just_created_ids.append(alarm_id)
+                alarm_id: str = payload.alarm_id
+                patch: AlarmUIPatch = payload.patch
+                existing: AlarmInternal | None = self.get_alarm_by_id(alarm_id)
 
-        elif action == "delete":
-            self._delete_alarms(payload)
+                if existing is not None:
+                    updated_internal: AlarmInternal = (
+                        self.ui_patch_to_internal_mapper.apply_ui_patch_to_internal(
+                            patch,
+                            existing,
+                        )
+                    )
 
-        elif action == "toggle":
-            self._toggle_alarm(payload)
-            self.cache.just_created_ids.append(payload)
+                    result_alarm = self._update_alarm(alarm_id, updated_internal)
 
-        else:
-            raise ValueError(action)
+                    if result_alarm is None:
+                        return None
+
+                    self._mark_skip_fire_this_cycle(alarm_id)
+
+                else:
+                    self.logger.error(
+                        message="Update target alarm was not found",
+                        alarm_id=alarm_id,
+                    )
+                    return None
+
+            case "delete":
+                assert isinstance(payload, DeletePayload)
+                self._remove_alarms_by_ids(set(payload.alarm_id_list))
+
+            case _:
+                self.logger.error(
+                    message="Unknown alarm mutation action",
+                    context={"action": action},
+                )
+                return None
 
         # =========================================
         # ② normalize
@@ -644,6 +673,7 @@ class AlarmManager:
         # =========================================
         self._save_phase()
 
+        return result_alarm
     # ======================================================
     # 🔹 アラームデータから識別情報を得る
     # ======================================================
@@ -658,12 +688,12 @@ class AlarmManager:
         parts.append(f"repeat={alarm.repeat}")
 
         # datetime 正規化
-        dt: datetime | time | None = alarm.datetime_
+        dt: DateTimeType | TimeType | None = alarm.datetime_
 
-        if isinstance(dt, datetime):
-            parts.append(f"dt={dt.strftime("%Y-%m-%d %H:%M")}")
-        elif isinstance(dt, time):
-            parts.append(f"dt={dt.strftime("%H:%M")}")
+        if isinstance(dt, DateTimeType):
+            parts.append(f"dt={dt.strftime('%Y-%m-%d %H:%M')}")
+        elif dt is not None:
+            parts.append(f"dt={dt.strftime('%H:%M')}")
         # dt が None の場合は何もしない
 
         # weekday
@@ -685,21 +715,34 @@ class AlarmManager:
 
         return "|".join(parts)
 
-    def _is_duplicate_except(
+    def _normalize_alarms_by_fingerprint(self) -> bool:
+        """同一内容のアラーム重複をフィンガープリントで除去する(全体整理用)"""
+        unique_by_fp: dict[str, AlarmInternal] = {}
+        changed: bool = False
+
+        for alarm in self.alarms:
+            fingerprint: str = self._build_alarm_fingerprint(alarm)
+            if fingerprint in unique_by_fp:
+                changed = True
+            unique_by_fp[fingerprint] = alarm
+
+        if changed:
+            self.alarms = list(unique_by_fp.values())
+
+        return changed
+
+    def _find_duplicate_id(
         self,
-        alarm: AlarmInternal,
-        ignore_id: str,
-    ) -> bool:
-        """ignore_id を除いて、同じフィンガープリントのアラームが存在するかどうかをチェックする"""
-        new_fp: str = self._build_alarm_fingerprint(alarm)
-
-        for aid, fp in self.cache.fingerprint_map.items():
-            if aid == ignore_id:
+        fingerprint: str,
+        ignore_id: str | None = None,
+    ) -> str | None:
+        """同じfingerprintのIDを返す（なければNone）"""
+        for alarm_id, fp in self.cache.fingerprint_map.items():
+            if alarm_id == ignore_id:
                 continue
-            if fp == new_fp:
-                return True
-
-        return False
+            if fp == fingerprint:
+                return alarm_id
+        return None
     # ========================編集ブロック==============================
 
     # =====================================================
@@ -713,16 +756,7 @@ class AlarmManager:
     # 🔹 RuntimeCacheの再構築
     # ======================================================
     def _rebuild_runtime_cache(self) -> None:
-        """
-        RuntimeCacheを完全再構築する
-
-        Source of Truth:
-            alarms
-            states
-
-        RuntimeCacheは派生データなので
-        壊れてもこの関数で再生成できる。
-        """
+        """RuntimeCacheを再構築する"""
         cache: RuntimeCache = self.cache
 
         cache.next_fire_map.clear()
@@ -730,64 +764,115 @@ class AlarmManager:
         cache.fingerprint_map.clear()
 
         for alarm in self.alarms:
-            # fingerprint_mapの再構築（ID → フィンガープリント）
+            # fingerprint
             cache.fingerprint_map[alarm.id] = self._build_alarm_fingerprint(alarm)
 
-            # _state_mapの再構築(無効アラームは除外)
             if not alarm.enabled:
                 continue
-            state: AlarmStateInternal | None = self._states_map.get(alarm.id)
 
-            # next_fire_mapの再構築（ID → 次回鳴動予定日時）
+            state: AlarmStateInternal | None = self._states_map.get(alarm.id)
             if state is None:
                 continue
             if state.lifecycle_finished:
                 continue
-            next_dt: datetime | None = state.next_fire_datetime
-            if next_dt is not None:
-                cache.next_fire_map[alarm.id] = next_dt
+
+            next_dt: DateTimeType | None = state.next_fire_datetime
+            if next_dt is None:
+                continue
+
+            cache.next_fire_map[alarm.id] = next_dt
+
+        # 🔥 最後に一回だけソート
+        cache.next_fire_map = dict(sorted(cache.next_fire_map.items(), key=lambda x: x[1]))
+
+    def _sync_alarm_cache(self, alarm: AlarmInternal) -> None:
+        """単一 alarm に対応する RuntimeCache を増分同期する"""
+        self.cache.fingerprint_map[alarm.id] = self._build_alarm_fingerprint(alarm)
+
+        state: AlarmStateInternal | None = self._states_map.get(alarm.id)
+        if (
+            not alarm.enabled
+            or state is None
+            or state.lifecycle_finished
+            or state.next_fire_datetime is None
+        ):
+            self.cache.next_fire_map.pop(alarm.id, None)
+        else:
+            self.cache.next_fire_map[alarm.id] = state.next_fire_datetime
+
+    def _remove_alarm_from_cache(self, alarm_id: str) -> None:
+        """削除された alarm に対応する RuntimeCache を取り除く"""
+        self.cache.fingerprint_map.pop(alarm_id, None)
+        self.cache.next_fire_map.pop(alarm_id, None)
+        self.cache.just_created_ids = [
+            cached_id for cached_id in self.cache.just_created_ids
+            if cached_id != alarm_id
+        ]
+        self.cache.event_queue = [
+            item for item in self.cache.event_queue
+            if item[1] != alarm_id
+        ]
 
     # ======================================================
     # 🔹 新規データの追加
     # ======================================================
-    def _add_alarm(self, ui_alarm: AlarmUI) -> AlarmInternal:
-
+    def _add_alarm(self, ui_alarm: AlarmUI) -> AlarmInternal | None:
+        """UIモデルから新規アラームを追加する"""
         internal: AlarmInternal = self.ui_to_internal_mapper.ui_to_internal(ui_alarm)
-
-        if self._is_duplicate_except(internal, ignore_id=""):
-            raise ValueError("Duplicate alarm")
 
         alarm_id: str = self.get_next_id()
         internal.id = alarm_id
+        fingerprint: str= self._build_alarm_fingerprint(internal)
 
+        # 🔥 ここ！
+        if self._exists_duplicate_fingerprint(fingerprint, ignore_id=alarm_id):
+            self.logger.warning("重複アラームが検出されました。追加が拒否されます。",
+                                context={"fingerprint": fingerprint},
+                                )
+            return None
+
+        self.cache.fingerprint_map[alarm_id] = fingerprint
         self.alarms.append(internal)
 
         # stateはここでOK（理由あとで説明）
-        self._get_or_create_state(alarm_id)
+        self._create_state(alarm_id)
+        self._sync_alarm_cache(internal)
+        self._mark_skip_fire_this_cycle(alarm_id)
 
         return internal
 
     # ======================================================
     # 🔹 既存アラームの編集関数
     # ======================================================
-    def _update_alarm(self, alarm_id: str, ui_alarm: AlarmUI) -> AlarmInternal:
+    def _update_alarm(self, alarm_id: str, updated: AlarmInternal) -> AlarmInternal | None:
 
         internal: AlarmInternal | None = self.get_alarm_by_id(alarm_id)
         if internal is None:
-            raise ValueError("Alarm not found")
+            self.logger.error(
+                message="Alarm not found for update",
+                alarm_id=alarm_id,
+            )
+            return None
 
-        updated: AlarmInternal = self.ui_to_internal_mapper.ui_to_internal(ui_alarm)
         updated.id = alarm_id
+        fp: str = self._build_alarm_fingerprint(updated)
 
-        if self._is_duplicate_except(updated, alarm_id):
-            raise ValueError("Duplicate alarm")
+        if self._exists_duplicate_fingerprint(fp, ignore_id=alarm_id):
+            self.logger.warning(
+                message="Duplicate alarm update was rejected",
+                alarm_id=alarm_id,
+                context={"fingerprint": fp},
+            )
+            return None
 
+        # 🔥 ここ追加
+        self.cache.fingerprint_map[alarm_id] = fp
+        # 同じキーに新しい値を代入することで、更新も兼ねる
         self._replace_alarm(updated)
-
-        # 🔥 ここ追加（超重要）
-        self._replace_alarm(updated)
-        self._ensure_state_exists(alarm_id)
+        self._create_state(alarm_id)
         self._adjust_state_after_update(alarm_id)
+        self._sync_alarm_cache(updated)
+        self._mark_skip_fire_this_cycle(alarm_id)
 
         return updated
 
@@ -801,28 +886,20 @@ class AlarmManager:
         # 見つからなければ追加
         self.alarms.append(new_internal)
 
-    def _ensure_state_exists(self, alarm_id: str) -> None:
-        """stateが存在しなければ作る"""
-        for s in self.states:
-            if s.id == alarm_id:
-                return
-        self._get_or_create_state(alarm_id)
     # ======================================================
     # 🔹 フィンガープリント重複チェック
+    # ======================================================
     def _exists_duplicate_fingerprint(self, fingerprint: str, ignore_id: str | None = None) -> bool:
-        """同じフィンガープリントのアラームが存在するかどうかをチェックする"""
-        for alarm_id, fp in self.cache.fingerprint_map.items():
-            if alarm_id == ignore_id:
-                continue
-            if fp == fingerprint:
-                return True
-        return False
+        """同じフィンガープリントのアラームが存在するかどうかをチェックする(単純チェック関数)"""
+        return self._find_duplicate_id(fingerprint, ignore_id) is not None
+
     # ======================================================
     # 🔹 alarmとstateの整合性チェック
+    # ======================================================
     def _adjust_state_after_update(self, alarm_id: str) -> None:
         """アラーム編集後に state を安全な状態へ調整する(state_resetter)"""
         # state を必ず取得（なければ生成）
-        state: AlarmStateInternal = self._get_or_create_state(alarm_id)
+        state: AlarmStateInternal = self._create_state(alarm_id)
 
         # この時点で state は AlarmStateInternal であることが保証される
 
@@ -834,29 +911,6 @@ class AlarmManager:
         # ★重要：編集＝未来が変わる → 再計算必須
         state.needs_recalc = True
         # last_fired_at は保持（ログとして有用）
-    # ======================================================
-    # 🔹 AlarmUIからの編集マージ関数
-    def _merge_ui(self, base: AlarmUI, patch: AlarmUIPatch) -> AlarmUI:
-        merged: AlarmUI = base
-
-        for field_name, value in vars(patch).items():
-            if field_name == "id":
-                continue
-            if value is not None:
-                merged = replace(
-                    merged, **{field_name: value}
-                )  # dataclassのreplaceを使用してフィールドを更新
-
-        return merged
-
-    # ======================================================
-    # 🔹 アラームの有効/無効切り替え
-    # ======================================================
-    def _toggle_alarm(self, alarm_id: str) -> None:
-        for a in self.alarms:
-            if a.id == alarm_id:
-                a.enabled = not a.enabled
-                return
 
     # ======================================================
     # 🔹 アラーム削除
@@ -867,11 +921,13 @@ class AlarmManager:
         self._remove_alarms_by_ids(set(ids))
 
     def _remove_alarms_by_ids(self, ids: set[str]) -> None:
-
+        """複数アラーム削除（IDの集合で受け取る）"""
         self.alarms = [a for a in self.alarms if a.id not in ids]
         self.states = [s for s in self.states if s.id not in ids]
 
         self._states_map = {s.id: s for s in self.states}
+        for alarm_id in ids:
+            self._remove_alarm_from_cache(alarm_id)
     # ======================================================
     # GUI通知
     # ======================================================
@@ -889,10 +945,7 @@ class AlarmManager:
                 except (RuntimeError, ValueError, TypeError, AttributeError) as e:
                     self.logger.error(
                         message=f"Listener error: {e!r}",
-                        where=self._where(method_name="_notify_listeners"),
-                        alarm_id=None,
                         context={"error": str(e)},
-                        timestamp=self.internal_clock(),
                     )
                     print(f"⚠️ リスナーエラー: {e!r}")
 
@@ -918,10 +971,10 @@ class AlarmManager:
         minutes: int | None = None,
     ) -> None:
         """アラームをスヌーズ"""
-        now: datetime = self.internal_clock()
+        now: DateTimeType = self.internal_clock()
         minutes = minutes or alarm.snooze_minutes
-        base: datetime = now.replace(second=0, microsecond=0)
-        next_time: datetime = base + timedelta(minutes=minutes)
+        base: DateTimeType = now.replace(second=0, microsecond=0)
+        next_time: DateTimeType = base + timedelta(minutes=minutes)
 
         state.snoozed_until = next_time
         state.snooze_count += 1
@@ -935,14 +988,14 @@ class AlarmManager:
     # スヌーズ解除判定
     # ======================================================
     def _check_snooze(
-        self, alarm: AlarmInternal, state: AlarmStateInternal, now: datetime
+        self, alarm: AlarmInternal, state: AlarmStateInternal, now: DateTimeType
     ) -> "SnoozeResult":
         """スヌーズ解除判定
         "none": 何もしない
         "expired": 時刻到達で解除（次を鳴らして良い）
         "limit": 回数オーバー解除（強制終了）"""
 
-        su: datetime | None = state.snoozed_until
+        su: DateTimeType | None = state.snoozed_until
         if su is None:
             return "none"
 
@@ -980,6 +1033,7 @@ class AlarmManager:
 
     def stop_alarm(self, state: AlarmStateInternal) -> None:
         """アラーム停止 → スヌーズ情報クリア"""
+        self.player.stop()
         state.snoozed_until = None
         state.snooze_count = 0
         state.triggered = False
@@ -1011,8 +1065,8 @@ class AlarmManager:
         if not fired:
             return None
 
-        # Pylance対策：keyは常に datetime を返す
-        return max(fired, key=lambda a: a.triggered_at or datetime.min)
+        # Pylance対策：keyは常に DateTimeType を返す
+        return max(fired, key=lambda a: a.triggered_at or DateTimeType.min)
 
     # ======================================================
     # 読み込み/保存エリア
@@ -1061,7 +1115,6 @@ class AlarmManager:
 
                 self.logger.info(
                     message="State auto-created",
-                    where=self._where(method_name="load_standby"),
                     alarm_id=alarm.id,
                 )
 
@@ -1082,10 +1135,9 @@ class AlarmManager:
         self.load_alarms()
         self.load_standby()
 
-        # 🔹 1. 旧ID検出
-        old_ids: set[object] = {a.id for a in self.alarms}
+        migrated: bool = False
 
-        # 🔹 2. UUID変換が必要か判定
+        # 🔹 1. UUID変換が必要か判定
         def needs_migration(id_: object) -> bool:
             if isinstance(id_, int):
                 return True
@@ -1093,31 +1145,29 @@ class AlarmManager:
                 return len(id_) < 32
             return True
 
-        target_ids: set[object] = {i for i in old_ids if needs_migration(i)}
-
-        if not target_ids:
-            # 何もしない(state取得は関数にまとめているので、ここで整合性は取れる)
-            self._ensure_state_id_integrity()
-            return
-
-        # 🔹 4. alarms更新
+        # 🔹 2. alarms更新
         for alarm in self.alarms:
             if needs_migration(alarm.id):
                 old_id: str = alarm.id
                 new_id = str(uuid.uuid4())
-                state: AlarmStateInternal | None = self._get_state(old_id)
+                state: AlarmStateInternal | None = self.get_state_by_id(old_id)
 
                 if state:
                     state.id = new_id
 
                 alarm.id = new_id
+                migrated = True
 
-        # 🔹 6. 整合性修復
+        deduped: bool = self._normalize_alarms_by_fingerprint()
+
+        # 🔹 3. 整合性修復
         self._ensure_state_id_integrity()
+        self._rebuild_state_map()
 
-        # 🔹 7. 保存
-        self.save()
-        self.save_standby()
+        # 🔹 4. 変更があった場合だけ保存
+        if migrated or deduped:
+            self.save()
+            self.save_standby()
 
     # ======================================================
     # 保存
@@ -1159,7 +1209,7 @@ class AlarmManager:
     # 🔹 状態正規化ユーティリティ
     # ======================================================
     def _ensure_state_id_integrity(self) -> None:
-        """alarms を正として state を整合させる（ID対応のみ）"""
+        """alarms を正として state を整合させる（ID対応のみ）実行中修復"""
         # 実行中の軽量自己修復（★id対応のみ、日時計算はしない）
         # alarms にある id は必ず state に存在させる
         # alarms に無い state は削除する
@@ -1178,13 +1228,13 @@ class AlarmManager:
         # alarms にあるのに state が無い → 生成
         for alarm in self.alarms:
             if alarm.id not in states_by_id:
-                states_by_id[alarm.id] = self._get_or_create_state(alarm.id)
+                states_by_id[alarm.id] = self._create_state(alarm.id)
 
         # alarms の順序に合わせて並べ直す（デバッグしやすい）
         self.states = [states_by_id[a.id] for a in self.alarms]
 
     def _normalize_for_persistence(self) -> list[AlarmStateInternal]:
-        """→ 保存専用・検証・一括整合用"""
+        """→ 保存専用・検証・一括整合用 保存前修復"""
         # 永続化のための正規化
         # 保存前に欠けた state を補完
         # 保存前にalarms に存在しない state を除外
@@ -1192,7 +1242,7 @@ class AlarmManager:
         # 1) alarms にあるのに state が無い → 生成
         for alarm in self.alarms:
             if alarm.id not in states_by_id:
-                states_by_id[alarm.id] = self._get_or_create_state(alarm.id)
+                states_by_id[alarm.id] = self._create_state(alarm.id)
         # 2) alarms に無い state は除外
         valid_ids: set[str] = {a.id for a in self.alarms}
         return [s for s in states_by_id.values() if s.id in valid_ids]
@@ -1216,14 +1266,48 @@ class AlarmManager:
         seconds: float = next_alarm["time_until"]
 
         return max(1, min(seconds, 60))
+
+    def _rebuild_all_cache(self) -> None:
+        """cacheを完全再構築する
+        rule1: rebuild中に stateをcreateしない
+        rule2: state生成は mutationだけで行う（ここでは生成しない）
+        rule3: _states_map = ただのビュー """
+
+        # まず、alarms と states を正規化して整合させる
+        self._normalize_for_persistence()
+
+        # 🔹 states_map再構築（ここでやる）
+        self._states_map = {state.id: state for state in self.states}
+
+        # 🔹 cacheクリア
+        self.cache.next_fire_map.clear()
+        self.cache.fingerprint_map.clear()
+
+        # 🔹 再構築
+        for alarm in self.alarms:
+            # fingerprint
+            fp: str = self._build_alarm_fingerprint(alarm)
+            self.cache.fingerprint_map[alarm.id] = fp
+
+            # state取得（参照のみ）
+            state: AlarmStateInternal | None = self._states_map.get(alarm.id)
+
+            if state and state.next_fire_datetime:
+                self.cache.next_fire_map[alarm.id] = state.next_fire_datetime
     # ======================================================
     # ======================================================
     # 🔹 サイクル開始の入り口（公開API）
     # ======================================================
     # ======================================================
-    def start_cycle(self, condition: CycleCondition) -> None:
+    def start_cycle(
+        self,
+        condition: CycleCondition,
+        options: CycleOptions | None = None,
+    ) -> None:
         """サイクル開始の入り口（公開API）"""
 
+        # 前サイクルで新規作成・自己修復した ID は、
+        # 次サイクルの開始時点で保護を解除して通常判定へ戻す。
         self.cache.just_created_ids.clear()
 
         options_map: dict[str, CycleOptions] = {
@@ -1232,9 +1316,16 @@ class AlarmManager:
             "config_change": CONFIG_CHANGED, # 設定変更時（recalc → fire → save → notify）
         }
 
-        opt: CycleOptions | None = options_map.get(condition)
+        if condition == "startup":
+            self._normalize_on_boot_and_edit(reason="boot")  # ←ここ🔥
+
+        opt: CycleOptions | None = options if options is not None else options_map.get(condition)
         if opt is None:
-            raise ValueError(f"Unknown cycle condition: {condition}")
+            self.logger.error(
+                message="Unknown cycle condition",
+                context={"condition": condition},
+            )
+            return
 
         self._run_cycle(opt)
 
@@ -1249,7 +1340,7 @@ class AlarmManager:
         # ==================================================
         self._begin_cycle()
         # ★ここ追加
-        now: datetime = self._now # type: ignore
+        now: DateTimeType = self._now  # type: ignore
         self._detect_clock_jump(now)
         # ==================================================
         # ② ロード & 整合化
@@ -1289,7 +1380,7 @@ class AlarmManager:
         self._stop_phase()
 
     # ① cycle開始の入り口（内部クロック確定）
-    def _begin_cycle(self) -> datetime:
+    def _begin_cycle(self) -> DateTimeType:
         self.tick()
         return self._now # type: ignore
 
@@ -1299,9 +1390,9 @@ class AlarmManager:
 
     # ③ 再計算フェーズ（超重要）
     def _recalc_phase(self) -> None:
+        self._rebuild_state_map()
         self._repair_invalid_states()
         self._recalc_states()
-        self._update_next_fire_runtime()
         # ★ここ
         self._rebuild_runtime_cache()
 
@@ -1323,10 +1414,7 @@ class AlarmManager:
         except (OSError, IOError, ValueError) as e:
             self.logger.error(
                 message="Failed to save standby state",
-                where=self._where(method_name="_save_phase"),
-                alarm_id="UNASSIGNED",
                 context={"error": str(e)},
-                timestamp=self.internal_clock(),
             )
         # 2) alarms.json の保存は、standby.json より後にする（ここが肝）
         try:
@@ -1334,14 +1422,137 @@ class AlarmManager:
         except (OSError, IOError, ValueError) as e:
             self.logger.error(
                 message="Failed to save alarms data",
-                where=self._where(method_name="_save_phase"),
-                alarm_id="UNASSIGNED",
                 context={"error": str(e)},
-                timestamp=self.internal_clock(),
             )
 
     # ⑦ STOP処理
     def _stop_phase(self) -> None:
         if self._stop_requested:
+            self.player.stop()
             self._stop_requested = False
             print("Alarm stop requested; alarms have been stopped.")
+
+
+# ======================================================
+# デバッグ用関数コーナー
+# ======================================================
+def _debug_any_key_pressed() -> bool:
+    """デバッグ用：キー入力をノンブロッキングでチェック"""
+    if msvcrt is None:
+        return False
+    return msvcrt.kbhit()
+
+
+def _debug_build_sound_test_alarm(
+    target_time: DateTimeType,
+    sound_path: Path,
+) -> AlarmUI:
+    """デバッグ用：音声テスト用アラームを構築する"""
+    return AlarmUI(
+        name="[DEBUG] Sound Test Alarm",
+        date=target_time.date().isoformat(),
+        time=target_time.time().isoformat(),
+        repeat="single",
+        sound=str(sound_path),
+        enabled=True,
+        snooze_minutes=5,
+        snooze_limit=3,
+        duration=60,
+    )
+
+
+def debug_run_sound_cycle_test(
+    sound_path: Path | None = None,
+    lead_seconds: int = 5,
+) -> None:
+    """manager -> checker -> player の実鳴動を確認するデバッグ用関数"""
+
+    manager = AlarmManager()
+
+    resolved_sound_path: Path = Path(sound_path or DEFAULT_SOUND)
+    resolved_sound_path = resolved_sound_path.resolve()
+
+    if not resolved_sound_path.exists():
+        print(f"[DEBUG] Debug sound file not found: {resolved_sound_path}")
+        return
+
+    now: DateTimeType = DateTimeType.now().replace(microsecond=0)
+    target_time: DateTimeType = now + timedelta(seconds=max(lead_seconds, 10))
+
+    ui_alarm: AlarmUI = _debug_build_sound_test_alarm(
+        target_time,
+        resolved_sound_path,
+    )
+
+    # 🔥 新設計（payload経由）
+    payload: AddPayload = AddPayload(ui_alarm=ui_alarm)
+
+    alarm: AlarmInternal | None = manager.apply_alarm_mutation("add", payload)
+
+    # 秒精度補正（デバッグ専用）
+    alarm.datetime_ = target_time
+
+    state: AlarmStateInternal | None = manager.get_state_by_id(alarm.id)
+    if state is not None:
+        state.needs_recalc = True
+
+    print(f"[DEBUG] Sound test alarm id: {alarm.id}")
+    print(f"[DEBUG] Sound file: {resolved_sound_path}")
+    print(f"[DEBUG] Alarm will fire at: {target_time:%Y-%m-%d %H:%M:%S}")
+    print("[DEBUG] Waiting for alarm. Press any key while sounding to stop.")
+
+    has_started = False
+
+    try:
+        while True:
+            manager.start_cycle(
+                "loop",
+                CycleOptions(
+                    load=False,
+                    fire=True,
+                    save=False,
+                    notify=False,
+                    validate=True,
+                ),
+            )
+
+            active_state: AlarmStateInternal | None = manager.get_active_alarm_state()
+
+            if active_state and active_state.triggered and not has_started:
+                has_started = True
+                print("[DEBUG] Alarm is sounding. Press any key to stop.")
+
+            if (
+                has_started
+                and active_state
+                and active_state.triggered
+                and _debug_any_key_pressed()
+            ):
+                manager.stop_alarm(active_state)
+
+                manager.start_cycle(
+                    "loop",
+                    CycleOptions(
+                        load=False,
+                        fire=False,
+                        save=False,
+                        notify=False,
+                        validate=False,
+                    ),
+                )
+
+                print("[DEBUG] Alarm stopped by keyboard input.")
+                break
+
+            if has_started and (not active_state or not active_state.triggered):
+                print("[DEBUG] Alarm playback finished.")
+                break
+
+            time.sleep(0.1)
+
+    except KeyboardInterrupt:
+        manager.player.stop()
+        print("[DEBUG] Sound test interrupted by keyboard.")
+
+if __name__ == "__main__":
+    debug_run_sound_cycle_test()

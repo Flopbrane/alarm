@@ -22,22 +22,18 @@ Internal ↔ JSON dataclass 変換・受け渡し専用モジュール
 # Description:
 # dataclass変換・受渡し(チェック済み)
 #########################
+
 # 標準ライブラリ
-import inspect
-from types import FrameType, CodeType
+from typing import TYPE_CHECKING
 from datetime import date, datetime
 
 # 自作モジュール
 from alarm_internal_model import AlarmInternal
 from alarm_states_model import AlarmStateInternal
 from alarm_json_model import AlarmJson, AlarmStateJson
-from alarm_irregular_logger import AlarmLogger, LogWhere
-
-
-# ===============================
-# モジュールレベルのロガーインスタンス
-# ===============================
-_logger_instance: AlarmLogger | None = None
+from log_app import get_logger
+if TYPE_CHECKING:
+    from logs.multi_info_logger import AppLogger
 
 
 # ===============================
@@ -69,29 +65,9 @@ def dt_to_any(dt: datetime | None) -> str | None: # Jsonへの変換用
         return None
     return dt.isoformat()
 
-def where(method_name: str) -> LogWhere:
-    """ログ用の位置情報を生成する（呼び出し元を指す）"""
-    frame: FrameType | None = inspect.currentframe()
-    caller: FrameType | None = frame.f_back if frame else None  # ← 1つ上
-
-    lineno: int = caller.f_lineno if caller else -1
-    code: CodeType | None = caller.f_code if caller else None
-    log_where: LogWhere = {
-        "line": lineno,
-        "module": code.co_filename if code else __name__,
-        "file": code.co_filename if code else "",
-        "class_name": "alarm_data_json_mapper",  # 固定値
-        "method_name": method_name,
-        "function": code.co_name if code else method_name,
-    }
-    return log_where
-
-
-def logger() -> AlarmLogger | None:
-    """Get the logger instance if available (for use in mappers)"""
-    # ここではグローバルなロガーインスタンスを返す実装例
-    # 実際の実装では、ロガーの管理方法に応じて適切に変更してください
-    return _logger_instance
+def logger() -> "AppLogger":
+    """マッパーから共通ロガーを取得する"""
+    return get_logger()
 
 # =========================================================
 # 🔹 Jsonモデル → Internalモデル マッパー
@@ -184,14 +160,12 @@ class InternalToJsonMapper(JsonToInternalMapper):
 
         # datetime_ → ISO8601 → date / time 分離
         if not a.datetime_:
-            log: AlarmLogger | None = logger()
+            log: AppLogger | None = logger()
             if log:
                 log.warning(
                     message="AlarmInternal の datetime_ が None です。正確な繰り返し計算のためには、datetime_ を設定してください。",
-                    where=where("alarm_internal_to_json"),
                     alarm_id=a.id,
                     context={
-                        "alarm_id": a.id,
                         "alarm_name": a.name,
                         "repeat": a.repeat,
                     },

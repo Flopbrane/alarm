@@ -1,3 +1,24 @@
 {
-  "alarms": []
+  "alarms": [
+    {
+      "id": "14ec54f4-9475-4961-809f-f15ce4e50845",
+      "name": "[DEBUG] Sound Test Alarm",
+      "date": "2026-04-01",
+      "time": "17:28",
+      "repeat": "single",
+      "weekday": [],
+      "week_of_month": [],
+      "interval_weeks": 1,
+      "interval_days": null,
+      "base_date": "2026-04-01",
+      "custom_desc": "",
+      "enabled": true,
+      "sound": "D:\\PC\\Python\\alarm\\sound\\Alarm01.wav",
+      "skip_holiday": false,
+      "duration": 60,
+      "snooze_minutes": 5,
+      "snooze_limit": 3,
+      "end_at": null
+    }
+  ]
 }

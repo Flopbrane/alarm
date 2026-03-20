@@ -10,25 +10,33 @@
 # Description:
 # CUI入出力モジュール
 #########################
+# Future improvements:
+from __future__ import annotations
+
 # 標準モジュール
 import sys
 from datetime import datetime
-from typing import Any, Literal, TextIO, cast
-
-
+from typing import Any, Literal, TextIO, cast, TYPE_CHECKING
 
 # 自作モジュール（順序を整理）
-from alarm_manager_temp import AlarmManager
+from alarm_internal_model import AlarmInternal
 from alarm_ui_model import (
     AlarmUI,
+    AlarmUIPatch,
     AlarmListItem,
 )  # ← UI層のAlarmState定義
 from constants import DEFAULT_SOUND, REPEAT_INTERNAL
-from cui_controller import CUIController
+from data_ui_to_mgr_adapter import CUIController
 from cui_datetime_normalizer import normalize_commas, validate_date, validate_time
 from cui_weekday_normalizer import normalize_weekday_list
 from utils.utils import select_sound_file
 from utils.text_utils import to_hankaku
+from alarm_payloads import AddPayload, UpdatePayload, DeletePayload
+
+
+if TYPE_CHECKING:
+    from alarm_manager_temp import AlarmManager
+
 
 # stdout の文字コードを UTF-8 に強制設定（Windows 対応）
 stdout: TextIO = cast(TextIO, sys.stdout)
@@ -46,12 +54,11 @@ InputMode = Literal["raw", "half", "half_commas"]
 # ======================================================
 # class NextAlarmInfo(TypedDict):
 # """型ヒントの定義"""
-
 # alarm: AlarmInternal
 # next_datetime: datetime
 # time_until: float
 
-def print_upcoming_alarms(manager: AlarmManager) -> None:
+def print_upcoming_alarms(manager: "AlarmManager") -> None:
     """次のアラームの表示(5件)"""
     manager.start_cycle("loop")
     now: datetime = manager.internal_clock()
@@ -63,11 +70,8 @@ def print_upcoming_alarms(manager: AlarmManager) -> None:
     print(f"\n⏰ 次に鳴動予定のアラーム（{len(next_infos)}件）:")
     print("-" * 60)
 
-    display_id: int = 0
-
     for i, info in enumerate(next_infos, 1):
         display_id: int = i  # UI専用番号
-        alarm_id: str = info.alarm_id
         alarm_ui: AlarmUI = info.alarm_ui
         next_datetime: datetime | None = info.next_datetime
 
@@ -82,7 +86,7 @@ def print_upcoming_alarms(manager: AlarmManager) -> None:
         else:
             time_str = "不明"
 
-        print(f"{display_id}. [{alarm_id}] {alarm_ui.name}")
+        print(f"{display_id}: {alarm_ui.name}")
 
         if next_datetime:
             print(f"   ⏰ {next_datetime.strftime('%Y/%m/%d %H:%M')} ({time_str})")
@@ -98,10 +102,9 @@ def print_upcoming_alarms(manager: AlarmManager) -> None:
 # ------------------------------------------
 # 🔹 メインメニュー
 # ------------------------------------------
-def main() -> None:
+def main(alarm_manager: "AlarmManager") -> None:
     """メニュー表示"""
-    manager = AlarmManager()
-    controller = CUIController(manager)
+    controller = CUIController(alarm_manager)
 
     def run_alarm_monitor(controller: CUIController) -> None:
         """アラーム監視ループを開始する（CUI補助）"""
@@ -274,13 +277,14 @@ def main() -> None:
                     sound=str(sound),
                     skip_holiday=skip_holiday,
                     duration=duration,
-                    snooze_minutes=manager.snooze_default,
+                    snooze_minutes=alarm_manager.snooze_default,
                     snooze_limit=snooze_limit,
                     end_at=None,
                 )
 
                 # 🔥 ここが重要
-                manager.apply_alarm_mutation("add", ui_alarm)
+                payload = AddPayload(ui_alarm=ui_alarm)
+                alarm_manager.apply_alarm_mutation("add", payload)
                 print("✅ アラームを追加しました。")
 
             except KeyboardInterrupt:
@@ -288,15 +292,37 @@ def main() -> None:
 
 
         elif choice == "2":
-            print_upcoming_alarms(manager)
+            print_upcoming_alarms(alarm_manager)
 
         elif choice == "3":
-            alarm_id = int(input("削除するID: "))
-            manager.apply_alarm_mutation("delete", alarm_id)
+            alarm_list = alarm_manager.get_alarm_list()
+            index = int(input("削除する番号: ")) - 1
+            if not 0 <= index < len(alarm_list):
+                print("無効な番号です")
+                continue
+            alarm_id = alarm_list[index].alarm_id
+            payload = DeletePayload(alarm_id_list=[alarm_id])
+            alarm_manager.apply_alarm_mutation("delete", payload)
+            print("✅ アラームを削除しました。")
 
         elif choice == "4":
-            alarm_id = int(input("切替するID: "))
-            manager.apply_alarm_mutation("toggle", alarm_id)
+            alarm_list: list[AlarmListItem] = alarm_manager.get_alarm_list()
+            index: int = int(input("切替する番号: ")) - 1
+            if not 0 <= index < len(alarm_list):
+                print("無効な番号です")
+                continue
+            alarm_id: str = alarm_list[index].alarm_id
+            alarm: AlarmInternal | None = alarm_manager.get_alarm_by_id(alarm_id)
+
+            if alarm is None:
+                print("アラームが見つかりません")
+                continue
+            patch = AlarmUIPatch(enabled=not alarm.enabled)
+            payload = UpdatePayload(
+                alarm_id=alarm_id,
+                patch=patch
+            )
+            alarm_manager.apply_alarm_mutation("update", payload)
 
         elif choice == "5":
             run_alarm_monitor(controller)
@@ -307,7 +333,3 @@ def main() -> None:
 
         else:
             print("無効な選択です。")
-
-
-if __name__ == "__main__":
-    main()

@@ -3,7 +3,7 @@
 #########################
 # Author: F.Kurokawa
 # Description:
-# mini carendear module
+# mini calendar module
 #########################
 
 # mini_calendar.py

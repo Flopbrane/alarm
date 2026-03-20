@@ -16,7 +16,7 @@ from datetime import datetime, timedelta
 
 from alarm_internal_model import AlarmInternal
 from alarm_states_model import AlarmStateInternal
-from alarm_irregular_logger import AlarmLogger, LogWhere
+from logs.multi_info_logger import AppLogger
 # =============================================================
 
 class AlarmDatetimeChecker:
@@ -37,16 +37,12 @@ class AlarmDatetimeChecker:
         alarm: AlarmInternal,
         state: AlarmStateInternal,
         now: datetime,
-        logger: AlarmLogger) -> None:
+        logger: AppLogger) -> None:
         """コンストラクタ"""
         self.alarm: AlarmInternal = alarm
         self.state: AlarmStateInternal = state
         self.drive_now: datetime = now
-        self.logger: AlarmLogger = logger
-
-    def _where(self, func_name: str) -> "LogWhere":
-        """Format location string for logging"""
-        return LogWhere(module=__name__, function=func_name)
+        self.logger: AppLogger = logger
 
     # --------------------------------------------------------------
     # 🔹 repeat 設定に応じて、本当に鳴らして良いのかの最終判断
@@ -64,7 +60,6 @@ class AlarmDatetimeChecker:
         if self.state.is_invalid_state:
             self.logger.error(
                 message=f"invalid state: {self.state}",
-                where=self._where(func_name="should_fire"),
                 alarm_id=self.alarm.id,
                 context={
                     "state_id": self.state.id,
@@ -74,7 +69,6 @@ class AlarmDatetimeChecker:
                     "state_triggered": self.state.triggered,
                     "state_last_fired_at": self.state.last_fired_at,
                 },
-                timestamp=now,
             )  # pylint: disable=fixme
             return False
 

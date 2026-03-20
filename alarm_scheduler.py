@@ -23,13 +23,11 @@ Scheduler はこういう存在です。
 import calendar
 from collections.abc import Callable
 from datetime import datetime, time, timedelta
-import inspect
-from types import FrameType, CodeType
-from typing import Any
 
 from alarm_internal_model import AlarmInternal
 from cui_datetime_normalizer import normalize_base_date
-from alarm_irregular_logger import AlarmLogger, LogWhere
+from log_app import get_logger
+from logs.multi_info_logger import AppLogger
 
 # 型エイリアスをクラス外で定義
 CallableType = Callable[[AlarmInternal, datetime], datetime | None]
@@ -55,7 +53,7 @@ class AlarmScheduler:
             "interval_days": self._next_interval_days,  # daily と同じロジック
             "custom": self._next_custom,
         }
-        self.logger: AlarmLogger | None = None  # ロガーは外部からセットされる前提
+        self.logger: AppLogger = get_logger()
         self.now: datetime | None = None
     # マネージャーは外部からセットされる前提
     # ---------------------------------------
@@ -105,7 +103,6 @@ class AlarmScheduler:
         if self.logger:
             self.logger.warning(
                 message="Using internal clock as base date due to missing repeat_base_datetime and datetime_",
-                where=self._where(method_name="_base"),
                 alarm_id=alarm.id,
                 context={
                     "repeat_base_datetime": alarm.repeat_base_datetime,
@@ -120,7 +117,6 @@ class AlarmScheduler:
                         "datetime_ を設定してください。"
                     ),
                 },
-                timestamp=self.now,
             )
         return self.now
 
@@ -134,26 +130,6 @@ class AlarmScheduler:
         if isinstance(t, datetime):
             return d.replace(hour=t.hour, minute=t.minute, second=0, microsecond=0)
         return d
-    # ======================================================
-    # _where()：ログ用の位置情報を生成する
-    # ======================================================
-    def _where(self, method_name: str) -> LogWhere:
-        """ログ用の位置情報を生成する（呼び出し元を指す）"""
-        frame: FrameType | None = inspect.currentframe()
-        caller: FrameType | None = frame.f_back if frame else None  # ← 1つ上
-
-        lineno: int | Any = caller.f_lineno if caller else -1
-        code: CodeType | None = caller.f_code if caller else None
-        where: LogWhere = {
-            "line": lineno,
-            "module": code.co_filename if code else __name__,
-            "file": code.co_filename if code else "",
-            "class_name": self.__class__.__name__,
-            "method_name": method_name,
-            "function": code.co_name if code else method_name,
-        }
-        return where
-
     # --------------------------------------------------------------
     # 🔹 single（単発アラーム）
     # --------------------------------------------------------------
@@ -165,10 +141,8 @@ class AlarmScheduler:
             if self.logger:
                 self.logger.warning(
                     message=f"Invalid datetime for single alarm: {dt}",
-                    where=self._where(method_name="_next_single"),
                     alarm_id=alarm.id,
                     context={"datetime": dt},
-                    timestamp=now,
                 )
             return None  # or raise / log
 
@@ -201,10 +175,8 @@ class AlarmScheduler:
             if self.logger:
                 self.logger.warning(
                     message=f"Invalid datetime for daily alarm: {dt}",
-                    where=self._where(method_name="_next_daily"),
                     alarm_id=alarm.id,
                     context={"datetime": dt},
-                    timestamp=now,
                 )
             return None
 
@@ -237,10 +209,8 @@ class AlarmScheduler:
             if self.logger:
                 self.logger.warning(
                     message=f"Invalid datetime for interval_days alarm: {dt}",
-                    where=self._where(method_name="_next_interval_days"),
                     alarm_id=alarm.id,
                     context={"datetime": dt},
-                    timestamp=now,
                 )
             return None
 
@@ -300,7 +270,7 @@ class AlarmScheduler:
         # 次に来る曜日へ
         day_candidate: datetime = self._next_weekday_candidate(start, weekdays)
 
-        # 時刻合成(次の曜日の日付 + AlarmIntenal.datetime_.time())
+        # 時刻合成(次の曜日の日付 + Alarminternal.datetime_.time())
         candidate: datetime = self._with_time(
             self._next_weekday_candidate(now, weekdays),
             alarm,
@@ -357,10 +327,8 @@ class AlarmScheduler:
             if self.logger:
                 self.logger.warning(
                     message=f"Invalid datetime for monthly alarm: {dt}",
-                    where=self._where(method_name="_next_monthly"),
                     alarm_id=alarm.id,
                     context={"datetime": dt},
-                    timestamp=now,
                 )
             return None
 

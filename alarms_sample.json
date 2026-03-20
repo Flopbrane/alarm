@@ -4,7 +4,7 @@
         {
             "id": 0,
             "name": "",
-            "date": "2025-11-29",
+            "date": "2026-11-29",
             "time": "06:30",
             "repeat": "custom",
             "weekday": [
@@ -27,7 +27,7 @@
         {
             "id": 1,
             "name": "お昼だよ～",
-            "date": "2025-11-29",
+            "date": "2026-11-29",
             "time": "12:00",
             "repeat": "weekly",
             "weekday": [
@@ -36,7 +36,7 @@
             ],
             "week_of_month": [],
             "interval_weeks": 1,
-            "base_date": "2025-11-19",
+            "base_date": "2026-11-19",
             "custom_desc": "",
             "enabled": true,
             "sound": "C:/Windows/Media/Alarm01.wav",
@@ -48,7 +48,7 @@
         {
             "id": 2,
             "name": "午後の作業",
-            "date": "2025-11-29",
+            "date": "2026-11-29",
             "time": "12:55",
             "repeat": "weekly",
             "weekday": [
@@ -59,7 +59,7 @@
             ],
             "week_of_month": [],
             "interval_weeks": 1,
-            "base_date": "2025-11-19",
+            "base_date": "2026-11-19",
             "custom_desc": "",
             "enabled": true,
             "sound": "C:/Windows/Media/Alarm01.wav",
@@ -71,7 +71,7 @@
         {
             "id": 3,
             "name": "終了時間",
-            "date": "2025-11-29",
+            "date": "2026-11-29",
             "time": "15:00",
             "repeat": "weekly",
             "weekday": [
@@ -82,7 +82,7 @@
             ],
             "week_of_month": [],
             "interval_weeks": 1,
-            "base_date": "2025-11-19",
+            "base_date": "2026-11-19",
             "custom_desc": "",
             "enabled": true,
             "sound": "C:/Windows/Media/Alarm01.wav",
@@ -94,7 +94,7 @@
         {
             "id": 4,
             "name": "河田病院診察",
-            "date": "2025-11-27",
+            "date": "2026-11-27",
             "time": "08:30",
             "repeat": "custom",
             "weekday": [
@@ -102,7 +102,7 @@
             ],
             "week_of_month": [],
             "interval_weeks": 2,
-            "base_date": "2025-11-29",
+            "base_date": "2026-11-29",
             "custom_desc": "",
             "enabled": true,
             "sound": "C:/Windows/Media/Alarm01.wav",
@@ -114,7 +114,7 @@
         {
             "id": 5,
             "name": "資源ゴミの日",
-            "date": "2025-11-29",
+            "date": "2026-11-29",
             "time": "06:00",
             "repeat": "custom",
             "weekday": [
@@ -122,7 +122,7 @@
             ],
             "week_of_month": [],
             "interval_weeks": 2,
-            "base_date": "2025-11-29",
+            "base_date": "2026-11-29",
             "custom_desc": "",
             "enabled": true,
             "sound": "C:/Windows/Media/Alarm01.wav",
@@ -134,7 +134,7 @@
         {
             "id": 6,
             "name": "ショート・デイケアの時間",
-            "date": "2025-11-29",
+            "date": "2026-11-29",
             "time": "09:15",
             "repeat": "weekly",
             "weekday": [
@@ -144,7 +144,7 @@
             ],
             "week_of_month": [],
             "interval_weeks": 1,
-            "base_date": "2025-11-29",
+            "base_date": "2026-11-29",
             "custom_desc": "",
             "enabled": true,
             "sound": "C:/Windows/Media/Alarm01.wav",
@@ -156,7 +156,7 @@
         {
             "id": 7,
             "name": "B型就労支援事業所への出勤",
-            "date": "2025-11-29",
+            "date": "2026-11-29",
             "time": "09:46",
             "repeat": "weekly",
             "weekday": [
@@ -165,7 +165,7 @@
             ],
             "week_of_month": [],
             "interval_weeks": 1,
-            "base_date": "2025-11-29",
+            "base_date": "2026-11-29",
             "custom_desc": "",
             "enabled": true,
             "sound": "C:/Windows/Media/Alarm01.wav",
@@ -177,7 +177,7 @@
         {
             "id": 8,
             "name": "朝だよ～",
-            "date": "2025-11-29",
+            "date": "2026-11-29",
             "time": "10:00",
             "repeat": "weekly",
             "weekday": [
@@ -185,7 +185,7 @@
             ],
             "week_of_month": [],
             "interval_weeks": 1,
-            "base_date": "2025-11-29",
+            "base_date": "2026-11-29",
             "custom_desc": "",
             "enabled": true,
             "sound": "C:/Windows/Media/Alarm01.wav",
@@ -197,7 +197,7 @@
         {
             "id": 9,
             "name": "テスト",
-            "date": "2025-12-09",
+            "date": "2026-12-09",
             "time": "08:03",
             "repeat": "none",
             "weekday": [
@@ -206,7 +206,7 @@
             ],
             "week_of_month": [],
             "interval_weeks": 1,
-            "base_date": "2025-11-29",
+            "base_date": "2026-11-29",
             "custom_desc": "",
             "enabled": false,
             "sound": "C:/Windows/Media/Alarm01.wav",

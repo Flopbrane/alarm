@@ -1,6 +1,8 @@
 {
   "default_mode": "dialog",
-  "last_mode": "dialog",
+  "last_mode": "cui",
   "show_dialog": true,
-  "last_shutdown_clean": false
+  "last_shutdown_clean": false,
+  "tick_interval_sec": 1.0,
+  "auto_start": true
 }

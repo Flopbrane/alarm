@@ -158,6 +158,10 @@ class AppLogger:
 
         finally:
             del frame  # 循環参照防止のためにフレームを削除
+
+    def where(self) -> LogWhere:
+        """旧実装互換の呼び出し元取得エイリアス"""
+        return self.get_where_auto()
     # -----------------------------
     # JSON安全化
     # -----------------------------
@@ -207,17 +211,40 @@ class AppLogger:
         *,
         context: dict[str, Any] | None = None,
         output: LogOutput | None = None,
+        where: LogWhere | None = None,
+        alarm_id: str | None = None,
+        timestamp: datetime | str | None = None,
+        trace_id: str | None = None,
+        action: str | None = None,
+        status: str | None = None,
+        category: str | None = None,
     ) -> None:
-        """ログを記録する"""
+        """ログを記録する。
+
+        旧来の呼び出し側が渡している where / alarm_id / timestamp も
+        受け取って後方互換を維持する。
+        """
         self._ensure_file()
+
+        resolved_context: dict[str, Any] = dict(context or {})
+        if alarm_id is not None:
+            resolved_context.setdefault("alarm_id", alarm_id)
+
+        what: LogWhat = {"message": message}
+        if action is not None:
+            what["action"] = action
+        if status is not None:
+            what["status"] = status
+        if category is not None:
+            what["category"] = category
 
         record: LogRecord = {
             "level": level.value,
-            "time": datetime.now().replace(microsecond=0),
-            "trace_id": get_trace_id(),
-            "where": self.get_where_auto(),
-            "what": {"message": message},
-            "context": context or {},
+            "time": timestamp or datetime.now().replace(microsecond=0),
+            "trace_id": trace_id if trace_id is not None else get_trace_id(),
+            "where": where or self.get_where_auto(),
+            "what": what,
+            "context": resolved_context,
             "output": (output or self.default_output).value,
         }
 

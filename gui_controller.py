@@ -5,37 +5,39 @@
 # Description:
 # GUIの呼び出しコントローラクラス
 #########################
+from __future__ import annotations
+from typing import TYPE_CHECKING
+
 from alarm_manager_temp import AlarmManager
-from gui import AlarmGUI
+
+if TYPE_CHECKING:
+    from alarm_manager_temp import AlarmManager
+    from gui import AlarmGUI
 
 
 class GUIController:
     """GUI 開始コントローラクラス"""
-
-    def __init__(self, manager: AlarmManager) -> None:
-        self.manager: AlarmManager = manager
-        self.gui: AlarmGUI = AlarmGUI(controller=self)
-        self._started: bool = False  # 起動済みフラグ
+    def __init__(self, manager: "AlarmManager") -> None:
+        self.manager: "AlarmManager" = manager
+        self._started = False
+        self.gui: "AlarmGUI | None" = None
         self.manager.add_listener(self.on_manager_updated)
 
     def start(self) -> None:
         """GUI を開始する"""
-        # 🔹 起動時に一度だけ
+        # 循環参照回避のため、ここでインポート
+        from gui import AlarmGUI
+
+        self.gui = AlarmGUI(controller=self)
+
         self.manager.start_cycle(condition="startup")
         self._started = True
 
-        # GUI 側で Tk mainloop 開始
         self.gui.start_gui()
-
-    def on_timer(self) -> None:
-        """タイマーイベントハンドラ（after 用）"""
-        # 🔹 通常ループ
-        self.manager.start_cycle(condition="loop")
-        # GUI 側のタイマーイベントもセットアップ
 
     def on_manager_updated(self) -> None:
         """AlarmManager の状態が更新されたときのハンドラ"""
-        if not self._started:
+        if not self._started or self.gui is None:
             return
-        # 再描画・ラベル更新など
-        self.gui.load_alarms()
+
+        # self.gui.load_alarms()

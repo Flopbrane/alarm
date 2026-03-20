@@ -1,81 +1,54 @@
 # -*- coding: utf-8 -*-
 """Tests for AlarmDatetimeChecker"""
 
-import io
-import sys
 import unittest
 from datetime import datetime
+from unittest.mock import MagicMock
 
+from alarm_internal_model import AlarmInternal
 from alarm_states_model import AlarmStateInternal
 from alarm_repeat_datetime_checker import AlarmDatetimeChecker
+from logs.multi_info_logger import AppLogger
 
 
 class TestAlarmDatetimeChecker(unittest.TestCase):
     """Test cases for AlarmDatetimeChecker.should_fire()"""
 
+    def setUp(self) -> None:
+        """Set up common test data"""
+        self.logger: MagicMock = MagicMock(spec=AppLogger)
+        self.alarm = AlarmInternal(id="1", repeat="daily")
+        self.now = datetime(2026, 3, 24, 9, 30, 0)
+
     def test_should_fire_with_invalid_state_logs_error(self) -> None:
         """Test that invalid state logs an error and returns False"""
-        # Create a state with invalid configuration (next_fire_datetime set and lifecycle_finished True)
-        state = AlarmStateInternal(id=1)
-        state.next_fire_datetime = datetime(2025, 1, 15, 10, 30, 0)
+        state = AlarmStateInternal(id="1")
+        state.next_fire_datetime = datetime(2026, 3, 24, 9, 31, 0)
         state.lifecycle_finished = True
-        
-        # Verify that this is indeed an invalid state
+
         self.assertTrue(state.is_invalid_state)
-        
-        # Capture stdout to check error logging
-        captured_output = io.StringIO()
-        sys.stdout = captured_output
-        
-        # Create checker with the invalid state
-        now = datetime(2025, 1, 15, 10, 30, 0)
-        checker = AlarmDatetimeChecker(state, now)
-        
-        # Call should_fire() - it should return False
+
+        checker = AlarmDatetimeChecker(self.alarm, state, self.now, self.logger)
         result: bool = checker.should_fire()
-        
-        # Restore stdout
-        sys.stdout = sys.__stdout__
-        
-        # Verify the result is False
+
         self.assertFalse(result)
-        
-        # Verify error was logged
-        output = captured_output.getvalue()
-        self.assertIn("[エラー]", output)
-        self.assertIn("異常状態検出", output)
-        self.assertIn("next_fire_datetime=2025-01-15 10:30:00", output)
-        self.assertIn("lifecycle_finished=True", output)
-        self.assertIn("id=1", output)
+        self.logger.error.assert_called_once()
+        kwargs = self.logger.error.call_args.kwargs
+        self.assertEqual(kwargs["alarm_id"], self.alarm.id)
+        self.assertEqual(kwargs["context"]["state_id"], state.id)
 
     def test_should_fire_with_valid_state_does_not_log_error(self) -> None:
         """Test that valid state does not log an error"""
-        # Create a state with valid configuration
-        state = AlarmStateInternal(id=2)
-        state.next_fire_datetime = datetime(2025, 1, 15, 10, 30, 0)
+        state = AlarmStateInternal(id="2")
+        state.next_fire_datetime = datetime(2026, 3, 24, 9, 31, 0)
         state.lifecycle_finished = False
-        
-        # Verify that this is NOT an invalid state
+
         self.assertFalse(state.is_invalid_state)
-        
-        # Capture stdout to check no error is logged
-        captured_output = io.StringIO()
-        sys.stdout = captured_output
-        
-        # Create checker with the valid state
-        now = datetime(2025, 1, 15, 10, 30, 0)
-        checker = AlarmDatetimeChecker(state, now)
-        
-        # Call should_fire() - it should check other conditions
-        result: bool = checker.should_fire()
-        
-        # Restore stdout
-        sys.stdout = sys.__stdout__
-        
-        # Verify no error was logged
-        output = captured_output.getvalue()
-        self.assertNotIn("[エラー]", output)
-        self.assertNotIn("異常状態検出", output)
+
+        checker = AlarmDatetimeChecker(self.alarm, state, self.now, self.logger)
+        checker.should_fire()
+
+        self.logger.error.assert_not_called()
 
 
 if __name__ == "__main__":

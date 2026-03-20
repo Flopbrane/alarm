@@ -15,67 +15,81 @@ AlarmPlayerGUI   : Tkinter の after を使って停止を管理
 import threading
 import tkinter as tk
 from time import sleep
-from typing import Optional
+from typing import Any, Optional
 
-import pygame
+def _get_pygame() -> Any:
+    # pylint: disable=import-outside-toplevel
+    import pygame
+    return pygame
 
 
 class AlarmPlayer:
     """スレッド方式でアラーム音を再生・停止するクラス"""
 
     def __init__(self) -> None:
-        try:
-            pygame.mixer.init()
-            self._init_failed = False
-        except Exception:  # pylint: disable=W0718
-            print("⚠ pygame 初期化に失敗しました（SDL2 エラーなど）")
-            self._init_failed = True
+        self._initialized = False
+        self._init_failed = False
+        self._stop_timer: threading.Thread | None = None
 
-        self._stop_timer = None
+
+    def _ensure_init(self) -> None:
+        if self._initialized or self._init_failed:
+            return
+
+        try:
+            py_game: Any = _get_pygame()
+            py_game.mixer.init()
+            self._initialized = True
+
+        except Exception as e:  # pylint: disable=W0718
+            print(f"⚠ pygame 初期化に失敗しました: {e}")
+            self._init_failed = True
 
     def play(self, sound: str, duration: int = 10) -> None:
         """指定された音を duration 秒だけ再生する"""
-
+        self._ensure_init()
         if self._init_failed:
             print("⚠ pygame が初期化されていないため再生できません")
             return
+
+        py_game: Any = _get_pygame()
 
         # 既存の再生を止める
         self.stop()
 
         try:
-            pygame.mixer.music.load(sound)
+            py_game.mixer.music.load(sound)
         except Exception as e:  # pylint: disable=W0718
             print(f"⚠ サウンド読み込みエラー: {e}")
             return
 
-        # duration → float 化
         try:
             dur = float(duration)
-        except Exception:  # pylint: disable=W0718
+        except Exception as e:  # pylint: disable=W0718
+            print(f"⚠ duration 変換エラー: {e}")
             dur = 10.0
 
         if dur <= 0:
-            pygame.mixer.music.play(loops=0)
+            py_game.mixer.music.play(loops=0)
             self._stop_timer = None
             return
 
-        pygame.mixer.music.play(-1)
+        py_game.mixer.music.play(-1)
 
         def stop_after() -> None:
             sleep(dur)
-            pygame.mixer.music.stop()
+            py_game.mixer.music.stop()
 
         self._stop_timer = threading.Thread(target=stop_after, daemon=True)
         self._stop_timer.start()
 
     def stop(self) -> None:
         """再生中の音を即時停止する"""
-
         if self._init_failed:
             return
 
-        pygame.mixer.music.stop()
+        py_game: Any = _get_pygame()
+        py_game.mixer.music.stop()
 
 
 class AlarmPlayerGUI:
@@ -83,10 +97,11 @@ class AlarmPlayerGUI:
 
     def __init__(self, root: tk.Misc) -> None:
         try:
-            pygame.mixer.init()
+            py_game: Any = _get_pygame()
+            py_game.mixer.init()
             self._init_failed = False
-        except Exception:  # pylint: disable=W0718
-            print("⚠ pygame 初期化に失敗しました（SDL2 エラーなど）")
+        except Exception as e:  # pylint: disable=W0718
+            print(f"⚠ pygame 初期化に失敗しました（SDL2 エラーなど）: {e}")
             self._init_failed = True
 
         self.root: tk.Misc = root
@@ -94,37 +109,33 @@ class AlarmPlayerGUI:
 
     def play(self, sound: str, duration: int = 10) -> None:
         """GUI 用の再生メソッド"""
-
         if self._init_failed:
             print("⚠ pygame が初期化されていないため再生できません")
             return
 
+        py_game: Any = _get_pygame()
         self.stop()
 
         try:
-            pygame.mixer.music.load(sound)
+            py_game.mixer.music.load(sound)
         except Exception as e:  # pylint: disable=W0718
             print(f"⚠ サウンド読み込みエラー: {e}")
             return
 
         try:
             dur = float(duration)
-        except Exception:  # pylint: disable=W0718
+        except Exception as e:  # pylint: disable=W0718
+            print(f"⚠ duration 変換エラー: {e}")
             dur = 10.0
 
         if dur <= 0:
             return
 
-        pygame.mixer.music.play(-1)
-
-        self._after_id = self.root.after(
-            int(dur * 1000),
-            pygame.mixer.music.stop,
-        )
+        py_game.mixer.music.play(-1)
+        self._after_id = self.root.after(int(dur * 1000), py_game.mixer.music.stop)
 
     def stop(self) -> None:
         """停止処理"""
-
         if self._init_failed:
             return
 
@@ -134,5 +145,6 @@ class AlarmPlayerGUI:
             except Exception:  # pylint: disable=W0718
                 pass
 
-        pygame.mixer.music.stop()
+        py_game: Any = _get_pygame()
+        py_game.mixer.music.stop()
         self._after_id = None

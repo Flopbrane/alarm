@@ -27,22 +27,17 @@ from typing import Any, Dict, List, Optional
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 
-from alarm_manager import AlarmManager
+from alarm_manager_temp import AlarmManager
 from mini_calendar import MiniCalendar, TimePicker
 from constants import (
     REPEAT_DISPLAY,
     REPEAT_INTERNAL,
-    ALARM_KEYS,
     COLUMN_LABELS_EDITOR,
     WEEKDAY_LABELS,
     DEFAULT_SOUND,
-    ALARM_TEMPLATE
-)
-from utils import (
-    normalize_alarm_dict
-)
 
-
+)
+from utils.utils import normalize_alarm_input_dict
 
 
 # -----------------------------------------------------
@@ -349,7 +344,6 @@ class JsonEditor:
         date_str = d.get("date", "")
         time_str = d.get("time", "")
 
-
         if isinstance(dt_raw, str) and dt_raw:
             try:
                 dt = datetime.fromisoformat(dt_raw)
@@ -357,7 +351,6 @@ class JsonEditor:
                 time_str = dt.strftime("%H:%M")
             except ValueError:
                 pass
-
 
         fixed["date"] = date_str
         fixed["time"] = time_str
@@ -379,18 +372,15 @@ class JsonEditor:
                 except (ValueError, TypeError):
                     val = ALARM_TEMPLATE[key]
 
-
             elif key in ("enabled", "skip_holiday", "_triggered"):
                 if isinstance(val, str):
                     val = val.lower() in ("true", "1", "yes", "on")
                 else:
                     val = bool(val)
 
-
             elif key in ("weekday", "week_of_month"):
                 if not isinstance(val, list):
                     val = []
-
 
             elif key == "_snoozed_until":
                 if val in ("", None, "null"):
@@ -399,7 +389,7 @@ class JsonEditor:
 
             fixed[key] = val
 
-            fixed = normalize_alarm_dict(fixed, ALARM_TEMPLATE)
+            fixed: Dict[str, Any] = normalize_alarm_input_dict(fixed, ALARM_TEMPLATE)
         # pylint: enable=protected-access
 
         return fixed

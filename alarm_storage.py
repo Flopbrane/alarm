@@ -15,18 +15,18 @@ import sys
 from datetime import datetime
 from json import JSONDecodeError
 from pathlib import Path
-from typing import Any, List, cast
+from typing import Any, List, Literal, cast
 from typing import TYPE_CHECKING
+from tkinter import TclError, Tk, messagebox
 
 # Local modules
 from log_app import get_logger
 from alarm_json_model import AlarmJson, AlarmStateJson
 from env_paths import ALARM_PATH, BACKUP_DIR, STANDBY_PATH
 # 実行時にも必要なもの
-from logs.multi_info_logger import LogOutput
 # 型だけ必要なもの
 if TYPE_CHECKING:
-    from .logs.multi_info_logger import AppLogger
+    from logs.multi_info_logger import AppLogger
 
 
 # 🔴 今後の注意点（今は問題なし）
@@ -42,6 +42,7 @@ if TYPE_CHECKING:
 # =========================================================
 class AlarmStorage:
     """📁 JSON保存・読み込み専用（Internalに触れない）"""
+    _MAX_BACKUPS = 3
 
     @staticmethod
     def get_base_dir() -> Path:
@@ -50,10 +51,44 @@ class AlarmStorage:
             return Path(sys.executable).resolve().parent
         return Path(__file__).resolve().parent
 
-    def __init__(self, logger: AppLogger) -> None:
+    def __init__(
+        self,
+        logger: AppLogger | None = None,
+        alarm_path: Path | None = None,
+        standby_path: Path | None = None,
+    ) -> None:
         self.base_dir: Path = self.get_base_dir()
         self.logger: AppLogger = logger if logger else get_logger()
+        self.alarm_path: Path = alarm_path or ALARM_PATH
+        self.standby_path: Path = standby_path or STANDBY_PATH
         # ロガーは遅延初期化する（このクラスは起動直後から呼ばれるため、先にロガーを作ると循環参照になる可能性がある）
+
+    def _show_dialog(
+        self,
+        title: str,
+        message: str,
+        level: Literal["info", "warning", "error"] = "info",
+    ) -> None:
+        """Tk のルートを一時生成してダイアログを表示する"""
+        root: Tk | None = None
+        try:
+            root = Tk()
+            root.withdraw()
+            cast(Any, root).wm_attributes("-topmost", True)
+            if level == "error":
+                messagebox.showerror(title, message, parent=root)
+            elif level == "warning":
+                messagebox.showwarning(title, message, parent=root)
+            else:
+                messagebox.showinfo(title, message, parent=root)
+            root.update_idletasks()
+        except KeyboardInterrupt:
+            return
+        except TclError:
+            print(f"[{level.upper()}] {title}: {message}")
+        finally:
+            if root is not None:
+                root.destroy()
 
     # ==============================
     # 原子書き込み（atomic write）
@@ -78,36 +113,39 @@ class AlarmStorage:
             Any  # 本来ならDict[str, Any]なんだけど、ファイル破損の可能性も考慮している
         )
 
-        # alarm.jsonのPathがない(alarm.jsonが存在しない)場合、[]を返す
-        if not ALARM_PATH.exists():
-            self.logger.info(
-                "alarm.json が存在しません",
-                context={"path": str(ALARM_PATH)}
-)
+        # alarm.json が無い / 空ファイルの場合は初回起動候補として案内する
+        if not self.alarm_path.exists() or self.alarm_path.stat().st_size == 0:
+            self._show_dialog(
+                "初回起動の確認",
+                "初回起動ではありませんか？アラームデータを記述してください",
+                level="info",
+            )
             return []
         # alarm.jsonが破損している場合[]を返す
         try:
-            with open(ALARM_PATH, "r", encoding="utf-8") as f:
+            with open(self.alarm_path, "r", encoding="utf-8") as f:
                 raw_any = json.load(f)
         except JSONDecodeError as e:
             self.logger.error(
                 f"[ERROR] alarm.json が壊れています: {e}",
-                where=self._where(method_name="load_alarms"),
-                alarm_id=None,
-                context=None,
-                timestamp=datetime.now(),
-                output=LogOutput.BOTH,
+                context={"path": str(self.alarm_path)},
+            )
+            self._show_dialog(
+                "alarm記録ファイルエラー",
+                "alarm記録ファイルが破損しています",
+                level="error",
             )
             return []
 
         if not isinstance(raw_any, dict):
             self.logger.error(
                 "[ERROR] alarm.json format invalid (not dict)",
-                where=self._where(method_name="load_alarms"),
-                alarm_id=None,
-                context=None,
-                timestamp=datetime.now(),
-                output=LogOutput.BOTH,
+                context={"path": str(self.alarm_path)},
+            )
+            self._show_dialog(
+                "alarm記録ファイルエラー",
+                "alarm記録ファイルが破損しています",
+                level="error",
             )
             return []
 
@@ -120,11 +158,6 @@ class AlarmStorage:
             except TypeError as e:
                 self.logger.warning(
                     f"[WARN] alarm entry skipped: {e}",
-                    where=self._where(method_name="load_alarms"),
-                    alarm_id=None,
-                    context=None,
-                    timestamp=datetime.now(),
-                    output=LogOutput.BOTH,
                 )
                 continue
         return alarms
@@ -153,39 +186,24 @@ class AlarmStorage:
         )
         s_dict: dict[str, Any]
         # standby.jsonが存在しない場合、[]を返す
-        if not STANDBY_PATH.exists():
+        if not self.standby_path.exists():
             self.logger.info(
                 "[INFO] standby.json が存在しません（初回起動の可能性）",
-                where=self._where(method_name="load_standby"),
-                alarm_id=None,
-                context=None,
-                timestamp=datetime.now(),
-                output=LogOutput.BOTH,
             )
             return []
         # raw_anyに取り敢えず読み込む。standby.jsonが破損している場合[]を返す
         try:
-            with open(STANDBY_PATH, "r", encoding="utf-8") as f:
+            with open(self.standby_path, "r", encoding="utf-8") as f:
                 raw_any = json.load(f)
         except JSONDecodeError as e:
             self.logger.error(
                 f"[ERROR] standby.json が壊れています: {e}",
-                where=self._where(method_name="load_standby"),
-                alarm_id=None,
-                context=None,
-                timestamp=datetime.now(),
-                output=LogOutput.BOTH,
             )
             return []
         # ① dict か？
         if not isinstance(raw_any, dict):
             self.logger.error(
                 "[ERROR] standby.json format invalid (not dict)",
-                where=self._where(method_name="load_standby"),
-                alarm_id=None,
-                context=None,
-                timestamp=datetime.now(),
-                output=LogOutput.BOTH,
             )
             return []
         # ② dict として信じる
@@ -197,11 +215,6 @@ class AlarmStorage:
         if not isinstance(standby_raw, list):
             self.logger.error(
                 "[ERROR] standby.json format invalid (standby not list)",
-                where=self._where(method_name="load_standby"),
-                alarm_id=None,
-                context=None,
-                timestamp=datetime.now(),
-                output=LogOutput.BOTH,
             )
             return []
         standby_raw = cast(list[dict[str, Any]], standby_raw)
@@ -210,11 +223,6 @@ class AlarmStorage:
             if not isinstance(s, dict):
                 self.logger.warning(
                     "[WARN] invalid standby entry skipped (not dict)",
-                    where=self._where(method_name="load_standby"),
-                    alarm_id=None,
-                    context=None,
-                    timestamp=datetime.now(),
-                    output=LogOutput.BOTH,
                 )
                 continue
             s_dict = cast(dict[str, Any], s)
@@ -224,11 +232,6 @@ class AlarmStorage:
             except TypeError as e:
                 self.logger.warning(
                     f"[WARN] standby entry skipped: {e}",
-                    where=self._where(method_name="load_standby"),
-                    alarm_id=None,
-                    context=None,
-                    timestamp=datetime.now(),
-                    output=LogOutput.BOTH,
                 )
                 continue
         return states
@@ -240,17 +243,12 @@ class AlarmStorage:
         """alarmsの保存"""
         try:
             self._atomic_write_json(
-                ALARM_PATH,
+                self.alarm_path,
                 {"alarms": [a.__dict__ for a in alarms]},
             )
         except OSError as e:
             self.logger.error(
                 f"[ERROR] alarms.json の保存に失敗: {e}",
-                where=self._where(method_name="save_alarms"),
-                alarm_id=None,
-                context=None,
-                timestamp=datetime.now(),
-                output=LogOutput.BOTH,
             )
             raise
 
@@ -261,17 +259,12 @@ class AlarmStorage:
         """standbyの保存"""
         try:
             self._atomic_write_json(
-                STANDBY_PATH,
+                self.standby_path,
                 {"standby": [s.__dict__ for s in states]},
             )
         except OSError as e:
             self.logger.error(
                 f"[ERROR] standby.json の保存に失敗: {e}",
-                where=self._where(method_name="save_standby"),
-                alarm_id=None,
-                context=None,
-                timestamp=datetime.now(),
-                output=LogOutput.BOTH,
             )
             raise
 
@@ -291,11 +284,6 @@ class AlarmStorage:
         except OSError as e:
             self.logger.error(
                 f"[ERROR] save_all の保存に失敗: {e}",
-                where=self._where(method_name="save_all"),
-                alarm_id=None,
-                context=None,
-                timestamp=datetime.now(),
-                output=LogOutput.BOTH,
             )
             raise  # 将来、loggerを作成したときにログ出力に変える
         else:
@@ -312,47 +300,27 @@ class AlarmStorage:
             BACKUP_DIR.mkdir(exist_ok=True)
             ts: str = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-            if ALARM_PATH.exists():
-                shutil.copy2(ALARM_PATH, BACKUP_DIR / f"alarms_{ts}.json")
+            if self.alarm_path.exists():
+                shutil.copy2(self.alarm_path, BACKUP_DIR / f"alarms_{ts}.json")
             else:
                 self.logger.warning(
                     "[WARN] backup skipped: alarms.json not found",
-                    where=self._where(method_name="backup"),
-                    alarm_id=None,
-                    context=None,
-                    timestamp=datetime.now(),
-                    output=LogOutput.BOTH,
-                    )
+                )
 
-            if STANDBY_PATH.exists():
-                shutil.copy2(STANDBY_PATH, BACKUP_DIR / f"standby_{ts}.json")
+            if self.standby_path.exists():
+                shutil.copy2(self.standby_path, BACKUP_DIR / f"standby_{ts}.json")
             else:
                 self.logger.warning(
                     "[WARN] backup skipped: standby.json not found",
-                    where=self._where(method_name="backup"),
-                    alarm_id=None,
-                    context=None,
-                    timestamp=datetime.now(),
-                    output=LogOutput.BOTH,
-                    )
+                )
 
             self.logger.info(
                 f"💾 バックアップ保存 → {BACKUP_DIR}",
-                where=self._where(method_name="backup"),
-                alarm_id=None,
-                context=None,
-                timestamp=datetime.now(),
-                output=LogOutput.BOTH,
                 )
         except OSError as e:
             # 🔥 ここで raise しない
             self.logger.warning(
                 f"[WARN] backup failed: {e}",
-                where=self._where(method_name="backup"),
-                alarm_id=None,
-                context=None,
-                timestamp=datetime.now(),
-                output=LogOutput.BOTH,
                 )
 
     # ===============================
@@ -366,12 +334,7 @@ class AlarmStorage:
             if not backups:
                 self.logger.warning(
                     "⚠ 復元できるバックアップがありません",
-                    where=self._where(method_name="restore_latest"),
-                    alarm_id=None,
-                    context=None,
-                    timestamp=datetime.now(),
-                    output=LogOutput.BOTH,
-                    )
+                )
                 return
 
             latest_ts: str = backups[0].stem.replace("alarms_", "")
@@ -379,31 +342,16 @@ class AlarmStorage:
             standby_file: Path = BACKUP_DIR / f"standby_{latest_ts}.json"
 
             if alarms_file.exists() and standby_file.exists():
-                shutil.copy2(alarms_file, ALARM_PATH)
-                shutil.copy2(standby_file, STANDBY_PATH)
+                shutil.copy2(alarms_file, self.alarm_path)
+                shutil.copy2(standby_file, self.standby_path)
                 self.logger.info(
                     f"♻ 復元完了 → {latest_ts}",
-                    where=self._where(method_name="restore_latest"),
-                    alarm_id=None,
-                    context=None,
-                    timestamp=datetime.now(),
-                    output=LogOutput.BOTH,
                     )
             else:
                 self.logger.warning(
                     "⚠ 完全なバックアップペアが見つかりません",
-                    where=self._where(method_name="restore_latest"),
-                    alarm_id=None,
-                    context=None,
-                    timestamp=datetime.now(),
-                    output=LogOutput.BOTH,
                     )
         except OSError as e:
             self.logger.error(
                 f"[ERROR] restore failed: {e}",
-                where=self._where(method_name="restore_latest"),
-                alarm_id=None,
-                context=None,
-                timestamp=datetime.now(),
-                output=LogOutput.BOTH,
                 )

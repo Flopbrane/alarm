@@ -12,6 +12,7 @@ Tk は「起動モード選択」にしか使わない
 from __future__ import annotations
 
 # 標準ライブラリ
+import threading
 import tkinter as tk
 from tkinter import ttk
 from typing import TYPE_CHECKING
@@ -20,8 +21,6 @@ from typing import TYPE_CHECKING
 from log_app import get_logger
 from alarm_config_manager import Config, ConfigManager
 from alarm_manager_temp import AlarmManager
-from cui_controller import CUIController
-from gui_controller import GUIController
 from logs.multi_info_logger import new_trace_id
 if TYPE_CHECKING:
     from logs.multi_info_logger import AppLogger
@@ -81,12 +80,15 @@ def start_by_last_mode(
 
 def launch_gui(manager: AlarmManager) -> None:
     """GUI 起動"""
+    from gui_controller import GUIController  # 循環インポート回避のため、ここでインポート
     GUIController(manager).start()
 
 
 def launch_cui(manager: AlarmManager) -> None:
-    """CUI 起動"""
-    CUIController(manager).run()
+    from cui_controller import CUIController
+    controller = CUIController(manager)
+    t = threading.Thread(target=controller.run, daemon=False)
+    t.start()
 
 
 # =====================================================
@@ -98,10 +100,17 @@ def show_mode_dialog(
     cfg: Config,
 ) -> None:
     """起動モード選択用の Tk ダイアログ"""
+    print("ダイアログ表示前")
     root = tk.Tk()
     root.title("起動モードを選択")
     root.geometry("360x150")
     root.resizable(False, False)
+
+    def handle_cui() -> None:
+        on_cui_selected(root, manager, cfg_mgr, cfg)
+
+    def handle_gui() -> None:
+        on_gui_selected(root, manager, cfg_mgr, cfg)
 
     ttk.Label(
         root,
@@ -116,14 +125,14 @@ def show_mode_dialog(
         btn_frame,
         text="ウインドウで起動",
         width=15,
-        command=lambda: on_gui_selected(root, manager, cfg_mgr, cfg),
+        command=handle_gui,
     ).grid(row=0, column=0, padx=5)
 
     ttk.Button(
         btn_frame,
         text="ターミナルで起動",
         width=15,
-        command=lambda: on_cui_selected(root, manager, cfg_mgr, cfg),
+        command=handle_cui,
     ).grid(row=0, column=1, padx=5)
 
     ttk.Button(
@@ -132,7 +141,10 @@ def show_mode_dialog(
         width=15,
         command=root.destroy,
     ).grid(row=0, column=2, padx=5)
+    # if command == root.destroy():
+    #     print("キャンセルされました")
 
+    print("mainloop入る")
     root.mainloop()
 
 
@@ -145,6 +157,7 @@ def on_gui_selected(
     cfg_mgr: ConfigManager,
     cfg: Config) -> None:
     """GUI 起動が選ばれた"""
+    print("🔥 GUIボタン押された")
     cfg.last_mode = "gui"
     cfg_mgr.save_config(cfg)
 
@@ -158,6 +171,7 @@ def on_cui_selected(
     cfg_mgr: ConfigManager,
     cfg: Config) -> None:
     """CUI 起動が選ばれた"""
+    print("🔥 CUIボタン押された")
     cfg.last_mode = "cui"
     cfg_mgr.save_config(cfg)
 

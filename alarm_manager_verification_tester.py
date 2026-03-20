@@ -6,18 +6,16 @@
 # 実働検証用のスクリプト群
 #########################
 
-import tempfile
 
 # run_alarm_once.py
 from datetime import datetime
 from pathlib import Path
-from tempfile import TemporaryDirectory
-from typing import List, Literal
+from typing import Literal
 
 from alarm_internal_model import AlarmInternal
 from alarm_states_model import AlarmStateInternal
-from alarm_irregular_logger import AlarmLogger, LogWhere
-from alarm_manager_cycle_control_options import TEST_CONFIG_CHANGED
+from logs.multi_info_logger import AppLogger
+from env_paths import BASE_DIR
 from alarm_manager_temp import AlarmManager
 
 # NEXT: AlarmStateJson の欠損時は initial を追加（test 追加）
@@ -25,22 +23,36 @@ from alarm_manager_temp import AlarmManager
 
 
 CycleCondition = Literal["startup", "loop", "config_change"]
-_temp_dirs: List[TemporaryDirectory[str]] = []
+VERIFICATION_DIR: Path = BASE_DIR / "_verification_runtime"
+VERIFICATION_DIR.mkdir(exist_ok=True)
+FIXED_RUNTIME_DIR: Path = VERIFICATION_DIR / "run_d72e28f074524e37bd7998c8a667b38f"
+FIXED_RUNTIME_DIR.mkdir(parents=True, exist_ok=True)
 
 
 class AlarmRuntime:
     """AlarmManager を安全に実行するためのテスト用実行文脈"""
 
-    def __init__(self) -> None:
-        self.tmpdir: TemporaryDirectory[str] = tempfile.TemporaryDirectory()
-        base = Path(self.tmpdir.name)
+    def __init__(
+        self,
+        alarm_source: Path | None = None,
+        standby_source: Path | None = None,
+        runtime_dir: Path | None = None,
+    ) -> None:
+        self.runtime_dir: Path = runtime_dir or FIXED_RUNTIME_DIR
+        self.runtime_dir.mkdir(parents=True, exist_ok=True)
 
-        self.alarm_path: Path = base / "alarms.json"
-        self.standby_path: Path = base / "standby.json"
+        self.alarm_path: Path = self.runtime_dir / "alarms.json"
+        self.standby_path: Path = self.runtime_dir / "standby.json"
 
-        # 空ファイルを作っておく（load_all対策）
-        self.alarm_path.write_text('{"alarms": []}', encoding="utf-8")
-        self.standby_path.write_text('{"standby": []}', encoding="utf-8")
+        if alarm_source is not None:
+            self.alarm_path.write_text(alarm_source.read_text(encoding="utf-8"), encoding="utf-8")
+        elif not self.alarm_path.exists():
+            self.alarm_path.write_text('{"alarms": []}', encoding="utf-8")
+
+        if standby_source is not None:
+            self.standby_path.write_text(standby_source.read_text(encoding="utf-8"), encoding="utf-8")
+        elif not self.standby_path.exists():
+            self.standby_path.write_text('{"standby": []}', encoding="utf-8")
 
         self.mgr = AlarmManager(
             alarm_path=self.alarm_path,
@@ -61,12 +73,8 @@ class AlarmRuntime:
 
     def close(self) -> None:
         """実行文脈を閉じる"""
-        self.tmpdir.cleanup()
-
-
-def _where(func_name: str) -> "LogWhere":
-    """Format location string for logging"""
-    return LogWhere(module=__name__, function=func_name)
+        # 検証用の保存結果を追跡したいため、自動削除しない
+        return
 
 
 def main() -> None:
@@ -81,17 +89,18 @@ def main() -> None:
 # 🔹 テスト用ユーティリティ
 # =====================================================
 def make_test_manager() -> AlarmManager:
-    """一時ディレクトリ上に AlarmManager を作成して返す（テスト用）"""
-    tmp: TemporaryDirectory[str] = TemporaryDirectory()
-    alarm_path: Path = Path(tmp.name) / "alarm.json"
-    standby_path: Path = Path(tmp.name) / "standby.json"
+    """固定の検証用ディレクトリ上に AlarmManager を作成して返す"""
+    alarm_path: Path = FIXED_RUNTIME_DIR / "alarm.json"
+    standby_path: Path = FIXED_RUNTIME_DIR / "standby.json"
+    if not alarm_path.exists():
+        alarm_path.write_text('{"alarms": []}', encoding="utf-8")
+    if not standby_path.exists():
+        standby_path.write_text('{"standby": []}', encoding="utf-8")
 
-    mgr = AlarmManager(
+    return AlarmManager(
         alarm_path=alarm_path,
         standby_path=standby_path,
     )
-    _temp_dirs.append(tmp)  # GCされないよう保持
-    return mgr
 
 
 # =====================================================
@@ -113,7 +122,7 @@ def _validate_repeat_at_single(
     state: AlarmStateInternal,
 ) -> bool:
     """single 繰り返し設定のアラームが正しいか検証"""
-    logger: AlarmLogger = rt.mgr.logger
+    logger: AppLogger = rt.mgr.logger
     print(f"Validating single repeat alarm ID {alarm_obj.id}")
 
     if alarm_obj.repeat != "single":
@@ -125,14 +134,12 @@ def _validate_repeat_at_single(
     if state.lifecycle_finished and state.next_fire_datetime is not None:
         logger.error(
             message="alarm fired after lifecycle_finished but next_fire_datetime is set",
-            where=_where("_validate_single_repeat"),
             alarm_id=alarm_obj.id,
             context={
                 "repeat": alarm_obj.repeat,
                 "lifecycle_finished": state.lifecycle_finished,
                 "next_fire_datetime": state.next_fire_datetime,
             },
-            timestamp=rt.mgr.internal_clock(),
         )
         return False
 
@@ -187,12 +194,13 @@ def test_missing_state_creates_initial_state() -> None:
 
 
 def test_hard_alarm_sample_json_survives() -> None:
-    """alarm_sample.json をロードして、state 欠損がないことを検証"""
-    print("2. alarm_sample.json のロード検証開始")
-    rt = AlarmRuntime()
-    # この alarm_sample.json を配置した状態で
+    """alarms_sample.json をロードして、state 欠損がないことを検証"""
+    print("2. alarms_sample.json のロード検証開始")
+    rt = AlarmRuntime(
+        alarm_source=Path("alarms_sample.json"),
+        standby_source=Path("standby_sample.json"),
+    )
     rt.startup()
-    # 1️⃣ 例外を出さずにロードできること
     assert len(rt.mgr.alarms) > 0
 
     # 2️⃣ state が必ず alarms 分そろっている
@@ -200,7 +208,7 @@ def test_hard_alarm_sample_json_survives() -> None:
     state_ids: set[str] = {s.id for s in rt.mgr.states}
 
     assert alarm_ids == state_ids
-    print("✔ alarm_sample.json が正しくロードされました")
+    print("OK alarms_sample.json loaded successfully")
     rt.close()
 
 
@@ -208,7 +216,7 @@ def test_next_fire_is_sane_for_all_alarms() -> None:
     """全アラームの next_fire_datetime が妥当な値であることを検証"""
     print("3. 全アラームの next_fire_datetime の妥当性検証開始")
     rt = AlarmRuntime()
-    logger: AlarmLogger = rt.mgr.logger
+    logger: AppLogger = rt.mgr.logger
 
     rt.startup()
     now: datetime = rt.mgr.internal_clock()
@@ -221,13 +229,11 @@ def test_next_fire_is_sane_for_all_alarms() -> None:
             if dt is not None:
                 logger.warning(
                     message="Disabled alarm has state.next_fire_datetime set",
-                    where=_where("test_next_fire_is_sane_for_all_alarms"),
                     alarm_id=alarm_item.id,
                     context={
                         "alarm_enabled": alarm_item.enabled,
                         "next_fire_datetime": dt,
                     },
-                    timestamp=now,
                 )
             continue
 
@@ -246,13 +252,11 @@ def test_next_fire_is_sane_for_all_alarms() -> None:
                     # ❗ 異常ではないが注意状態
                     rt.mgr.logger.warning(
                         alarm_id=alarm_item.id,
-                        where=_where("test_next_fire_is_sane_for_all_alarms"),
                         message="single alarm is pending fire (next_fire is in the past)",
                         context={
                             "next_fire_datetime": state.next_fire_datetime,
                             "now": now,
                         },
-                        timestamp=now,
                     )
     rt.loop()
     print("✔ 全アラームの next_fire_datetime をチェックしました")
@@ -283,15 +287,15 @@ def test_edge_case_alarm_fields_do_not_crash() -> None:
     rt.startup()
     rt.config_change()
     rt.loop()
-    logger: AlarmLogger = mgr.logger
+    logger: AppLogger = mgr.logger
     # 極端な値のアラームを追加
     # 異常値に対する耐性を確認
     rt.startup()
-    extreme_alarms: List[AlarmInternal] = [
+    extreme_alarms: list[AlarmInternal] = [
         AlarmInternal(
             id="1000",
             name="Recent time Alarm",
-            datetime_=datetime(2026, 3, 8,17, 20),
+            datetime_=datetime(2026, 3, 25, 17, 20),
             repeat="single",
             enabled=True,
         ),
@@ -317,8 +321,6 @@ def test_edge_case_alarm_fields_do_not_crash() -> None:
     except (ValueError, RuntimeError, TypeError) as e:
         logger.error(
             message=f"Crash occurred with extreme alarm fields: {e}",
-            where=_where("test_edge_case_alarm_fields_do_not_crash"),
-            timestamp=mgr.internal_clock(),
         )
         assert False, "クラッシュが発生しました"
     assert True

@@ -22,9 +22,9 @@ UI ↔ Internal 変換・受け渡し専用モジュール
 # Description:
 #  UI <-> Internal mapper(チェック済み)
 #########################
-
+from __future__ import annotations
+from datetime import datetime, time, date
 from dataclasses import fields
-from datetime import datetime, time
 from typing import Any
 
 from alarm_internal_model import AlarmInternal
@@ -119,14 +119,14 @@ class InternaltoUIMapper:
         date_str: str = ""
         time_str: str = ""
 
-        dt: datetime | time | None = alarm.datetime_
+        dt: datetime | None = alarm.datetime_
 
-        if isinstance(dt, datetime):
+        if dt is None:
+            date_str = ""
+            time_str = ""
+        else:
             date_str = dt.strftime("%Y-%m-%d")
             time_str = dt.strftime("%H:%M")
-        else:
-            date_str = alarm.base_date_.strftime("%Y-%m-%d") if alarm.base_date_ else ""
-            time_str = dt.strftime("%H:%M") if isinstance(dt, time) else ""
 
 
         return AlarmUI(
@@ -175,16 +175,52 @@ class UIpatchtoInternalMapper:
         patch: AlarmUIPatch,
         internal: AlarmInternal,
     ) -> AlarmInternal:
-        """AlarmUIPatch(変更された場所には値が、変更されていない場所には None が入る) を
-        AlarmInternal に適用して更新"""
+        """AlarmUIPatch → AlarmInternal"""
         patch_dict: dict[str, Any] = vars(patch)
 
+        # =========================================
+        # 🔹 datetime_ の更新（最優先）
+        # =========================================
+        date_str: Any | None = patch_dict.get("date")
+        time_str: Any | None = patch_dict.get("time")
+
+        if (date_str is not None or time_str is not None) and internal.datetime_ is not None:
+            # 既存値を取得
+            current_dt: datetime= internal.datetime_
+
+            # date補完
+            if date_str is not None:
+                new_date: date = datetime.strptime(date_str, "%Y-%m-%d").date()
+            else:
+                new_date = current_dt.date()
+
+            # time補完
+            if time_str is not None:
+                new_time: time = datetime.strptime(time_str, "%H:%M").time()
+            else:
+                new_time = current_dt.time()
+
+            # 合成
+            internal.datetime_ = datetime.combine(new_date, new_time)
+        # =========================================
+        # 🔹 その他フィールド
+        # =========================================
         for f in fields(AlarmUIPatch):
-            value: Any = patch_dict[f.name]
-            if value is not None:
-                setattr(internal, f.name, value)
+            value = patch_dict[f.name]
+
+            if value is None:
+                continue
+
+            # datetime系はここで触らない
+            if f.name in ("date", "time"):
+                continue
+
+            # base_dateはスキップ
+            if f.name == "base_date":
+                continue
+
+            setattr(internal, f.name, value)
 
         return internal
-
 
 # =========================================================

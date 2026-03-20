@@ -6,7 +6,7 @@
 # 　GUI　script
 #########################
 # gui.py は AlarmGUI / AlarmStateGUI しか触らない
-
+from __future__ import annotations
 # --- Python標準ライブラリ -------------------------------------------------
 import math
 import os
@@ -32,7 +32,6 @@ from constants import (
     WEEKDAY_LABELS,
     WEEKS_CUSTOM_INTERNAL,
 )
-from gui_controller import GUIController
 from json_editor import JsonEditor
 from mini_calendar import MiniCalendar, TimePicker
 from utils.utils import save_config, to_hankaku, validate_date, validate_time, weekday_to_str
@@ -51,7 +50,7 @@ class AlarmGUI:
     # 🔹 __init__
     # =========================================
     def __init__(self, controller: "GUIController") -> None:
-        self.controller = controller
+        self.controller: "GUIController" = controller
         self.root = tk.Tk()
         # Tk after 版のプレーヤーを使用
         self.player = AlarmPlayerGUI(self.root)
