@@ -44,6 +44,7 @@ class LogLevel(Enum):
     WARNING = "WARNING"
     ERROR = "ERROR"
     CRITICAL = "CRITICAL"
+    REBOOT = "REBOOT"  # 特殊レベル（再起動ログ用）
 
 
 class LogWhere(TypedDict, total=False):
@@ -64,7 +65,7 @@ class LogWhat(TypedDict, total=False):
 
 class LogRecord(TypedDict):
     """ログレコードの情報"""
-    level: str
+    level: LogLevel
     time: datetime | str
     trace_id: str | None
     where: LogWhere
@@ -238,8 +239,8 @@ class AppLogger:
             what["category"] = category
 
         record: LogRecord = {
-            "level": level.value,
-            "time": timestamp or datetime.now().replace(microsecond=0),
+            "level": level,
+            "time": timestamp or datetime.now().replace(second=0,microsecond=0),
             "trace_id": trace_id if trace_id is not None else self._get_trace_id(),
             "where": where or self.get_where_auto(),
             "what": what,
@@ -290,3 +291,8 @@ class AppLogger:
     def critical(self, message: str, **kw: Any) -> None:
         """クリティカルレベルのログを記録する"""
         self._log(LogLevel.CRITICAL, message, **kw)
+
+    def set_trace_id(self, trace_id: str) -> None:
+        """外部から trace_id をセットするためのメソッド"""
+        self._TRACE_ID_VAR.set(trace_id)
+        self._log(LogLevel.REBOOT, f"Trace ID set to {trace_id}", output=LogOutput.BOTH)

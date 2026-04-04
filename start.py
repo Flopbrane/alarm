@@ -14,14 +14,14 @@ from __future__ import annotations
 # 標準ライブラリ
 import threading
 import tkinter as tk
+import psutil
 from tkinter import ttk
 from typing import TYPE_CHECKING
 
 # 自作モジュール
-from log_app import get_logger
+from logs.log_app import get_logger
 from alarm_config_manager import Config, ConfigManager
 from alarm_manager_temp import AlarmManager
-from logs.multi_info_logger import new_trace_id
 from gui_starter import main as gui_main
 from cui_starter import main as cui_main
 if TYPE_CHECKING:
@@ -33,16 +33,17 @@ def start_application() -> None:
     """アプリケーションの起動処理"""
     try:
         logger: "AppLogger" = get_logger()
-        trace_id: str = new_trace_id()
+        boot_time: float = psutil.boot_time()
 
         logger.info(
             "アプリ起動",
-            context={"trace_id": trace_id},
+            context={
+                "boot_time": boot_time,
+            }
         )
 
         manager = AlarmManager(
             logger=logger,
-            trace_id=trace_id,
         )
 
         cfg_mgr = ConfigManager()

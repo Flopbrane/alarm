@@ -61,7 +61,8 @@ from alarm_json_model import AlarmJson, AlarmStateJson
 from alarm_ui_model import AlarmListItem, AlarmUI, AlarmUIPatch
 
 # === utils ===
-from log_app import get_logger
+from logs.log_app import get_logger
+from logs.system_monitor import SystemMonitor
 from constants import DEFAULT_SOUND
 
 # === controller ===
@@ -181,6 +182,7 @@ class AlarmManager:
             standby_path=self.standby_path,
         )
         self.scheduler = AlarmScheduler()
+        self.monitor = SystemMonitor(self.logger)
         # === time ===
         # _now は「1サイクル内で共有される現在時刻」
         # internal_clock() からのみ設定される
@@ -1381,7 +1383,7 @@ class AlarmManager:
 
     # ① cycle開始の入り口（内部クロック確定）
     def _begin_cycle(self) -> DateTimeType:
-        self.tick()
+        self.monitor.tick()
         return self._now # type: ignore
 
     # ② loadフェーズ

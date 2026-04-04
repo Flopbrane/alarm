@@ -48,6 +48,7 @@ class Config:
     last_shutdown_clean: bool = True  # 前回正常終了フラグ
     tick_interval_sec: float = 1.0
     auto_start: bool = True
+    last_boot_time: float = 0.0
 
 # ==============================
 # 🔹 ConfigManager クラス
@@ -61,7 +62,7 @@ class ConfigManager:
         if isinstance(v, str):
             s: str = v.lower()
             if s in ("gui", "cui", "dialog"):
-                return s
+                return s  # type: ignore[return-value]
         return DEFAULT_MODE
 
     # 🔸 config.json
@@ -95,12 +96,13 @@ class ConfigManager:
                 last_mode: Mode = ConfigManager._normalize_mode(data.get("last_mode"))
                 show_dialog = bool(data.get("show_dialog", True))
                 last_shutdown_clean = bool(data.get("last_shutdown_clean", True))
-
+                last_boot_time = float(data.get("last_boot_time", 0.0))
                 cfg_local = Config(
                     default_mode=default_mode,
                     last_mode=last_mode,
                     show_dialog=show_dialog,
                     last_shutdown_clean=last_shutdown_clean,
+                    last_boot_time=last_boot_time,
                 )
 
             return cfg_local
