@@ -42,7 +42,7 @@ class CUIController:
         import msvcrt  # Windows専用
 
         if msvcrt.kbhit():
-            key = msvcrt.getch()
+            key: bytes = msvcrt.getch()
 
             if key == b"q":
                 print("終了します")

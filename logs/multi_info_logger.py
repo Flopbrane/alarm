@@ -26,23 +26,6 @@ from pathlib import Path
 from types import CodeType, FrameType
 from typing import Any, TypedDict, cast, Iterable
 
-# ==========================================================
-# trace_id 管理
-# ==========================================================
-_TRACE_ID_VAR: ContextVar[str | None] = ContextVar("trace_id", default=None)
-
-
-def new_trace_id() -> str:
-    """新しい trace_id を生成してセットする"""
-    trace_id = str(uuid.uuid4())
-    _TRACE_ID_VAR.set(trace_id)
-    return trace_id
-
-
-def get_trace_id() -> str | None:
-    """現在の trace_id を取得する"""
-    return _TRACE_ID_VAR.get()
-
 
 # ==========================================================
 # 型
@@ -91,10 +74,12 @@ class LogRecord(TypedDict):
 
 
 # ==========================================================
-# Logger
+# Multi-Logger
 # ==========================================================
 class AppLogger:
     """アプリケーション用ロガークラス"""
+    _TRACE_ID_VAR: ContextVar[str | None] = ContextVar("trace_id", default=None)
+
     def __init__(
         self,
         log_dir: Path,
@@ -109,6 +94,20 @@ class AppLogger:
         self.log_dir.mkdir(parents=True, exist_ok=True)
         self.log_file: Path = self._get_log_file()
         self.log_file.touch(exist_ok=True)
+        self._new_trace_id()
+
+    # ==========================================================
+    # trace_id 管理
+    # ==========================================================
+    def _new_trace_id(self) -> str:
+        """新しい trace_id を生成してセットする"""
+        trace_id = str(uuid.uuid4())
+        self._TRACE_ID_VAR.set(trace_id)
+        return trace_id
+
+    def _get_trace_id(self) -> str | None:
+        """現在の trace_id を取得する"""
+        return self._TRACE_ID_VAR.get()
 
     # -----------------------------
     # ファイル管理
@@ -241,7 +240,7 @@ class AppLogger:
         record: LogRecord = {
             "level": level.value,
             "time": timestamp or datetime.now().replace(microsecond=0),
-            "trace_id": trace_id if trace_id is not None else get_trace_id(),
+            "trace_id": trace_id if trace_id is not None else self._get_trace_id(),
             "where": where or self.get_where_auto(),
             "what": what,
             "context": resolved_context,

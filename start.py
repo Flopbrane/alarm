@@ -22,6 +22,8 @@ from log_app import get_logger
 from alarm_config_manager import Config, ConfigManager
 from alarm_manager_temp import AlarmManager
 from logs.multi_info_logger import new_trace_id
+from gui_starter import main as gui_main
+from cui_starter import main as cui_main
 if TYPE_CHECKING:
     from logs.multi_info_logger import AppLogger
 # =====================================================
