@@ -3,6 +3,8 @@
 """
 GUI / CUI 起動選択エントリーポイント
 Tk は「起動モード選択」にしか使わない
+managerのインスタンス化は、このファイルだけの重要事項
+(他にファイルでは、受け渡すだけ)
 """
 #########################
 # Author: F.Kurokawa
@@ -12,11 +14,10 @@ Tk は「起動モード選択」にしか使わない
 from __future__ import annotations
 
 # 標準ライブラリ
-import threading
 import tkinter as tk
-import psutil
 from tkinter import ttk
 from typing import TYPE_CHECKING
+import psutil
 
 # 自作モジュール
 from logs.log_app import get_logger
@@ -55,8 +56,7 @@ def start_application() -> None:
             start_by_last_mode(manager, cfg_mgr, cfg)
 
     except Exception as e:  # pylint: disable=broad-exception-caught
-        print("[警告] 起動失敗")
-        print(e)
+        print(f"[警告] 起動失敗: {e}")
 
 
 def start_by_last_mode(
@@ -76,22 +76,18 @@ def start_by_last_mode(
             show_mode_dialog(manager, cfg_mgr, cfg)
 
     except (FileNotFoundError, ValueError, KeyError, AttributeError) as e:  # pylint: disable=broad-exception-caught
-        print("[警告] 最終モード起動に失敗しました")
-        print(e)
+        print(f"[警告] 前回のモード起動に失敗しました: {e}")
         show_mode_dialog(manager, cfg_mgr, cfg)
 
 
 def launch_gui(manager: AlarmManager) -> None:
     """GUI 起動"""
-    from gui_controller import GUIController  # 循環インポート回避のため、ここでインポート
-    GUIController(manager).start()
+    gui_main(manager)
 
 
 def launch_cui(manager: AlarmManager) -> None:
-    from cui_controller import CUIController
-    controller = CUIController(manager)
-    t = threading.Thread(target=controller.run, daemon=False)
-    t.start()
+    """CUI 起動"""
+    cui_main(manager)
 
 
 # =====================================================

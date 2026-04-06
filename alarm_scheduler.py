@@ -26,7 +26,7 @@ from datetime import datetime, time, timedelta
 
 from alarm_internal_model import AlarmInternal
 from cui_datetime_normalizer import normalize_base_date
-from log_app import get_logger
+from logs.log_app import get_logger
 from logs.multi_info_logger import AppLogger
 
 # 型エイリアスをクラス外で定義

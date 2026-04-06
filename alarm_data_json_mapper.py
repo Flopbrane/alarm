@@ -31,7 +31,7 @@ from datetime import date, datetime
 from alarm_internal_model import AlarmInternal
 from alarm_states_model import AlarmStateInternal
 from alarm_json_model import AlarmJson, AlarmStateJson
-from log_app import get_logger
+from logs.log_app import get_logger
 if TYPE_CHECKING:
     from logs.multi_info_logger import AppLogger
 

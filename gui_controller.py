@@ -8,8 +8,6 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
 
-from alarm_manager_temp import AlarmManager
-
 if TYPE_CHECKING:
     from alarm_manager_temp import AlarmManager
     from gui import AlarmGUI
