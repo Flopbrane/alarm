@@ -149,7 +149,6 @@ class AlarmManager:
         alarm_path: Path = ALARM_PATH,
         standby_path: Path = STANDBY_PATH,
         logger: AppLogger | None = None,
-        trace_id: str | None = None,
     ) -> None:
         # === paths ===
         self.base_dir: Path = self.get_base_dir()
@@ -191,8 +190,6 @@ class AlarmManager:
         self._boot_datetime: DateTimeType = self.internal_clock()
         # === clock jump detection ===
         self._last_tick: DateTimeType | None = None
-        # === trace_id ===
-        self.trace_id: str | None = trace_id
         # === runtime_cache ===
         self.cache: RuntimeCache = RuntimeCache()
         # ====================================================
@@ -1318,9 +1315,6 @@ class AlarmManager:
             "config_change": CONFIG_CHANGED, # 設定変更時（recalc → fire → save → notify）
         }
 
-        if condition == "startup":
-            self._normalize_on_boot_and_edit(reason="boot")  # ←ここ🔥
-
         opt: CycleOptions | None = options if options is not None else options_map.get(condition)
         if opt is None:
             self.logger.error(
@@ -1343,6 +1337,10 @@ class AlarmManager:
         self._begin_cycle()
         # ★ここ追加
         now: DateTimeType = self._now  # type: ignore
+        # 起動時のみ
+        if opt == STARTUP:
+            self._normalize_on_boot_and_edit(reason="boot")  # ←ここ🔥
+        # クロックジャンプ検知（ここでやる）
         self._detect_clock_jump(now)
         # ==================================================
         # ② ロード & 整合化
@@ -1383,8 +1381,9 @@ class AlarmManager:
 
     # ① cycle開始の入り口（内部クロック確定）
     def _begin_cycle(self) -> DateTimeType:
-        self.monitor.tick()
-        return self._now # type: ignore
+        self._now = self.internal_clock()  # ←1cycle=1now確定
+        self.monitor.tick()  # ←ここで1回だけ
+        return self._now
 
     # ② loadフェーズ
     def _load_phase(self) -> None:

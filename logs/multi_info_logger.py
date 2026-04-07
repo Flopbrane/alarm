@@ -18,6 +18,7 @@ from __future__ import annotations
 import inspect
 import json
 import uuid
+import warnings
 from contextvars import ContextVar
 from dataclasses import asdict, is_dataclass
 from datetime import date, datetime, time
@@ -79,8 +80,29 @@ class LogRecord(TypedDict):
 # ==========================================================
 class AppLogger:
     """アプリケーション用ロガークラス"""
-    _TRACE_ID_VAR: ContextVar[str | None] = ContextVar("trace_id", default=None)
 
+    # Singleton 実装/クラス変数
+    _instance: AppLogger | None = None
+    _TRACE_ID_VAR: ContextVar[str | None] = ContextVar("trace_id", default=None)
+    # 🔥 これ追加
+    _initialized: bool = False
+
+    # シングルトン実装
+    def __new__(cls, *args: Any, **kwargs: Any) -> AppLogger:
+        """シングルトン実装"""
+        if cls._instance is not None:
+            warnings.warn(
+                "AppLogger is a singleton. Use get_logger() instead.",
+                RuntimeWarning,
+                stacklevel=2,
+            )
+            return cls._instance
+
+        instance: AppLogger = super().__new__(cls)
+        cls._instance = instance
+        return instance
+
+    # 初期化
     def __init__(
         self,
         log_dir: Path,
@@ -88,6 +110,10 @@ class AppLogger:
         app_name: str = "app",
         default_output: LogOutput = LogOutput.BOTH,
     ) -> None:
+        # 初期化は一度だけ行う（シングルトンのため）
+        if self._initialized:
+            return
+
         self.log_dir: Path = log_dir
         self.app_name: str = app_name
         self.default_output: LogOutput = default_output
@@ -95,18 +121,25 @@ class AppLogger:
         self.log_dir.mkdir(parents=True, exist_ok=True)
         self.log_file: Path = self._get_log_file()
         self.log_file.touch(exist_ok=True)
-        self._new_trace_id()
+        self.new_trace_id()
+        self._initialized = True # 🔥 これ必須
+
+
+    @classmethod
+    def reset_instance(cls) -> None:
+        """ロガーのインスタンスをリセットする（テスト用）"""
+        cls._instance = None
 
     # ==========================================================
     # trace_id 管理
     # ==========================================================
-    def _new_trace_id(self) -> str:
+    def new_trace_id(self) -> str:
         """新しい trace_id を生成してセットする"""
         trace_id = str(uuid.uuid4())
         self._TRACE_ID_VAR.set(trace_id)
         return trace_id
 
-    def _get_trace_id(self) -> str | None:
+    def get_trace_id(self) -> str | None:
         """現在の trace_id を取得する"""
         return self._TRACE_ID_VAR.get()
 
@@ -241,7 +274,7 @@ class AppLogger:
         record: LogRecord = {
             "level": level,
             "time": timestamp or datetime.now().replace(second=0,microsecond=0),
-            "trace_id": trace_id if trace_id is not None else self._get_trace_id(),
+            "trace_id": trace_id if trace_id is not None else self.get_trace_id(),
             "where": where or self.get_where_auto(),
             "what": what,
             "context": resolved_context,

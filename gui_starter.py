@@ -9,14 +9,11 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from logs.multi_info_logger import AppLogger
     from alarm_manager_temp import AlarmManager
 
 
 def main(
     manager: "AlarmManager",
-    logger: "AppLogger",
-    trace_id: str,
 ) -> None:
     """GUI 起動エントリーポイント"""
 

@@ -35,7 +35,15 @@ class SystemMonitor:
 
         self._last_tick = now
         if self._boot_time != psutil.boot_time(): # → 再起動確定
-            self.logger.warning("system_reboot_detected")
+            self.logger.warning(
+                "system_reboot_detected",
+                context={
+                        "category": "system",
+                        "status": "reboot",
+                        "previous_boot_time": self._boot_time,
+                        "current_boot_time": psutil.boot_time(),
+                }
+            )
             self._boot_time = psutil.boot_time()
 
         # uptime
