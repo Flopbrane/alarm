@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+"""ログファイルを読み込んで表示するシンプルなGUIアプリ"""
 #########################
 # Author: F.Kurokawa
 # Description:

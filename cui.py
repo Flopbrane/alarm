@@ -17,6 +17,7 @@ from __future__ import annotations
 import sys
 from datetime import datetime
 from typing import Any, Literal, TextIO, cast, TYPE_CHECKING
+import time
 
 # 自作モジュール（順序を整理）
 from alarm_internal_model import AlarmInternal
@@ -112,6 +113,7 @@ def main(alarm_manager: "AlarmManager") -> None:
         try:
             while True:
                 manager.start_cycle("loop")
+                time.sleep(1) # 1秒ごとにチェック
         except KeyboardInterrupt:
             print("🛑 監視停止")
 

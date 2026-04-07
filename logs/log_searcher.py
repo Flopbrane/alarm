@@ -6,10 +6,13 @@
 # logファイルを読み込み、重要ポイントを表示する
 #########################
 # log_searcher.py
-
+from __future__ import annotations
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .multi_info_logger import LogWhat
 
 
 def load_logs(path: Path) -> list[dict[str, Any]]:
@@ -46,11 +49,20 @@ def detect_errors(logs: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
     for log in logs:
         if log.get("level") in ("ERROR", "CRITICAL"):
+            what_raw: dict[str, Any] | None = log.get("what", {})
+
+            if isinstance(what_raw, dict):
+                message: str | None = what_raw.get("message")
+            else:
+                message = None
+
+            message = message if isinstance(message, str) else ""
+
             results.append(
                 _format_event(
                     log,
                     log.get("level", "UNKNOWN"),
-                    log.get("what", {}).get("message"),
+                    message,
                 )
             )
 
