@@ -17,6 +17,7 @@ from __future__ import annotations
 import sys
 from datetime import datetime
 from typing import Any, Literal, TextIO, cast, TYPE_CHECKING
+import time
 
 # 自作モジュール（順序を整理）
 from alarm_internal_model import AlarmInternal
@@ -26,7 +27,7 @@ from alarm_ui_model import (
     AlarmListItem,
 )  # ← UI層のAlarmState定義
 from constants import DEFAULT_SOUND, REPEAT_INTERNAL
-from data_ui_to_mgr_adapter import CUIController
+from data_ui_to_mgr_adapter import DataEditAdapter as dea
 from cui_datetime_normalizer import normalize_commas, validate_date, validate_time
 from cui_weekday_normalizer import normalize_weekday_list
 from utils.utils import select_sound_file
@@ -104,15 +105,16 @@ def print_upcoming_alarms(manager: "AlarmManager") -> None:
 # ------------------------------------------
 def main(alarm_manager: "AlarmManager") -> None:
     """メニュー表示"""
-    controller = CUIController(alarm_manager)
 
-    def run_alarm_monitor(controller: CUIController) -> None:
-        """アラーム監視ループを開始する（CUI補助）"""
+
+    def run_alarm_monitor(manager: "AlarmManager") -> None:
+        """アラーム監視開始"""
         print("🔁 アラーム監視開始（Ctrl+Cで停止）")
         try:
-            controller.run()
+            while True:
+                manager.start_cycle("loop")
+                time.sleep(1) # 1秒ごとにチェック
         except KeyboardInterrupt:
-            controller.stop()
             print("🛑 監視停止")
 
     def normalize_basic(text: str) -> str:
@@ -290,7 +292,6 @@ def main(alarm_manager: "AlarmManager") -> None:
             except KeyboardInterrupt:
                 print("入力をキャンセルしました。")
 
-
         elif choice == "2":
             print_upcoming_alarms(alarm_manager)
 
@@ -325,7 +326,7 @@ def main(alarm_manager: "AlarmManager") -> None:
             alarm_manager.apply_alarm_mutation("update", payload)
 
         elif choice == "5":
-            run_alarm_monitor(controller)
+            run_alarm_monitor(alarm_manager)
 
         elif choice == "0":
             print("終了します。")

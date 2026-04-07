@@ -20,7 +20,7 @@ from typing import TYPE_CHECKING
 from tkinter import TclError, Tk, messagebox
 
 # Local modules
-from log_app import get_logger
+from logs.log_app import get_logger
 from alarm_json_model import AlarmJson, AlarmStateJson
 from env_paths import ALARM_PATH, BACKUP_DIR, STANDBY_PATH
 # 実行時にも必要なもの

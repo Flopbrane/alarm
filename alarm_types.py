@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
-"""アラームの時間型定義モジュール
+"""アラームの型定義モジュール
 """
 #########################
 # Author: F.Kurokawa
 # Description:
-# アラームの時間型定義モジュール
+# アラームの型定義モジュール
 #########################
 # alarm_types.py
-from __future__ import annotations
 from datetime import date, time, datetime
 from typing import TypeAlias
 from pathlib import Path
