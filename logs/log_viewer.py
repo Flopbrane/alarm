@@ -12,8 +12,9 @@ import tkinter as tk
 from tkinter import ttk
 from pathlib import Path
 from typing import Any
+from env_paths import LOGS_DIR
 
-from .log_searcher import load_logs, summarize
+from logs.log_searcher import load_logs, summarize
 
 
 class LogViewer:
@@ -43,12 +44,31 @@ class LogViewer:
                     row["time"],
                     row["type"],
                     row["trace_id"],
-                    row["message"],
+                    self.format_event(row),  # ← ★これも変更（イベントの内容をわかりやすく表示する）
                 ),
             )
 
         self.tree.bind("<<TreeviewSelect>>", self.on_click)
 
+    # ============================
+    # 🔹 イベント処理
+    # ============================
+    def format_event(self, event: dict[str, Any]) -> str:
+        """イベントの内容をわかりやすく表示する"""
+        t: str | None = event.get("type")
+
+        if t == "TRACE_JUMP":
+            d: dict[str, Any] = event.get("data", {})
+            return f"{d.get('from')} → {d.get('to')}"
+
+        if t == "ERROR":
+            return f"ERROR: {event.get('message')}"
+
+        return event.get("message", "")
+
+    # ============================
+    # 🔹 行クリックイベント
+    # ============================
     def on_click(self, _event: tk.Event) -> None:
         """行がクリックされたときのハンドラ"""
         selected: tuple[str, ...] = self.tree.selection()
@@ -69,5 +89,7 @@ class LogViewer:
 
 if __name__ == "__main__":
     root = tk.Tk()
-    app = LogViewer(root, Path("logs/app_log.jsonl"))
+    log_dir: Path = LOGS_DIR
+    latest: Path = max(log_dir.glob("*.log"), key=lambda p: p.stat().st_mtime)
+    app = LogViewer(root, latest)
     root.mainloop()
