@@ -9,38 +9,44 @@
 from __future__ import annotations
 import json
 from pathlib import Path
-from typing import Any, TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from .multi_info_logger import LogWhat
+from typing import Any
 
 
 def load_logs(path: Path) -> list[dict[str, Any]]:
-    """ログファイルを読み込む（JSONL形式）"""
+    """logファイルを読み込む"""
     logs: list[dict[str, Any]] = []
     with path.open("r", encoding="utf-8") as f:
         for line in f:
-            try:
-                logs.append(json.loads(line))
-            except json.JSONDecodeError:
-                continue
+            logs.append(json.loads(line))
     return logs
 
 
-def detect_trace_jump(logs: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """traceジャンプを検出する"""
+def detect_trace_jumps(logs: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """traceジャンプを検出する（前の行とtrace_idが変わったら）"""
     results: list[dict[str, Any]] = []
-    prev_trace: str | None = None
+    prev: str | None = None
 
-    for log in logs:
-        trace: str | None = log.get("trace_id")
+    for row in logs:
+        current: str | None = row.get("trace_id")
 
-        if prev_trace and trace != prev_trace:
-            results.append(_format_event(log, "TRACE_JUMP", "trace_id changed"))
+        if prev is not None and current != prev:
+            results.append(
+                {
+                    "type": "TRACE_JUMP",
+                    "from": prev,
+                    "to": current,
+                    "row": row,
+                }
+            )
 
-        prev_trace = trace
+        prev = current
 
     return results
+
+
+def find_errors(logs: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """エラーログを検出する（levelがERRORまたはCRITICALの行）"""
+    return [row for row in logs if row.get("level") in ("ERROR", "CRITICAL")]
 
 
 def detect_errors(logs: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -72,7 +78,7 @@ def detect_errors(logs: list[dict[str, Any]]) -> list[dict[str, Any]]:
 def summarize(logs: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """ログを要約して重要ポイントを抽出する"""
     results: list[dict[str, Any]] = []
-    results.extend(detect_trace_jump(logs))
+    results.extend(detect_trace_jumps(logs))
     results.extend(detect_errors(logs))
 
     return sorted(results, key=lambda x: x["time"])

@@ -49,6 +49,19 @@ class LogViewer:
 
         self.tree.bind("<<TreeviewSelect>>", self.on_click)
 
+    # ============================
+    # 🔹 イベント処理
+    # ============================
+    @staticmethod
+    def format_event(event: dict[str, Any]) -> str:
+        """イベントをわかりやすい文字列に変換する"""
+        if event["type"] == "TRACE_JUMP":
+            return f"TRACE_JUMP: {event['from']} → {event['to']}"
+        return "UNKNOWN"
+
+    # ============================
+    # 🔹 行クリックイベント
+    # ============================
     def on_click(self, _event: tk.Event) -> None:
         """行がクリックされたときのハンドラ"""
         selected: tuple[str, ...] = self.tree.selection()
