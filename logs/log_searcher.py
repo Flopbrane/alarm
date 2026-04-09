@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 
+
 def load_logs(path: Path) -> list[dict[str, Any]]:
     """logファイルを読み込む"""
     logs: list[dict[str, Any]] = []
@@ -19,6 +20,23 @@ def load_logs(path: Path) -> list[dict[str, Any]]:
         for line in f:
             logs.append(json.loads(line))
     return logs
+
+
+def detect_reboot_events(logs: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """システム再起動イベントを検出する（what.messageがsystem_reboot_detectedの行）"""
+    results: list[dict[str, Any]] = []
+
+    for log in logs:
+        if log.get("what", {}).get("message") == "system_reboot_detected":
+            results.append(
+                _build_event(
+                    log,
+                    "REBOOT",
+                    "system reboot detected",
+                )
+            )
+
+    return results
 
 
 def detect_trace_jumps(logs: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -31,15 +49,15 @@ def detect_trace_jumps(logs: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
         if prev is not None and current != prev:
             results.append(
-                {
-                    "type": "TRACE_JUMP",
-                    "from": prev,
-                    "to": current,
-                    "row": row,
-                }
+                _build_event(
+                    row,
+                    "TRACE_JUMP",
+                    "trace_id changed",
+                    data={"from": prev, "to": current},
+                )
             )
 
-        prev = current
+        prev = current  # ← ★ここに移動（超重要）
 
     return results
 
@@ -65,10 +83,29 @@ def detect_errors(logs: list[dict[str, Any]]) -> list[dict[str, Any]]:
             message = message if isinstance(message, str) else ""
 
             results.append(
-                _format_event(
+                _build_event(
                     log,
-                    log.get("level", "UNKNOWN"),
+                    f"{log.get('level')} detected",
                     message,
+                )
+            )
+
+    return results
+
+
+def detect_reboot(logs: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """システム再起動イベントを検出する（what.messageがsystem_reboot_detectedの行）"""
+    results: list[dict[str, Any]] = []
+
+    for log in logs:
+        message: str | None = log.get("what", {}).get("message")
+
+        if message == "system_reboot_detected":
+            results.append(
+                _build_event(
+                    log,
+                    "REBOOT",
+                    "system reboot detected",
                 )
             )
 
@@ -80,17 +117,31 @@ def summarize(logs: list[dict[str, Any]]) -> list[dict[str, Any]]:
     results: list[dict[str, Any]] = []
     results.extend(detect_trace_jumps(logs))
     results.extend(detect_errors(logs))
+    results.extend(detect_reboot(logs))
 
     return sorted(results, key=lambda x: x["time"])
 
 
 # 🔥 共通フォーマット関数（重要）
-def _format_event(log: dict[str, Any], type_: str, message: str) -> dict[str, Any]:
-    """ログイベントを共通フォーマットに変換する"""
+def _build_event(
+    log: dict[str, Any],
+    type_: str,
+    message: str,
+    *,
+    data: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """イベント変換関数（解析用）
+
+    ★★ ログレコード（LogRecord）をイベント（Event）に変換する関数
+
+    ・記録されたログを解釈し、意味のあるイベントに変換する層
+    ・分析・可視化のためのデータ整形を行う
+    """
     return {
         "time": log.get("time"),
         "type": type_,
         "trace_id": log.get("trace_id"),
         "message": message,
-        "raw": log,  # ← UIで使う
+        "data": data or {},
+        "raw": log,
     }
