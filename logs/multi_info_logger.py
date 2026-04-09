@@ -27,12 +27,14 @@ import uuid
 import warnings
 from contextvars import ContextVar
 from dataclasses import asdict, is_dataclass
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timezone
 from enum import Enum
 from pathlib import Path
 from types import CodeType, FrameType
-from typing import Any, TypedDict, cast, Iterable
-
+from typing import Any, TypedDict, cast, Iterable, TypeAlias
+from env_paths import LOGS_DIR  # ← ここ重要
+# pylint: disable=too-many-instance-attributes, too-many-arguments, too-few-public-methods
+ISODateTimeStr: TypeAlias = str  # ISOフォーマットの日時文字列
 
 # ==========================================================
 # 型
@@ -73,7 +75,7 @@ class LogWhat(TypedDict, total=False):
 class LogRecord(TypedDict, total=False):
     """ログレコードの情報"""
     level: LogLevel
-    time: datetime | str
+    time: datetime | ISODateTimeStr
     trace_id: str | None
     where: LogWhere
     what: LogWhat
@@ -92,7 +94,7 @@ class AppLogger:
     _TRACE_ID_VAR: ContextVar[str | None] = ContextVar("trace_id", default=None)
     # 🔥 これ追加
     _initialized: bool = False
-
+    _time: ISODateTimeStr = ISODateTimeStr(datetime.now(timezone.utc).isoformat())
     # シングルトン実装
     def __new__(cls, *args: Any, **kwargs: Any) -> "AppLogger":
         """シングルトン実装"""
@@ -111,7 +113,7 @@ class AppLogger:
     # 初期化
     def __init__(
         self,
-        log_dir: Path,
+        log_dir: Path = LOGS_DIR,
         *,
         app_name: str = "app",
         default_output: LogOutput = LogOutput.BOTH,
@@ -125,7 +127,8 @@ class AppLogger:
         self.default_output: LogOutput = default_output
 
         self.log_dir.mkdir(parents=True, exist_ok=True)
-        self.log_file: Path = self._get_log_file()
+        today: date = date.today()
+        self.log_file: Path = self._get_log_file(today)
         self.log_file.touch(exist_ok=True)
         self.new_trace_id()
         self._initialized = True # 🔥 これ必須
@@ -151,11 +154,14 @@ class AppLogger:
     # -----------------------------
     # ファイル管理
     # -----------------------------
-    def _get_log_file(self) -> Path:
-        """現在のログファイルパスを取得する"""
-        today: str = datetime.now().strftime("%Y-%m-%d")
-        return self.log_dir / f"{self.app_name}_{today}.log"
+    def _build_log_filename(self, dt: date) -> str:
+        """ログファイル名を生成する（単一責務）"""
+        return f"{self.app_name}_{dt.isoformat()}.jsonl"
 
+
+    def _get_log_file(self, dt: date) -> Path:
+        """現在のログファイルパスを取得する"""
+        return self.log_dir / self._build_log_filename(dt)
 
     def _ensure_file(self) -> None:
         """ログファイルを準備（なければ作成）"""
@@ -166,7 +172,7 @@ class AppLogger:
         now: datetime = datetime.now()
 
         # 例: log_2026-04-07_14-30-00.jsonl
-        filename: str = now.strftime("log_%Y-%m-%d_%H-%M-%S.jsonl")
+        filename: str = now.strftime("log_%Y-%m-%d.jsonl")
 
         log_dir = Path("logs")
         log_dir.mkdir(exist_ok=True)
@@ -215,7 +221,7 @@ class AppLogger:
     # -----------------------------
     # ログの生成
     # -----------------------------
-    def _build_record(
+    def _build_log_record(
         self,
         level: LogLevel,
         message: str,
@@ -271,13 +277,19 @@ class AppLogger:
         where: LogWhere | None = None,
         output: LogOutput | None = None,
     ) -> None:
-        """ログ記録制御（内部使用）"""
+        """ログ記録制御（内部使用）
+
+        ★★ ログレコード（LogRecord）を生成し、出力（console/file）を行う司令塔関数
+
+        ・事実（fact）をそのまま記録する層
+        ・ログの生成責務のみを持つ（分析は行わない）
+        """
 
         self._ensure_file()
 
-        record: LogRecord = self._build_record(
+        record: LogRecord = self._build_log_record(
             level,
-            message,
+            message=message,
             trace_id=trace_id,
             timestamp=timestamp,
             alarm_id=alarm_id,

@@ -47,7 +47,6 @@ class SystemMonitor:
             )
         self._last_tick = now
 
-
     def _check_reboot(self, now: datetime) -> bool:
         """システムの再起動を検出する（boot_timeが変わったら）"""
         current_boot: float = psutil.boot_time()
@@ -68,7 +67,6 @@ class SystemMonitor:
 
         return reboot_detected
 
-
     def _log_uptime(self, now: datetime) -> None:
         """システムの稼働時間をログに記録する（10分ごと）"""
         uptime: float = now.timestamp() - self._boot_time
@@ -87,3 +85,11 @@ class SystemMonitor:
             "system_cpu_percent",
             context={"cpu_percent": cpu_percent},
         )
+
+
+    # --------------------------
+    # デバッグ用コード
+    # --------------------------
+    def force_reboot_test(self, offset: float = 1000) -> None:
+        """テスト用：boot_timeをずらす"""
+        self._boot_time -= offset
