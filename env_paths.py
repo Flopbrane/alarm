@@ -8,7 +8,6 @@
 # 共通パスとPyInstaller対応(チェック済み)
 #########################
 
-
 import sys
 from pathlib import Path
 

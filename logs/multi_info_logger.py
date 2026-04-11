@@ -1,10 +1,16 @@
 # -*- coding: utf-8 -*-
+#########################
+# Author: F.Kurokawa
+# Description:
+# AppLoggerは、アプリケーション全体で使用するためのシングルトンロガークラスです。
+#########################
+# log_searcher.py
 """汎用JSONロガーモジュール
 
 どのプロジェクトでも使える汎用ロガー。
 1行1JSON（JSON Lines）形式でログを保存する。
 
-主な機能:
+主な機能・注意事項:
 - コンソール / ファイル / 両方 出力
 - 日付変更時のログファイル自動切替
 - trace_id による処理追跡(trace_idはプログラム起動に対して一意のIDです。)
@@ -18,7 +24,24 @@
 - ログレベルごとに専用のメソッド(debug/info/warning/error/critical)が用意されている。
 - ログの内容(what)は、messageを必須とし、action/status/categoryを任意で含むことができる。
 - ログの発生箇所(where)は、line/module/file/functionの情報を含む。
-"""
+＜要注意事項＞
+- ★★ Logger内部は「純粋関数的に振る舞うこと」
+  （副作用としてのLogger内部のログ出力を持たないこと）
+  特に以下のメソッド内では、絶対に logger.debug/info/warning などを呼び出してはならない：
+
+    ・_log（ログ生成の司令塔）
+    ・_build_log_record（ログデータ構築）
+    ・_safe（JSON変換処理）
+    ・_emit（出力処理）
+
+  これらの内部処理中にログを出力すると、ログ処理が再帰的に呼び出され、
+  無限ループやスタックオーバーフローを引き起こす危険がある。
+
+- 内部処理中の警告や異常は、loggerを使用せず、
+  print() または専用の内部出力関数で処理すること。
+
+- Loggerは「事実を記録するための装置」であり、
+  Logger内部の処理状態を記録するものではないことを意識すること。"""
 from __future__ import annotations
 
 import inspect
@@ -31,57 +54,16 @@ from datetime import date, datetime, time, timezone
 from enum import Enum
 from pathlib import Path
 from types import CodeType, FrameType
-from typing import Any, TypedDict, cast, Iterable, TypeAlias
+from typing import Any, cast, Iterable
 from env_paths import LOGS_DIR  # ← ここ重要
-# pylint: disable=too-many-instance-attributes, too-many-arguments, too-few-public-methods
-ISODateTimeStr: TypeAlias = str  # ISOフォーマットの日時文字列
-
-# ==========================================================
-# 型
-# ==========================================================
-class LogOutput(Enum):
-    """出力先の指定"""
-    CONSOLE = "console"
-    FILE = "file"
-    BOTH = "both"
-
-
-class LogLevel(Enum):
-    """ログレベルの指定"""
-    DEBUG = "DEBUG"
-    INFO = "INFO"
-    WARNING = "WARNING"
-    ERROR = "ERROR"
-    CRITICAL = "CRITICAL"
-    REBOOT = "REBOOT"  # 特殊レベル（再起動ログ用）
-
-
-class LogWhere(TypedDict, total=False):
-    """ログの発生箇所情報"""
-    line: int
-    module: str
-    file: str
-    function: str
-
-
-class LogWhat(TypedDict, total=False):
-    """ログの内容情報"""
-    message: str
-    action: str
-    status: str
-    category: str
-
-# LogRecord = イミュータブル（変更しない前提）なので TypedDict で定義
-class LogRecord(TypedDict, total=False):
-    """ログレコードの情報"""
-    level: LogLevel
-    time: datetime | ISODateTimeStr
-    trace_id: str | None
-    where: LogWhere
-    what: LogWhat
-    context: dict[str, Any]
-    output: str
-
+from logs.log_types import ISODateTimeStr # ← ここ重要
+from logs.time_utils import (
+    now_utc,
+    to_utc_datetime,
+    to_utc_iso, # ← ここ重要
+    DateLike,
+    )
+from logs.log_types import LogLevel, LogOutput, LogWhere, LogWhat, LogRecord
 
 # ==========================================================
 # Multi-Logger
@@ -127,11 +109,12 @@ class AppLogger:
         self.default_output: LogOutput = default_output
 
         self.log_dir.mkdir(parents=True, exist_ok=True)
-        today: date = date.today()
-        self.log_file: Path = self._get_log_file(today)
+        today_utc: date = now_utc().date()
+        self.log_file: Path = self._get_log_file(today_utc)
         self.log_file.touch(exist_ok=True)
         self.new_trace_id()
         self._initialized = True # 🔥 これ必須
+        self._current_date: ISODateTimeStr = today_utc.isoformat()  # 🔥 これ追加
 
     @classmethod
     def reset_instance(cls) -> None:
@@ -143,13 +126,16 @@ class AppLogger:
     # ==========================================================
     def new_trace_id(self) -> str:
         """新しい trace_id を生成してセットする"""
-        trace_id = str(uuid.uuid4())
+        trace_id: str = uuid.uuid4().hex
         self._TRACE_ID_VAR.set(trace_id)
         return trace_id
 
-    def get_trace_id(self) -> str | None:
+    def get_trace_id(self) -> str:
         """現在の trace_id を取得する"""
-        return self._TRACE_ID_VAR.get()
+        trace_id: str | None = self._TRACE_ID_VAR.get()
+        if trace_id is None:
+            trace_id = self.new_trace_id()
+        return trace_id
 
     # -----------------------------
     # ファイル管理
@@ -158,26 +144,20 @@ class AppLogger:
         """ログファイル名を生成する（単一責務）"""
         return f"{self.app_name}_{dt.isoformat()}.jsonl"
 
-
     def _get_log_file(self, dt: date) -> Path:
         """現在のログファイルパスを取得する"""
         return self.log_dir / self._build_log_filename(dt)
 
     def _ensure_file(self) -> None:
-        """ログファイルを準備（なければ作成）"""
+        now: datetime = now_utc()
+        today_str: ISODateTimeStr = now.strftime("%Y-%m-%d")
 
-        if hasattr(self, "log_file"):
+        if hasattr(self, "_current_date") and self._current_date == today_str:
             return
 
-        now: datetime = datetime.now()
-
-        # 例: log_2026-04-07_14-30-00.jsonl
-        filename: str = now.strftime("log_%Y-%m-%d.jsonl")
-
-        log_dir = Path("logs")
-        log_dir.mkdir(exist_ok=True)
-
-        self.log_file = log_dir / filename
+        self.log_dir.mkdir(parents=True, exist_ok=True)
+        self.log_file = self._get_log_file(now.date())
+        self._current_date = today_str
 
     # -----------------------------
     # where（自動取得）
@@ -196,19 +176,19 @@ class AppLogger:
 
                 if filename != __file__:
                     return {
-                        "line": frame.f_lineno,
-                        "module": filename,
                         "file": filename,
+                        "line": frame.f_lineno,
                         "function": code.co_name,
+                        "module": filename,
                     }
 
                 frame = frame.f_back
 
             return {
-                "line": -1,
-                "module": "",
                 "file": "",
+                "line": -1,
                 "function": "",
+                "module": "",
             }
 
         finally:
@@ -227,7 +207,7 @@ class AppLogger:
         message: str,
         *,
         trace_id: str | None,
-        timestamp: datetime | str | None,
+        timestamp: DateLike,
         alarm_id: str | None,
         action: str | None,
         status: str | None,
@@ -237,11 +217,27 @@ class AppLogger:
         output: LogOutput | None,
     ) -> LogRecord:
         """ログレコードを構築する（内部使用）"""
+        # -----------------------------
+        # context
+        # -----------------------------
         resolved_context: dict[str, Any] = dict(context or {})
         if alarm_id is not None:
             resolved_context.setdefault("alarm_id", alarm_id)
 
+        # -----------------------------
+        # time（完全保証）
+        # -----------------------------
+        timestamp_utc: str = (
+            to_utc_iso(timestamp)
+            or to_utc_iso(now_utc())
+            or now_utc().isoformat()
+        )
+
+        # -----------------------------
+        # what
+        # -----------------------------
         what: LogWhat = {"message": message}
+
         if action is not None:
             what["action"] = action
         if status is not None:
@@ -249,16 +245,36 @@ class AppLogger:
         if category is not None:
             what["category"] = category
 
-        return {
-            "level": level,
-            "time": timestamp or datetime.now().replace(second=0, microsecond=0),
-            "trace_id": trace_id if trace_id is not None else self.get_trace_id(),
-            "where": where or self.get_where_auto(),
+        # -----------------------------
+        # where
+        # -----------------------------
+        resolved_where: LogWhere = where or self.get_where_auto()
+
+        # -----------------------------
+        # trace_id
+        # -----------------------------
+        resolved_trace_id: str = trace_id or self.get_trace_id()
+        if not resolved_trace_id:
+            resolved_trace_id = self.get_trace_id() # 絶対に trace_id を空にしない！
+        # -----------------------------
+        # output
+        # -----------------------------
+        resolved_output: str = (output or self.default_output).value
+
+        # -----------------------------
+        # 最終構築（完全一致）
+        # -----------------------------
+        record: LogRecord = {
+            "level": level.value,
+            "time": timestamp_utc,
+            "trace_id": resolved_trace_id,
+            "where": resolved_where,
             "what": what,
             "context": resolved_context,
-            "output": (output or self.default_output).value,
+            "output": resolved_output,
         }
 
+        return record
     # -----------------------------
     # メイン（司令塔）
     # -----------------------------
@@ -268,7 +284,7 @@ class AppLogger:
         message: str,
         *,
         trace_id: str | None = None,
-        timestamp: datetime | str | None = None,
+        timestamp: DateLike = None,
         alarm_id: str | None = None,
         action: str | None = None,
         status: str | None = None,
@@ -286,12 +302,16 @@ class AppLogger:
         """
 
         self._ensure_file()
-
+        timestamp_utc: ISODateTimeStr = (
+            to_utc_iso(timestamp) or
+            to_utc_iso(now_utc()) or
+            ISODateTimeStr(now_utc().isoformat())
+        )
         record: LogRecord = self._build_log_record(
             level,
             message=message,
             trace_id=trace_id,
-            timestamp=timestamp,
+            timestamp=timestamp_utc,
             alarm_id=alarm_id,
             action=action,
             status=status,
@@ -302,6 +322,7 @@ class AppLogger:
         )
 
         self._emit(record)
+
     # pylint: enable=broad-exception-caught
 
     # -----------------------------
@@ -316,13 +337,16 @@ class AppLogger:
             return obj
 
         if isinstance(obj, datetime):
-            return obj.replace(microsecond=0).isoformat()
+            obj_utc: datetime | None = to_utc_datetime(obj)
+            return obj_utc.isoformat() if obj_utc else datetime.now(timezone.utc).isoformat()
 
         if isinstance(obj, date):
-            return obj.isoformat()
+            obj_utc = to_utc_datetime(obj)
+            return obj_utc.isoformat() if obj_utc else None
 
         if isinstance(obj, time):
-            return obj.replace(microsecond=0).isoformat()
+            print("[LOGGER WARNING] time単体はサポートされていません")
+            return None
 
         if isinstance(obj, Path):
             return str(obj)
