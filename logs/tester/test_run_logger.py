@@ -12,11 +12,14 @@ from pathlib import Path
 import time
 from typing import Any, TYPE_CHECKING
 
+
 from env_paths import LOGS_DIR
 from logs.log_app import get_logger
 from logs.system_monitor import SystemMonitor
-from logs.log_searcher import load_logs, summarize
-
+from logs.log_searcher import summarize
+from logs.log_storage import load_log
+from logs.log_types import Event, LogDict
+from logs.log_validator import validate_log
 
 LOG_DIR: Path = LOGS_DIR
 
@@ -38,7 +41,6 @@ def run_test() -> None:
     logger.warning("test_warning", context={"warning_level": "high"})
     logger.critical("test_critical", context={"critical": True})
     monitor.force_reboot_test()
-    monitor.tick()
     logger.info("test_info_2", context={"message": "The logger is working perfectly."})
 
     print("ログ生成完了")
@@ -54,12 +56,19 @@ def run_test() -> None:
 
     print(f"使用ログ: {latest}")
 
-    logs: list[dict[str, Any]] = load_logs(latest)
-    events: list[dict[str, Any]] = summarize(logs)
+    raw_logs: list[dict[str, Any]] = load_log(latest)
+
+    safe_logs: list[LogDict] = []
+    for raw in raw_logs:
+        log: LogDict | None = validate_log(raw)
+        if log is not None:
+            safe_logs.append(log)
+
+    events: list[Event] = summarize(safe_logs)
 
     print("\n=== EVENTS ===")
     for e in events:
-        print(f"{e['type']:12} | {e['message']:25} | {e.get('time')}")
+        print(f"{e.type:12} | {e.message:25} | {e.time}")
 
     print("\n=== TEST END ===")
 

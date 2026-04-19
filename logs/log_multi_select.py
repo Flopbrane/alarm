@@ -31,7 +31,6 @@ class LogFileSelector:
             list(self.log_dir.glob("*.log")) + list(self.log_dir.glob("*.jsonl")),
             key=lambda p: p.stem,
         )
-        print(f"LMS:file_list:{files}")
         self.files: list[Path] = files
 
         # Treeview

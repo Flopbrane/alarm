@@ -1,4 +1,4 @@
-# pylint: disable=W0611, W0107
+# pylint: disable=W0611, W0107, W0718
 # pyright: reportUnnecessaryIsInstance=false
 # # -*- coding: utf-8 -*-
 """時間関連のユーティリティ関数"""
@@ -9,12 +9,11 @@
 #########################
 from __future__ import annotations
 
-
 from datetime import datetime, timezone, date, time, timedelta
-from typing import TypeAlias, Protocol, runtime_checkable, Any
+from typing import TypeAlias, Protocol, runtime_checkable, Any,Union
+from zoneinfo import ZoneInfo
 
-from logs.log_types import ISODateTimeStr
-
+from logs.logger_config import LoggerConfig
 
 @runtime_checkable
 class LoggerLike(Protocol):
@@ -40,18 +39,68 @@ class LoggerLike(Protocol):
 # =========================
 # 型定義
 # =========================
-DateLike: TypeAlias = datetime | date | time | str | None
+# ISO文字列専用
+ISODateTimeStr: TypeAlias = str
+
+# UNIX時間専用
+UnixTime: TypeAlias = float | int
+
+# 安全な入力型
+DateLike: TypeAlias = datetime | date | str | int | float | None
 
 # JSTタイムゾーン
 JST = timezone(timedelta(hours=9))
 
 
 # =========================
+# UnixTime → UTC日時表示(core_DATA用)
+# =========================
+def unix_to_utc_datetime(ts: Union[UnixTime, None]) -> datetime | None:
+    """UNIX時間 → UTCDateTime"""
+    if ts is None:
+        return None
+    try:
+        if isinstance(ts, (int, float)):
+            return datetime.fromtimestamp(float(ts), tz=timezone.utc)
+    except Exception as e:
+        print(f"Error as {e}")
+        return None
+
+
+# =========================
+# UnixTime → UTC日時文字列表示
+# =========================
+def format_unix_to_utc_time(ts: UnixTime | None) -> str:
+    """UNIXTIME_to_UTC"""
+    dt: datetime | None = unix_to_utc_datetime(ts)
+    if dt is None:
+        return ""
+    return dt.strftime("%Y-%m-%d %H:%M:%S")
+
+
+def format_unix_to_utc_iso(ts: UnixTime | None) -> str:
+    """UNIXTIME_to_UTC"""
+    dt: datetime | None = unix_to_utc_datetime(ts)
+    if dt is None:
+        return ""
+    return dt.isoformat(timespec="seconds")
+
+
+# =========================
 # UTC現在時刻
 # =========================
-def now_utc() -> datetime:
-    """現在のUTC時刻を返す（マイクロ秒は切り捨て）"""
-    return datetime.now(timezone.utc).replace(microsecond=0)
+def now_utc(config: LoggerConfig | None = None) -> datetime:
+    """UTCの時間精度を変更する"""
+    dt: datetime = datetime.now(timezone.utc)
+
+    precision = "second"
+    if config:
+        precision: str = config.time_precision
+
+    if precision == "second":
+        return dt.replace(microsecond=0)
+
+    return dt
 
 
 # =========================
@@ -69,29 +118,39 @@ def to_utc_datetime(
     if isinstance(value, datetime):
         if value.tzinfo is None:
             return value.replace(tzinfo=JST).astimezone(timezone.utc)
-        return value.astimezone(timezone.utc)
+        return value.astimezone(timezone.utc).replace(microsecond=0)
 
     # dateはJSTの00:00として扱う
     if isinstance(value, date):
-        return datetime.combine(value, time(0, 0), tzinfo=JST).astimezone(timezone.utc)
+        return datetime.combine(
+            value,
+            time(0, 0),
+            tzinfo=JST).astimezone(timezone.utc).replace(microsecond=0)
 
-    if isinstance(value, time):
+    if isinstance(value, time): # timeだけでは、UTC変換に疑問が残るため使用しない
         if logger:
             logger.warning("time単体はサポートされていません")
         return None
 
+        # 🔥 ここ追加
+    if isinstance(value, (int, float)):
+        try:
+            return datetime.fromtimestamp(value, tz=timezone.utc).replace(microsecond=0)
+        except Exception:
+            return None
+
     if isinstance(value, str):
         try:
-            dt: datetime = datetime.fromisoformat(value)
+            dt: datetime = datetime.fromisoformat(value).replace(microsecond=0)
         except ValueError:
             if logger:
                 logger.warning(f"Invalid datetime string: {value}")
             return None
 
         if dt.tzinfo is None:
-            return dt.replace(tzinfo=JST).astimezone(timezone.utc)
+            return dt.replace(tzinfo=JST).astimezone(timezone.utc).replace(microsecond=0)
 
-        return dt.astimezone(timezone.utc)
+        return dt.astimezone(timezone.utc).replace(microsecond=0)
 
     if logger:
         logger.warning(f"Unsupported type: {type(value)}")
@@ -111,7 +170,7 @@ def to_utc_iso(value: DateLike) -> str | None:
 
 
 # =========================
-# JST変換（表示専用）
+# JST変換
 # =========================
 def to_jst_datetime(value: DateLike) -> datetime | None:
     """値をJSTのdatetimeに変換する（表示専用）"""
@@ -119,3 +178,11 @@ def to_jst_datetime(value: DateLike) -> datetime | None:
     if dt is None:
         return None
     return dt.astimezone(JST)
+
+
+def to_jst_str(value: DateLike) -> str | None:
+    """値をJSTの文字列に変換する(表示用)"""
+    dt: datetime | None = to_utc_datetime(value)
+    if dt is None:
+        return ""
+    return dt.astimezone(JST).isoformat(timespec="seconds")

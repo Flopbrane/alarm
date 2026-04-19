@@ -11,7 +11,8 @@ from pathlib import Path
 import tkinter as tk
 
 from env_paths import LOGS_DIR
-from logs.log_viewer_elder import LogViewer
+
+from logs.log_viewer import LogViewer
 
 
 def main() -> None:

@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=W0718
 """Logの入出力を纏めて行う"""
 #########################
 # Author: F.Kurokawa

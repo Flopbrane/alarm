@@ -9,8 +9,13 @@ import os
 from pathlib import Path
 
 # BASE_DIRは環境変数LOG_ROOTから取得。指定がない場合はこのファイルの親ディレクトリを使用する
-BASE_DIR: Path = Path(os.getenv("LOG_ROOT", str(Path(__file__).resolve().parent)))
+env_root: str | None = os.getenv("LOG_ROOT")
 
-# ログファイルを保存するディレクトリ。存在しない場合は自動で作成される
+if env_root is not None:
+    base_f: Path = Path(env_root).resolve()
+else:
+    base_f = Path(__file__).resolve().parent.parent
+
+BASE_DIR: Path =base_f
 LOGS_DIR: Path = BASE_DIR / "logs"
 LOGS_DIR.mkdir(parents=True, exist_ok=True)

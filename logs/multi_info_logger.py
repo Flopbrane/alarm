@@ -55,15 +55,16 @@ from enum import Enum
 from pathlib import Path
 from types import CodeType, FrameType
 from typing import Any, cast, Iterable
-from env_paths import LOGS_DIR  # ← ここ重要
-from logs.log_types import ISODateTimeStr # ← ここ重要
+from logs.log_paths import LOGS_DIR  # ← ここ重要
+from logs.log_types import ISODateTimeStr, RawLogRecord # ← ここ重要
 from logs.time_utils import (
     now_utc,
     to_utc_datetime,
     to_utc_iso, # ← ここ重要
     DateLike,
     )
-from logs.log_types import LogLevel, LogOutput, LogWhere, LogWhat, LogRecord
+from logs.log_types import LogLevel, LogOutput, LogWhere, LogWhat
+from logs.logger_config import LoggerConfig
 
 # ==========================================================
 # Multi-Logger
@@ -76,7 +77,10 @@ class AppLogger:
     _TRACE_ID_VAR: ContextVar[str | None] = ContextVar("trace_id", default=None)
     # 🔥 これ追加
     _initialized: bool = False
-    _time: ISODateTimeStr = ISODateTimeStr(datetime.now(timezone.utc).replace(microsecond=0).isoformat())
+    _time: ISODateTimeStr = ISODateTimeStr(
+        datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+        )
+
     # シングルトン実装
     def __new__(cls, *args: Any, **kwargs: Any) -> "AppLogger":
         """シングルトン実装"""
@@ -99,6 +103,7 @@ class AppLogger:
         *,
         app_name: str = "app",
         default_output: LogOutput = LogOutput.BOTH,
+        config: LoggerConfig | None = None,
     ) -> None:
         # 初期化は一度だけ行う（シングルトンのため）
         if self._initialized:
@@ -107,7 +112,8 @@ class AppLogger:
         self.log_dir: Path = log_dir
         self.app_name: str = app_name
         self.default_output: LogOutput = default_output
-
+        # 🔥 修正ここ
+        self.config: LoggerConfig = config or LoggerConfig()
         self.log_dir.mkdir(parents=True, exist_ok=True)
         today_utc: date = now_utc().date()
         self.log_file: Path = self._get_log_file(today_utc)
@@ -120,6 +126,15 @@ class AppLogger:
     def reset_instance(cls) -> None:
         """ロガーのインスタンスをリセットする（テスト用）"""
         cls._instance = None
+
+    def now(self) -> datetime:
+        """現在時刻の設定"""
+        dt: datetime = datetime.now(timezone.utc)
+
+        if self.config.time_precision == "second":
+            return dt.replace(microsecond=0)
+
+        return dt
 
     # ==========================================================
     # trace_id 管理
@@ -215,7 +230,7 @@ class AppLogger:
         context: dict[str, Any] | None,
         where: LogWhere | None,
         output: LogOutput | None,
-    ) -> LogRecord:
+    ) -> RawLogRecord:
         """ログレコードを構築する（内部使用）"""
         # -----------------------------
         # context
@@ -264,7 +279,7 @@ class AppLogger:
         # -----------------------------
         # 最終構築（完全一致）
         # -----------------------------
-        record: LogRecord = {
+        record: RawLogRecord = {
             "level": level.value,
             "time": timestamp_utc,
             "trace_id": resolved_trace_id,
@@ -307,7 +322,7 @@ class AppLogger:
             to_utc_iso(now_utc()) or
             ISODateTimeStr(now_utc().isoformat())
         )
-        record: LogRecord = self._build_log_record(
+        record: RawLogRecord = self._build_log_record(
             level,
             message=message,
             trace_id=trace_id,
@@ -390,7 +405,7 @@ class AppLogger:
     # -----------------------------
     # 出力制御
     # -----------------------------
-    def _emit(self, record: LogRecord) -> None:
+    def _emit(self, record: RawLogRecord) -> None:
         """ログレコードを実際に出力する（内部使用）"""
         safe: dict[str, Any] = cast(dict[str, Any], self._safe(record))
 

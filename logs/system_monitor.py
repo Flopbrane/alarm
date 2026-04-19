@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=W0718
 """systemの監視を行うモジュール"""
 #########################
 # Author: F.Kurokawa
@@ -10,7 +11,10 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING
 
+import subprocess
+from subprocess import CompletedProcess
 import psutil
+
 
 if TYPE_CHECKING:
     from logs.multi_info_logger import AppLogger
@@ -31,6 +35,7 @@ class SystemMonitor:
         self._check_reboot(now)
         self._log_uptime(now)
         self._log_cpu()
+        self._log_gpu()
 
         self._last_tick = now
 
@@ -86,7 +91,40 @@ class SystemMonitor:
             context={"cpu_percent": cpu_percent},
         )
 
+    def _log_gpu(self) -> None:
+        """GPU使用率をログに記録する"""
+        try:
+            result: CompletedProcess[str] = subprocess.run(
+                [
+                    "nvidia-smi",
+                    "--query-gpu=utilization.gpu,memory.used,memory.total",
+                    "--format=csv,noheader,nounits",
+                ],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
 
+            line: str = result.stdout.strip()
+            gpu_util: str
+            mem_used: str
+            mem_total:str
+            gpu_util, mem_used, mem_total= [x.strip() for x in line.split(",")]
+
+            self.logger.info(
+                "system_gpu_status",
+                context={
+                    "gpu_util_percent": float(gpu_util),
+                    "gpu_mem_used_mb": float(mem_used),
+                    "gpu_mem_total_mb": float(mem_total),
+                },
+            )
+
+        except Exception as e:
+            self.logger.warning(
+                "gpu_monitor_failed",
+                context={"error": str(e)},
+            )
     # --------------------------
     # デバッグ用コード
     # --------------------------

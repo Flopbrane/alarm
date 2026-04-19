@@ -3,6 +3,8 @@
 Info Logger is a **structured logging + analysis + visualization tool**  
 designed to make debugging faster and more intuitive.
 
+- For Japanese version → README_jp.md
+
 ---
 
 ## 🚀 What is this?
@@ -146,6 +148,77 @@ For Japanese users:
 
 ### 💬 Concept
 
+#### Why this Logger was created
+
+This Logger was designed to eliminate **"silent failures"** that can occur during normal operation.
+
+In many systems, issues do not always raise explicit errors.
+As a result, problems may go unnoticed or become difficult to trace.
+
+To address this, this Logger adopts a design that explicitly records **state and intent**.
+
+In particular, it introduces a structured logging format:
+
+```python
+context: dict {variable / property : intended value}
+```
+
+This makes it possible to clearly understand:
+
+- What the system was trying to do
+- What values were expected
+- Where deviations occurred
+
+Additionally, the structure is designed to be easy to write, so developers can naturally include this information without friction.
+
+---
+
+This Logger is not just a logging tool.
+It is a **design tool for ensuring state transparency and early detection of issues**.
+
+
 This is not just a logger.
 
 👉 It is a diagnostic system for understanding program behavior.
+
+## Example: context usage
+
+Below is an example of how the `context` field is used to make logs more informative.
+
+### Code Example
+
+```python
+logger.info(
+    "User login attempt",
+    context={
+        "user_id": user_id,
+        "expected_status": "authenticated",
+        "actual_status": auth_result,
+    }
+)
+```
+
+### Output Example
+
+```json
+{
+  "type": "INFO",
+  "time": "2026-04-18T10:15:30Z",
+  "message": "User login attempt",
+  "context": {
+    "user_id": "A12345",
+    "expected_status": "authenticated",
+    "actual_status": "failed"
+  }
+}
+```
+
+### Why this matters
+
+Instead of only seeing that something failed, you can immediately understand:
+
+- What was expected
+- What actually happened
+- Which data caused the deviation
+
+This makes debugging faster and prevents silent failures from going unnoticed.
