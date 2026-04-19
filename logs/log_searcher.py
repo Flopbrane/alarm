@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import re
-from tkinter import filedialog
 from datetime import date
 from pathlib import Path
 from typing import Any
+
+from logs.log_storage import load_log
 
 #########################
 # Author: F.Kurokawa
@@ -34,7 +35,6 @@ def extract_date_from_path(p: Path) -> date | None:
         return date.fromisoformat(match.group())
     except ValueError:
         return None
-
 
 # =========================
 # ログファイル取得（NEW🔥）
@@ -67,20 +67,18 @@ def get_log_files(
 
     return result
 
-# ============================
-# 🔹 過去ログファイルを開く
-# ============================
-def open_past_log_file() -> Path | None:
-    """ログファイルを選択して再読み込み"""
-    file_path: str = filedialog.askopenfilename(
-        title="ログファイルを選択",
-        filetypes=[("Log Files", "*.jsonl *.log"), ("All Files", "*.*")],
-    )
+# =========================
+# ログ読み込み
+# =========================
+def collect_logs(paths: list[Path]) -> list[LogDict]:
+    """storageからログを集めてまとめる"""
+    logs: list[LogDict] = []
 
-    if not file_path:
-        return
+    for p in paths:
+        logs.extend(load_log(p))
 
-    return Path(file_path)
+    logs.sort(key=lambda x: str(x.get("time", "")))
+    return logs
 
 
 # =========================
@@ -200,8 +198,8 @@ def _build_event(
     type_ = log.get("type") or log.get("level") or "INFO"
     message = log.get("message") or log.get("what", {}).get("message", "")
     return {
-        "time": log.get("time"),
         "type": type_,
+        "time": log.get("time"),
         "trace_id": log.get("trace_id"),
         "message": message,
         "data": data or {},

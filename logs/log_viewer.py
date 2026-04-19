@@ -1,314 +1,391 @@
 # -*- coding: utf-8 -*-
-
-#########################
-# Author: F.Kurokawa
-# Description:
-#
-#########################
-# -*- coding: utf-8 -*-
-"""ログ表示GUI（シンプル版）"""
+"""ログ表示GUI（安定版）"""
 
 from __future__ import annotations
 
+from datetime import datetime
 import json
 import subprocess
-from datetime import datetime
 import tkinter as tk
-from tkinter import ttk
 from pathlib import Path
-from typing import Any
+from tkinter import filedialog, ttk
+from typing import Any, Final, TypeAlias, Union, cast
 
-
-# 自作
 from env_paths import LOGS_DIR
-from logs.log_storage import load_multi_logs
-from logs.log_searcher import summarize
-from logs.log_multi_select import LogFileSelector
+from logs.log_searcher import summarize, collect_logs
+from logs.log_storage import load_log
 from logs.time_utils import to_jst_datetime
 
-class LogViewer:
-    """ログ表示GUI（シンプル版）"""
-    TRACE_ALL = "trace.id_ALL"
-    TYPE_ALL = "type_ALL"
 
-    def __init__(self, parent: tk.Tk) -> None:
+LogRow: TypeAlias = dict[str, Any]
+LogRows: TypeAlias = list[LogRow]
+ParentWidget = Union[tk.Tk, tk.Toplevel]
+
+class LogFileSelector:
+    """ログファイル一覧を表示し、複数選択させるダイアログ"""
+
+    def __init__(self, parent: ParentWidget, log_dir: Path) -> None:
+        self.parent = parent
+        self.log_dir: Path = log_dir
+
+    def show(self) -> list[Path] | None:
+        """ログファイル一覧を表示し、選択結果を返す"""
+        window = tk.Toplevel(self.parent)
+        window.title("ログ選択")
+        window.geometry("700x500")
+        window.transient(self.parent)
+        window.grab_set()
+
+        files: list[Path] = sorted(
+            list(self.log_dir.glob("*.jsonl")) +
+            list(self.log_dir.glob("*.log")),
+            key=lambda p: p.name
+        )
+
+        if not files:
+            tk.Label(window, text="ログファイルが見つかりません").pack(
+                padx=12,
+                pady=12,
+                anchor="w",
+            )
+            tk.Button(window, text="閉じる", command=window.destroy).pack(pady=8)
+            window.wait_window()
+            return None
+
+        listbox = tk.Listbox(
+            window,
+            selectmode=tk.MULTIPLE,
+            width=100,
+            height=20,
+            exportselection=False,
+        )
+        listbox.pack(fill=tk.BOTH, expand=True, padx=12, pady=12)
+
+        for file_path in files:
+            listbox.insert(tk.END, file_path.name)
+
+        selected_paths: list[Path] = []
+
+        def on_open() -> None:
+            """選択したLog_Pathを読み込む"""
+            indices: tuple[int, ...] = listbox.curselection() # type: ignore
+            for index in indices:  # type: ignore
+                selected_paths.append(files[index])
+            window.destroy()
+
+        def on_cancel() -> None:
+            """キャンセルボタン処理"""
+            window.destroy()
+
+        button_frame = tk.Frame(window)
+        button_frame.pack(fill=tk.X, padx=12, pady=(0, 12))
+
+        tk.Button(button_frame, text="開く", command=on_open).pack(side=tk.LEFT)
+        tk.Button(button_frame, text="キャンセル", command=on_cancel).pack(
+            side=tk.LEFT,
+            padx=8,
+        )
+
+        window.wait_window()
+        return selected_paths if selected_paths else None
+
+
+class LogViewer:
+    """ログファイルを表示するGUI"""
+
+    TRACE_ALL: Final[str] = "trace.id_ALL"
+    TYPE_ALL: Final[str] = "type_ALL"
+
+    def __init__(self, parent: tk.Tk, initial_log_path: Path | None = None) -> None:
         self.root: tk.Tk = parent
         self.root.title("Log Viewer")
-        self.root.geometry("1000x500")
-
-        self.rows: list[dict[str, Any]] = [] # ← イベント
-        self.rows_raw: list[dict[str, Any]] = []  # ← 生ログ
-
-        self.events: list[dict[str, Any]] =[]
-        self._single_click_after_id: str | None =None
-        # =========================
-        # フォント定義（ここが重要🔥）
-        # =========================
-        self.font_title = ("Yu Gothic UI", 12, "bold")
-        self.font_normal = ("Yu Gothic UI", 10)
-        self.font_mono = ("Cascadia Code", 10)
-        # =========================
-        # 🔹 UI構築
-        # =========================
+        self.root.geometry("1200x650+100+100")
+        # 基本設定
+        self.log_dir: Path = LOGS_DIR
+        self.rows: LogRows = []
+        self.rows_raw: LogRows = []
+        self._single_click_after_id: str | None = None
+        # 仕様別フィルタ
+        self.trace_var = tk.StringVar(value=self.TRACE_ALL)
+        self.type_var = tk.StringVar(value=self.TYPE_ALL)
+        # フォント指定
+        self.font_title: tuple[str, int, str] = ("Yu Gothic UI", 12, "bold")
+        self.font_normal: tuple[str, int] = ("Yu Gothic UI", 10)
+        self.font_bold_normal: tuple[str, int, str] = ("Yu Gothic UI", 10, "bold")
+        self.font_mono: tuple[str, int] = ("Cascadia Code", 10)
+        # 型だけ宣言
+        self.trace_dropdown: ttk.Combobox
+        self.type_dropdown: ttk.Combobox
+        self.tree: ttk.Treeview
+        # 画像描画
         self._build_ui()
 
-    # =========================
-    # 🔹 UI構築
-    # =========================
+        if initial_log_path is not None:
+            self.reload_log(initial_log_path)
+
+    # =======================
+    # UI構築
+    # =======================
     def _build_ui(self) -> None:
-        """UI構築"""
+        """UIを構築する"""
+        top_frame = tk.Frame(self.root)
+        top_frame.pack(fill=tk.X, padx=8, pady=8)
 
-        # ボタン
-        frame = tk.Frame(self.root)
-        frame.pack(fill=tk.X)
+        tk.Button(top_frame, text="単一ログを開く", command=self.open_log_file).pack(
+            side=tk.LEFT
+        )
+        tk.Button(top_frame, text="複数ログを開く", command=self.open_logs).pack(
+            side=tk.LEFT,
+            padx=8,
+        )
+        tk.Button(top_frame, text="フィルタ解除", command=self.reset_filters).pack(
+            side=tk.LEFT
+        )
 
-        tk.Button(frame, text="ログを開く", command=self.open_logs).pack(side=tk.LEFT)
+        filter_frame = tk.Frame(self.root)
+        filter_frame.pack(fill=tk.X, padx=8, pady=(0, 8))
 
-        # テーブル
+        tk.Label(filter_frame, text="TRACE").pack(side=tk.LEFT)
+        self.trace_dropdown = ttk.Combobox(
+            filter_frame,
+            textvariable=self.trace_var,
+            state="readonly",
+            width=35,
+        )
+        self.trace_dropdown.pack(side=tk.LEFT, padx=(4, 12))
+        self.trace_dropdown.bind("<<ComboboxSelected>>", self.apply_filter)
+
+        tk.Label(filter_frame, text="TYPE").pack(side=tk.LEFT)
+        self.type_dropdown = ttk.Combobox(
+            filter_frame,
+            textvariable=self.type_var,
+            state="readonly",
+            width=20,
+        )
+        self.type_dropdown.pack(side=tk.LEFT, padx=(4, 12))
+        self.type_dropdown.bind("<<ComboboxSelected>>", self.apply_filter)
+
         self.tree = ttk.Treeview(
             self.root,
             columns=("type", "time", "trace_id", "message"),
             show="headings",
         )
+        self.tree.pack(fill=tk.BOTH, expand=True, padx=8, pady=(0, 8))
 
-        # タグごとに色を設定
+        self.tree.heading("type", text="TYPE")
+        self.tree.heading("time", text="TIME")
+        self.tree.heading("trace_id", text="TRACE_ID")
+        self.tree.heading("message", text="MESSAGE")
+
+        self.tree.column("type", width=120, anchor="w")
+        self.tree.column("time", width=180, anchor="w")
+        self.tree.column("trace_id", width=220, anchor="w")
+        self.tree.column("message", width=640, anchor="w")
+
         self.tree.tag_configure(
-            "INFO", foreground="black", font=self.font_normal, background="#ffffff"
+            "INFO",
+            foreground="black",
+            font=self.font_normal,
+            background="#ffe2fa",
         )
         self.tree.tag_configure(
-            "ERROR", foreground="red", font=self.font_normal, background="#3477f4"
+            "WARNING",
+            foreground="orange",
+            font=self.font_normal,
+            background="#43fb65",
         )
         self.tree.tag_configure(
-            "CRITICAL", foreground="red", font=self.font_normal, background="#3a34f0"
+            "ERROR",
+            foreground="red",
+            font=self.font_bold_normal,
+            background="#6970fe",
         )
         self.tree.tag_configure(
-            "WARNING", foreground="orange", font=self.font_normal, background="#5e34f4"
+            "CRITICAL",
+            foreground="red",
+            font=self.font_bold_normal,
+            background="#0844c5",
         )
         self.tree.tag_configure(
             "TRACE_JUMP",
-            foreground="yellow",
-            font=self.font_normal,
-            background="#b338fb",
+            foreground="#6a0dad",
+            font=self.font_bold_normal,
+            background="#f3e8ff",
         )
         self.tree.tag_configure(
-            "REBOOT", foreground="purple", font=self.font_normal, background="#f4a234"
+            "REBOOT",
+            foreground="#7a3b00",
+            font=self.font_bold_normal,
+            background="#ffe8cc",
         )
-
-        for col in ("type", "time", "trace_id", "message"):
-            self.tree.heading(col, text=col.upper())
-
-        # ----フィルターフレーム----
-        filter_frame = tk.Frame(self.root)
-        filter_frame.pack(fill=tk.X)
-        self.tree.pack(fill=tk.BOTH, expand=True)
-
-        # -----trace_id フィルタ----
-        self.trace_var = tk.StringVar(value=self.TRACE_ALL)
-
-        # trace用
-        self.trace_dropdown = ttk.Combobox(
-            filter_frame,
-            textvariable=self.trace_var,
-            state="readonly"
-        )
-        self.trace_dropdown.pack(side=tk.LEFT, padx=5)
-        self.trace_dropdown.bind("<<ComboboxSelected>>", self.apply_filter)
-
-        # ----typeフィルタ----
-        self.type_var = tk.StringVar(value=self.TYPE_ALL)
-
-        # type用
-        self.type_dropdown = ttk.Combobox(
-            filter_frame,
-            textvariable=self.type_var,
-            state="readonly"
-        )
-        self.type_dropdown.pack(side=tk.LEFT, padx=5)
-        self.type_dropdown.bind("<<ComboboxSelected>>", self.apply_filter)
 
         self.tree.bind("<ButtonRelease-1>", self.on_click)
         self.tree.bind("<Double-1>", self.on_double_click)
 
-    # =========================
-    # 🔹 メイン処理（超重要🔥）
-    # =========================
-    def open_logs(self) -> None:
-        """ログ選択 → 読み込み → 表示"""
+    def reload_log(self, path: Path) -> None:
+        """単一ログファイルを読み込む"""
+        logs: LogRows = load_log(path)
+        self.rows_raw = logs
+        self.rows = summarize(logs)
+        self.update_filters()
+        self.apply_filter()
 
-        # ① ファイル選択
-        selector = LogFileSelector(self.root, LOGS_DIR)
-        paths: list[Path] | None = selector.show()
-        print("paths:", paths)
-        if not paths:
+    def open_log_file(self) -> None:
+        """ファイルダイアログから単一ログを開く"""
+
+        file_path_str: str = filedialog.askopenfilename(
+            title="ログファイルを選択",
+            initialdir=str(self.log_dir),
+            filetypes=[("Log Files", "*.jsonl *.log"), ("All Files", "*.*")],
+        )
+
+        if not file_path_str:
             return
 
-        # ② 読み込み（storage）
-        logs: list[dict[str, Any]] = load_multi_logs(paths)
+        # 🔹 searcher経由で取得（統一）
+        logs: list[LogRow] = collect_logs([Path(file_path_str)])
 
-        # ③ 分析（searcher）
-        events: list[dict[str, Any]] = summarize(logs)
-
-        # ④ 表示
-        self._display(events)
-
-    # =========================
-    # 🔹 表示
-    # =========================
-    def _display(self, events: list[dict[str, Any]]) -> None:
-        self.events = events
-        self.rows = events
-        self.rows_raw = events
-
-        # フィルタ候補更新
-        types: list[str] = sorted({e.get("type", "INFO") for e in events})
-        traces: list[str] = sorted({e.get("trace_id", "") for e in events})
-
-        self.type_dropdown["values"] = [self.TYPE_ALL] + types
-        self.trace_dropdown["values"] = [self.TRACE_ALL] + traces
-
-        # 描画
+        self.rows_raw = logs
+        self.rows = summarize(logs)
+        self.update_filters()
         self.apply_filter()
-    # ================================
-    # 表示後に候補更新
-    # ================================
-    def _display_refresh(self, events: list[dict[str, Any]]) -> None:
-        """logの再表示関数"""
-        self.events: list[dict[str, Any]] = events
 
-        # フィルタ候補作成
-        types: list[str] = sorted({e.get("type", "INFO") for e in events})
+    def open_logs(self) -> None:
+        """複数ログを選択して開く"""
+        selector = LogFileSelector(self.root, self.log_dir)
+        paths: list[Path] | None = selector.show()
+
+        if paths is None:
+            return
+
+        # 🔹 データ取得はsearcherに任せる
+        logs: LogRows = collect_logs(paths)
+
+        # 🔹 Viewerは表示だけ
+        self.rows_raw = logs
+        self.rows = summarize(logs)
+        self.update_filters()
+        self.apply_filter()
+
+    def update_filters(self) -> None:
+        """フィルタ候補を更新する"""
+        trace_ids: list[str] = sorted(
+            {
+                self._get_trace_id(row)
+                for row in self.rows
+                if self._get_trace_id(row)
+            }
+        )
+        types: list[str] = sorted(
+            {
+                self._get_type(row)
+                for row in self.rows
+                if self._get_type(row)
+            }
+        )
+
+        self.trace_dropdown["values"] = [self.TRACE_ALL] + trace_ids
         self.type_dropdown["values"] = [self.TYPE_ALL] + types
 
-    # ============================
-    # 🔹 ログ内容表示(info情報も含む)
-    # ============================
-    def format_raw_log(self, log: dict[str, Any]) -> str:
-        """生ログの内容をわかりやすく表示する（将来の拡張用）"""
-        return log.get("what", {}).get("message", "")
+        self.trace_var.set(self.TRACE_ALL)
+        self.type_var.set(self.TYPE_ALL)
 
-    # ============================
-    # 🔹 フィルタ処理
-    # ============================
+    def reset_filters(self) -> None:
+        """フィルタを解除する"""
+        self.trace_var.set(self.TRACE_ALL)
+        self.type_var.set(self.TYPE_ALL)
+        self.apply_filter()
+
     def apply_filter(self, _event: tk.Event | None = None) -> None:
-        """ドロップダウンの選択に応じて表示をフィルタリングする"""
+        """フィルタに応じて表示内容を更新する"""
         trace_filter: str = self.trace_var.get()
         type_filter: str = self.type_var.get()
 
-        # Treeをクリア
-        for item in self.tree.get_children():
-            self.tree.delete(item)
+        for item_id in self.tree.get_children():
+            self.tree.delete(item_id)
 
-        # 再表示
-        for i, row in enumerate(self.rows):
-            
-            # Trace フィルタ
-            if (
-                trace_filter != self.TRACE_ALL
-                and self._get_trace_id(row) != trace_filter
-            ):
+        for index, row in enumerate(self.rows):
+            row_trace_id: str = self._get_trace_id(row)
+            row_type: str = self._get_type(row)
+
+            if trace_filter != self.TRACE_ALL and row_trace_id != trace_filter:
                 continue
-
-            # Type フィルタ
-            # 🔥 typeフィルタ（これが効いてなかった）
-            if (type_filter != self.TYPE_ALL
-                and self._get_type(row) != type_filter
-                ):
+            if type_filter != self.TYPE_ALL and row_type != type_filter:
                 continue
 
             self.tree.insert(
                 "",
                 "end",
-                iid=str(i),
+                iid=str(index),
                 values=(
-                    self._format_display_time(row.get("time")),
-                    self._get_type(row),
-                    self._get_trace_id(row),
+                    self._format_local_time(row.get("time")),
+                    row_type,
+                    row_trace_id,
                     self._get_message(row),
                 ),
-                tags=(self._get_type(row),),
+                tags=(row_type,),
             )
 
-    # ============================
-    # 🔹 ログ詳細表示(イベント内容)
-    # ============================
-    def _get_type(self, row: dict[str, Any]) -> str:
-        type_value: str = str(row.get("type") or row.get("level") or "INFO")
-        return type_value
-
-    def _get_message(self, row: dict[str, Any]) -> str:
-        message_value: str = str(
-            row.get("message") or row.get("what", {}).get("message", "")
-        )
-        return message_value
-
-    def _get_trace_id(self, row: dict[str, Any]) -> str:
-        trace_value: str = str(row.get("trace_id") or "")
-        return trace_value
-
-    # ============================
-    # 🔹 イベント処理
-    # ============================
-    def format_event(self, event: dict[str, Any]) -> str:
-        """イベントの内容をわかりやすく表示する"""
-        t: str | None = event.get("type")
-
-        if t == "TRACE_JUMP":
-            d: dict[str, Any] = event.get("data", {})
-            return f"{d.get('from')} → {d.get('to')}"
-
-        if t == "ERROR":
-            return f"ERROR: {event.get('message', '')}"
-
-        return event.get("message", "")
-
-    def _format_display_time(self, value: Any) -> str:
-        """保存はUTC、表示はJSTへ変換する"""
+    def _format_local_time(self, value: Any) -> str:
+        """UTCをJST表示文字列へ変換する"""
         dt: datetime | None = to_jst_datetime(value)
-        if dt is None:
-            return str(value) if value is not None else ""
-        return dt.strftime("%Y-%m-%d %H:%M:%S JST")
+        return dt.strftime("%Y-%m-%d %H:%M:%S") if dt is not None else str(value)
 
-    # ============================
-    # 🔹 行クリックイベント
-    # ============================
+    def _get_type(self, row: LogRow) -> str:
+        """type文字列を安全に返す"""
+        return str(row.get("type") or row.get("level") or "INFO")
+
+    def _get_message(self, row: LogRow) -> str:
+        """message文字列を安全に返す"""
+        return str(row.get("message") or row.get("what", {}).get("message", ""))
+
+    def _get_trace_id(self, row: LogRow) -> str:
+        """trace_id文字列を安全に返す"""
+        return str(row.get("trace_id") or "")
+
     def on_click(self, event: tk.Event) -> None:
-        """行がクリックされたときに詳細ウィンドウを表示する"""
-        # self._cancel_pending_single_click()
-        row: dict[str, Any] | None = self._get_row_from_event(event)
+        """シングルクリックで詳細表示"""
+        row: dict[str, Any] | None = self._get_row(event)
         if row is None:
             return
 
-        self._single_click_after_id: str | None = self.root.after(
-            250,
+        self._cancel_pending_single_click()
+        self._single_click_after_id = self.root.after(
+            200,
             lambda: self._open_detail(row),
         )
 
     def on_double_click(self, event: tk.Event) -> None:
-        """行をダブルクリックしたときに VSCode でログ発生箇所を開く"""
-        # self._cancel_pending_single_click()
-        row: dict[str, Any] | None = self._get_row_from_event(event)
+        """ダブルクリックでVSCodeを開く"""
+        self._cancel_pending_single_click()
+
+        row: dict[str, Any] | None = self._get_row(event)
         if row is None:
             return
 
-        raw: dict[str, Any] = row.get("raw", {})
-        where: dict[str, Any] = raw.get("where", {})
-        self.open_in_vscode(
-            str(where.get("file", "")),
-            int(where.get("line", 1) or 1),
-        )
+        raw_value: Any | None = row.get("raw")
+        raw: LogRow = cast(
+            LogRow,
+            raw_value
+            if isinstance(raw_value, dict)
+            else row)
+        where: LogRow = raw.get("where", {}) if isinstance(raw.get("where"), dict) else {}
 
-    # ============================
-    # 🔹 その他のイベント処理
-    # ============================
-    # ここに他のイベント処理関数を追加していく
-    def open_in_vscode(self, file: str, line: int) -> None:
-        """VSCodeで該当行を開く"""
-        if not file:
+        file_path: str = str(where.get("file") or "")
+        line_no: int = int(where.get("line") or 1)
+
+        self.open_in_vscode(file_path, line_no)
+
+    def _cancel_pending_single_click(self) -> None:
+        """予約済みのシングルクリック処理を取り消す"""
+        if self._single_click_after_id is None:
             return
-        subprocess.run(["code", "-g", f"{file}:{line}"], check=False)
 
-    def _get_row_from_event(self, event: tk.Event) -> dict[str, Any] | None:
-        """クリック位置から LogEvent を取得する"""
+        self.root.after_cancel(self._single_click_after_id)
+        self._single_click_after_id = None
+
+    def _get_row(self, event: tk.Event) -> LogRow | None:
+        """クリック位置から行データを取得する"""
         row_id: str = self.tree.identify_row(event.y)
         if not row_id:
             return None
@@ -323,76 +400,124 @@ class LogViewer:
 
         return self.rows[index]
 
-    def _open_detail(self, row: dict[str, Any]) -> None:
-        """選択されたログの詳細を表示する"""
-        raw: dict[str, Any] = row.get("raw") or row
 
+    def _open_detail(self, row: LogRow) -> None:
+        """選択されたログの詳細を表示する"""
+        raw_value: Any | None = row.get("raw")
+        raw: LogRow = cast(
+            LogRow,
+            raw_value
+            if isinstance(raw_value, dict) else row)
+
+        # =========================
+        # 🔹 ウィンドウ
+        # =========================
         detail = tk.Toplevel(self.root)
-        detail.title("Detail")
+        detail.title("詳細情報")
+        detail.geometry("900x650")
 
         frame = tk.Frame(detail)
         frame.pack(fill=tk.BOTH, expand=True)
 
-        # ===== 上部：要約 =====
-        summary = tk.Label(
+        # =========================
+        # 🔹 基本情報取得
+        # =========================
+        level: str = self._get_type(row)
+        time_str: str = self._format_local_time(row.get("time"))
+
+        where: LogRow = raw.get("where", {}) if isinstance(raw.get("where"), dict) else {}
+        file_path: str = str(where.get("file") or "")
+        line_no: str = str(where.get("line") or "")
+        function_name: str = str(where.get("function") or "")
+
+        context: LogRow = (
+            raw.get("context", {}) if isinstance(raw.get("context"), dict) else {}
+        )
+
+        # =========================
+        # 🔹 UNIX時間を自動変換
+        # =========================
+        def format_if_time(key: str, value: Any) -> Any:
+            if isinstance(value, (int, float)) and "time" in key:
+                try:
+                    return self._format_local_time(value)
+                except Exception:
+                    return value
+            return value
+
+        # =========================
+        # 🔹 Context整形
+        # =========================
+        context_lines: list[str] = []
+
+        for k, v in context.items():
+            v = format_if_time(k, v)
+            context_lines.append(f"{k:<22}: {v}")
+
+        context_text: str = "\n".join(context_lines)
+
+        # =========================
+        # 🔹 上部概要（改善版🔥）
+        # =========================
+        summary_text: str = f"""
+            Level : {level}
+            Time  : {time_str}
+
+            File  : {file_path}
+            Line  : {line_no}
+            Func  : {function_name}
+
+            --- Context ---
+            {context_text}
+            """
+
+        tk.Label(
             frame,
-            text=f"{self._get_type(row)} | {self._format_display_time(row.get('time'))}",
-            font=self.font_title,
-        )
-        summary.pack(anchor="w")
-
-        # ===== where情報 =====
-        where: dict[str, Any] = raw.get("where", {})
-
-        where_text: str = (
-            f"{where.get('file')}:{where.get('line')}\n" f"{where.get('function')}"
-        )
-
-        where_label = tk.Label(
-            frame, text=where_text, justify="left", font=self.font_normal
-        )
-        where_label.pack(anchor="w")
-
-        # ===== context =====
-        context: dict[str, Any] = raw.get("context", {})
-        context_label = tk.Label(
-            frame,
-            text=f"Context: {context}",
+            text=summary_text,
             justify="left",
             font=self.font_normal,
-        )
-        context_label.pack(anchor="w")
+            anchor="w",
+        ).pack(fill=tk.X, padx=10, pady=(10, 10))
 
-        btn = tk.Button(
+        # =========================
+        # 🔹 VSCodeボタン
+        # =========================
+        tk.Button(
             frame,
             text="Open in VSCode",
             command=lambda: self.open_in_vscode(
-                str(where.get("file", "")),
-                int(where.get("line", 1) or 1),
+                file_path,
+                int(line_no or 1),
             ),
-        )
-        btn.pack()
+        ).pack(anchor="w", padx=10, pady=(0, 8))
 
-        # ===== JSON =====
+        # =========================
+        # 🔹 JSON詳細表示
+        # =========================
         text = tk.Text(
             frame,
             wrap="word",
-            font=self.font_mono,  # ←コード用フォントを指定
+            font=self.font_mono,
         )
-        text.pack(fill=tk.BOTH, expand=True)
+        text.pack(fill=tk.BOTH, expand=True, padx=10, pady=(0, 10))
 
         text.insert("1.0", json.dumps(raw, indent=2, ensure_ascii=False))
+        text.config(state="disabled")
 
-    def _cancel_pending_single_click(self) -> None:
-        """ダブルクリック時にシングルクリック処理の予約を取り消す"""
-        if self._single_click_after_id is None:
+
+    def open_in_vscode(self, file_path: str, line_no: int) -> None:
+        """VSCodeで該当ファイルを開く"""
+        if not file_path:
             return
-
-        self.root.after_cancel(self._single_click_after_id)
-        self._single_click_after_id = None
+        subprocess.run(["code", "-g", f"{file_path}:{line_no}"], check=False)
 
 
 if __name__ == "__main__":
     root = tk.Tk()
-    app = LogViewer(root)
+    latest_candidates: list[Path] = sorted(
+        list(LOGS_DIR.glob("*.jsonl")) +
+        list(LOGS_DIR.glob("*.log"))
+    )
+    initial_path: Path | None = latest_candidates[-1] if latest_candidates else None
+    LogViewer(root, initial_path)
     root.mainloop()

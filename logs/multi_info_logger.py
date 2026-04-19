@@ -76,7 +76,9 @@ class AppLogger:
     _TRACE_ID_VAR: ContextVar[str | None] = ContextVar("trace_id", default=None)
     # 🔥 これ追加
     _initialized: bool = False
-    _time: ISODateTimeStr = ISODateTimeStr(datetime.now(timezone.utc).replace(microsecond=0).isoformat())
+    _time: ISODateTimeStr = ISODateTimeStr(
+        datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+        )
     # シングルトン実装
     def __new__(cls, *args: Any, **kwargs: Any) -> "AppLogger":
         """シングルトン実装"""

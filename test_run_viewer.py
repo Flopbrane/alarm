@@ -11,7 +11,11 @@ from pathlib import Path
 import tkinter as tk
 
 from env_paths import LOGS_DIR
+<<<<<<< HEAD
 from logs.log_viewer_elder import LogViewer
+=======
+from logs.log_viewer_past import LogViewer
+>>>>>>> 67c2bf68dce35d0f1da5d3f5f1d779ac2502ca33
 
 
 def main() -> None:
