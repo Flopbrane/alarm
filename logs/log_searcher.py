@@ -1,47 +1,92 @@
 # -*- coding: utf-8 -*-
-"""logファイルを読み込み、重要ポイントを表示する"""
+"""ログ検索・分析機能"""
+from __future__ import annotations
+
+import re
+from datetime import date
+from pathlib import Path
+from typing import Any
+
+from logs.log_storage import load_log
+
 #########################
 # Author: F.Kurokawa
 # Description:
 # logファイルを読み込み、重要ポイントを表示する
 #########################
-# log_searcher.py
-from __future__ import annotations
-import json
-from pathlib import Path
-from typing import Any
+
+# =========================
+# 型エイリアス
+# =========================
+LogDict = dict[str, Any]
+
+# =========================
+# 日付抽出（YYYY-MM-DD）
+# =========================
+DATE_PATTERN: re.Pattern[str] = re.compile(r"\d{4}-\d{2}-\d{2}")
 
 
+def extract_date_from_path(p: Path) -> date | None:
+    """ファイル名から日付を抽出する（YYYY-MM-DD）"""
+    match: re.Match[str] | None = DATE_PATTERN.search(p.stem)
+    if not match:
+        return None
+    try:
+        return date.fromisoformat(match.group())
+    except ValueError:
+        return None
 
-def load_logs(path: Path) -> list[dict[str, Any]]:
-    """logファイルを読み込む"""
-    logs: list[dict[str, Any]] = []
-    with path.open("r", encoding="utf-8") as f:
-        for line in f:
-            logs.append(json.loads(line))
+# =========================
+# ログファイル取得（NEW🔥）
+# =========================
+def get_log_files(
+    log_dir: Path,
+    start: date | None = None,
+    end: date | None = None,
+) -> list[Path]:
+    """指定した期間のログファイルを取得する"""
+    result: list[Path] = []
+
+    for p in log_dir.iterdir():
+        if not p.is_file():
+            continue
+
+        if p.suffix.lower() not in (".jsonl", ".log"):
+            continue
+
+        file_date: date | None = extract_date_from_path(p)
+        if file_date is None:
+            continue
+
+        if start and file_date < start:
+            continue
+        if end and file_date > end:
+            continue
+
+        result.append(p)
+
+    return result
+
+# =========================
+# ログ読み込み
+# =========================
+def collect_logs(paths: list[Path]) -> list[LogDict]:
+    """storageからログを集めてまとめる"""
+    logs: list[LogDict] = []
+
+    for p in paths:
+        logs.extend(load_log(p))
+
+    logs.sort(key=lambda x: str(x.get("time", "")))
     return logs
 
 
-def detect_reboot_events(logs: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """システム再起動イベントを検出する（what.messageがsystem_reboot_detectedの行）"""
-    results: list[dict[str, Any]] = []
-
-    for log in logs:
-        if log.get("what", {}).get("message") == "system_reboot_detected":
-            results.append(
-                _build_event(
-                    log,
-                    "REBOOT",
-                    "system reboot detected",
-                )
-            )
-
-    return results
-
-
-def detect_trace_jumps(logs: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """traceジャンプを検出する（前の行とtrace_idが変わったら）"""
-    results: list[dict[str, Any]] = []
+# =========================
+# 検出系
+# =========================
+def detect_trace_jumps(logs: list[LogDict]) -> list[LogDict]:
+    """trace_idの変化を検出する"""
+    results: list[LogDict] = []
     prev: str | None = None
 
     for row in logs:
@@ -57,35 +102,25 @@ def detect_trace_jumps(logs: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 )
             )
 
-        prev = current  # ← ★ここに移動（超重要）
+        prev = current
 
     return results
 
 
-def find_errors(logs: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """エラーログを検出する（levelがERRORまたはCRITICALの行）"""
-    return [row for row in logs if row.get("level") in ("ERROR", "CRITICAL")]
-
-
-def detect_errors(logs: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """エラーログを検出する"""
-    results: list[dict[str, Any]] = []
+def detect_errors(logs: list[LogDict]) -> list[LogDict]:
+    """ERROR/CRITICALレベルのログを検出する"""
+    results: list[LogDict] = []
 
     for log in logs:
         if log.get("level") in ("ERROR", "CRITICAL"):
-            what_raw: dict[str, Any] | None = log.get("what", {})
-
-            if isinstance(what_raw, dict):
-                message: str | None = what_raw.get("message")
-            else:
-                message = None
-
-            message = message if isinstance(message, str) else ""
+            message: str | None = log.get("what", {}).get("message", "")
+            if not isinstance(message, str):
+                message = ""
 
             results.append(
                 _build_event(
                     log,
-                    f"{log.get('level')} detected",
+                    log.get("level", "ERROR"),
                     message,
                 )
             )
@@ -93,14 +128,12 @@ def detect_errors(logs: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return results
 
 
-def detect_reboot(logs: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """システム再起動イベントを検出する（what.messageがsystem_reboot_detectedの行）"""
-    results: list[dict[str, Any]] = []
+def detect_reboot(logs: list[LogDict]) -> list[LogDict]:
+    """再起動検出（system_reboot_detectedイベント）"""
+    results: list[LogDict] = []
 
     for log in logs:
-        message: str | None = log.get("what", {}).get("message")
-
-        if message == "system_reboot_detected":
+        if log.get("what", {}).get("message") == "system_reboot_detected":
             results.append(
                 _build_event(
                     log,
@@ -112,34 +145,61 @@ def detect_reboot(logs: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return results
 
 
-def summarize(logs: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """ログを要約して重要ポイントを抽出する"""
-    results: list[dict[str, Any]] = []
+def detect_repeat_errors(logs: list[LogDict]) -> list[LogDict]:
+    """同一エラーメッセージの繰り返しを検出する"""
+    results: list[LogDict] = []
+    seen: set[str] = set()
+
+    for log in logs:
+        message: str | None = log.get("what", {}).get("message")
+
+        if not isinstance(message, str):
+            continue
+
+        if message in seen:
+            results.append(
+                _build_event(
+                    log,
+                    "REPEAT_ERROR",
+                    f"repeated error: {message}",
+                )
+            )
+        else:
+            seen.add(message)
+
+    return results
+
+
+# =========================
+# 要約
+# =========================
+def summarize(logs: list[LogDict]) -> list[LogDict]:
+    """ログから重要イベントを抽出して要約する"""
+    results: list[LogDict] = []
+
     results.extend(detect_trace_jumps(logs))
     results.extend(detect_errors(logs))
     results.extend(detect_reboot(logs))
+    results.extend(detect_repeat_errors(logs))
 
-    return sorted(results, key=lambda x: x["time"])
+    return sorted(results, key=lambda x: str(x.get("time", "")))
 
 
-# 🔥 共通フォーマット関数（重要）
+# =========================
+# イベント変換
+# =========================
 def _build_event(
-    log: dict[str, Any],
+    log: LogDict,
     type_: str,
     message: str,
     *,
     data: dict[str, Any] | None = None,
-) -> dict[str, Any]:
-    """イベント変換関数（解析用）
-
-    ★★ ログレコード（LogRecord）をイベント（Event）に変換する関数
-
-    ・記録されたログを解釈し、意味のあるイベントに変換する層
-    ・分析・可視化のためのデータ整形を行う
-    """
+) -> LogDict:
+    type_ = log.get("type") or log.get("level") or "INFO"
+    message = log.get("message") or log.get("what", {}).get("message", "")
     return {
-        "time": log.get("time"),
         "type": type_,
+        "time": log.get("time"),
         "trace_id": log.get("trace_id"),
         "message": message,
         "data": data or {},

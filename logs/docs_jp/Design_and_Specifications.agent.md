@@ -5,7 +5,7 @@
 本システムは、以下の3層構造で構成される。
 
 ```
-ログ生成 → ログ保存 → ログ解析 → 表示
+ログ生成 → ログ保存 → ログ解析 → 可視化・分析
 ```
 
 ---
@@ -44,6 +44,25 @@
 * ログレコード生成（_build_record）
 * 出力制御（_emit）
 * JSON Lines形式で保存
+* ".log",".jsonl"の拡張子を、logファイルと認識する。
+
+#### ⚠️ Logger内部の重要制約
+
+- Logger内部では、ログ出力メソッド（debug/info/warning/error）を呼び出してはならない。
+- 特に以下の処理中は絶対禁止：
+
+  - _log（ログ生成の司令塔）
+  - _build_log_record（ログ構築）
+  - _safe（JSON変換）
+  - _emit（出力処理）
+
+- これらの処理中にログ出力を行うと、
+  ログ処理が再帰的に呼び出され、無限ループやスタックオーバーフローを引き起こす。
+
+- time単体（時刻のみ）はUTC変換できないため、ログには記録しない
+
+- 内部処理の警告は logger を使わず、
+  print() または専用内部関数で処理すること。
 
 #### ログ構造
 
@@ -78,8 +97,10 @@
 
 #### 主な責務
 
-* ログ読み込み
-* イベント抽出（解析）
+- ログ読み込み
+- 複数ログ統合
+- 時系列ソート
+- 期間フィルタ前提
 
 #### 入力
 
@@ -135,6 +156,15 @@ list[LogEvent]
 
 ---
 
+### 🔥 5. 時刻基準の統一
+
+* ログシステム内部の駆動基準は UTC
+* `multi_info_logger.py` は外部から JST の `datetime` を受け取っても、保存前に UTC へ正規化する
+* `logs` フォルダ内の記録・解析・比較は UTC を基準とする
+* `log_viewer.py` は人間向け表示層なので、表示時のみ JST へ変換してよい
+
+---
+
 ## 🧩 LogEvent構造
 
 ```python
@@ -182,6 +212,9 @@ class LogEvent(TypedDict):
 本システムは「ログ出力」ではなく
 **「観測・診断システム」**として設計されている。
 
+また、時刻の真の基準は UTC とし、
+地域時刻への変換は Viewer などの表示層でのみ行う。
+
 ## 参考事項
 
 ### 各型ヒントクラス
@@ -225,7 +258,7 @@ class LogWhat(TypedDict, total=False):
 class LogRecord(TypedDict, total=False):
     """ログレコードの情報"""
     level: LogLevel
-    time: datetime | str
+    time: str # ISO8601 UTC
     trace_id: str | None
     where: LogWhere
     what: LogWhat

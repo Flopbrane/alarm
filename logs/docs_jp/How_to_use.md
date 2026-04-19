@@ -62,6 +62,10 @@ logs/
 
 - 形式：1行 = 1JSON(JSONL)
 
+- 外部入力が JST の `datetime` でも、保存時には UTC に正規化される
+- `logs` フォルダ内の時刻比較・解析基準は UTC
+- `log_viewer.py` では表示時のみ JST に変換して扱う
+
 ---
 
 ## 🟢 ④ ログ解析
@@ -82,7 +86,9 @@ for e in events:
 ## 🟢 ⑤ GUI表示
 
 ```bash
-python log_viewer.py
+python -m logs.log_viewer
+# あるいは
+python run_viewer.py
 ```
 
 ---
@@ -132,6 +138,7 @@ get_logger()
 
 - whereは自動取得
 - trace_idも自動生成
+- JST の `datetime` を渡しても logger 側で UTC に変換される
 - 各ファイルのトラップでは、必要な情報を記述・取得するだけで良い
 
 ---
@@ -143,6 +150,14 @@ get_logger()
 ```python
 logger.debug("変数確認", context={"value": x})
 ```
+
+---
+
+### フィルタ機能
+
+- trace_idで絞り込み可能
+- typeで絞り込み可能
+- Resetで解除
 
 ---
 
@@ -159,6 +174,19 @@ logger.error("処理失敗", status="failed")
 ```python
 logger.info("cpu_usage", context={"cpu": 30})
 ```
+
+---
+
+### 過去ログ読み込み
+
+- 過去ログ読み込み
+
+---
+
+### 日付範囲選択
+
+- カレンダーで期間指定
+- 存在する日のみ選択可能
 
 ---
 
