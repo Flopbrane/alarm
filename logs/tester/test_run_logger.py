@@ -8,18 +8,17 @@
 #########################
 from __future__ import annotations
 
-from pathlib import Path
 import time
-from typing import Any, TYPE_CHECKING
-
+from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
 from env_paths import LOGS_DIR
 from logs.log_app import get_logger
-from logs.system_monitor import SystemMonitor
 from logs.log_searcher import summarize
 from logs.log_storage import load_log
 from logs.log_types import Event, LogDict
 from logs.log_validator import validate_log
+from logs.system_monitor import SystemMonitor
 
 LOG_DIR: Path = LOGS_DIR
 
