@@ -8,13 +8,12 @@
 #########################
 from __future__ import annotations
 
+import subprocess
 from datetime import datetime
+from subprocess import CompletedProcess
 from typing import TYPE_CHECKING
 
-import subprocess
-from subprocess import CompletedProcess
 import psutil
-
 
 if TYPE_CHECKING:
     from logs.multi_info_logger import AppLogger
