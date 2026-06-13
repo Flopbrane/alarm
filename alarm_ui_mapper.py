@@ -211,8 +211,8 @@ class UIpatchtoInternalMapper:
             if value is None:
                 continue
 
-            # datetime系はここで触らない
-            if f.name in ("date", "time"):
+            # datetime系と識別子はここで触らない
+            if f.name in ("id", "date", "time"):
                 continue
 
             # base_dateはスキップ

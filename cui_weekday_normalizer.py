@@ -12,6 +12,15 @@ import unicodedata
 WEEKDAY_LABELS: list[str] = ["月", "火", "水", "木", "金", "土", "日"]
 WEEKDAY_TO_INDEX: dict[str, int] = {label: i for i, label in enumerate(WEEKDAY_LABELS)}
 INDEX_TO_WEEKDAY: dict[int, str] = {i: label for i, label in enumerate(WEEKDAY_LABELS)}
+WEEKDAY_ALIASES: dict[str, int] = {
+    "月": 0, "月曜": 0, "月曜日": 0, "mon": 0, "monday": 0,
+    "火": 1, "火曜": 1, "火曜日": 1, "tue": 1, "tues": 1, "tuesday": 1,
+    "水": 2, "水曜": 2, "水曜日": 2, "wed": 2, "wednesday": 2,
+    "木": 3, "木曜": 3, "木曜日": 3, "thu": 3, "thur": 3, "thurs": 3, "thursday": 3,
+    "金": 4, "金曜": 4, "金曜日": 4, "fri": 4, "friday": 4,
+    "土": 5, "土曜": 5, "土曜日": 5, "sat": 5, "saturday": 5,
+    "日": 6, "日曜": 6, "日曜日": 6, "sun": 6, "sunday": 6,
+}
 
 
 def normalize_weekday_list(text: str | None) -> list[int]:
@@ -45,9 +54,9 @@ def normalize_weekday_list(text: str | None) -> list[int]:
                 result.append(n)
             continue
 
-        # 曜日ラベル指定（例: 火）
-        if part in WEEKDAY_TO_INDEX:
-            result.append(WEEKDAY_TO_INDEX[part])
+        weekday_value: int | None = WEEKDAY_ALIASES.get(part.lower())
+        if weekday_value is not None:
+            result.append(weekday_value)
 
     return sorted(set(result))
 

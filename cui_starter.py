@@ -8,7 +8,7 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from alarm_manager_temp import AlarmManager
+    from alarm_manager import AlarmManager
     from logs.multi_info_logger import AppLogger
 
 def main(manager: "AlarmManager") -> None:

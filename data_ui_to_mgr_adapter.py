@@ -17,7 +17,7 @@ from alarm_ui_model import AlarmUI, AlarmUIPatch
 from alarm_payloads import AddPayload, UpdatePayload, DeletePayload
 
 if TYPE_CHECKING:
-    from alarm_manager_temp import AlarmManager
+    from alarm_manager import AlarmManager
 
 
 class DataEditAdapter:

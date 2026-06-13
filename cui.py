@@ -27,16 +27,15 @@ from alarm_ui_model import (
     AlarmListItem,
 )  # ← UI層のAlarmState定義
 from constants import DEFAULT_SOUND, REPEAT_INTERNAL
-from data_ui_to_mgr_adapter import DataEditAdapter as dea
+from data_ui_to_mgr_adapter import DataEditAdapter
+from cui_repeat_normalizer import normalize_repeat_input
 from cui_datetime_normalizer import normalize_commas, validate_date, validate_time
 from cui_weekday_normalizer import normalize_weekday_list
 from utils.utils import select_sound_file
 from utils.text_utils import to_hankaku
-from alarm_payloads import AddPayload, UpdatePayload, DeletePayload
-
 
 if TYPE_CHECKING:
-    from alarm_manager_temp import AlarmManager
+    from alarm_manager import AlarmManager
 
 
 # stdout の文字コードを UTF-8 に強制設定（Windows 対応）
@@ -105,7 +104,7 @@ def print_upcoming_alarms(manager: "AlarmManager") -> None:
 # ------------------------------------------
 def main(alarm_manager: "AlarmManager") -> None:
     """メニュー表示"""
-
+    adapter = DataEditAdapter(alarm_manager)
 
     def run_alarm_monitor(manager: "AlarmManager") -> None:
         """アラーム監視開始"""
@@ -154,8 +153,7 @@ def main(alarm_manager: "AlarmManager") -> None:
             mode="half",
             default=default_key,
         )
-
-        return REPEAT_INTERNAL.get(val, REPEAT_INTERNAL[default_key])
+        return normalize_repeat_input(val, REPEAT_INTERNAL[default_key])
 
     def input_weekday_list() -> list[int]:
         raw: str = input_with_mode(
@@ -214,14 +212,18 @@ def main(alarm_manager: "AlarmManager") -> None:
                     continue
 
                 date_str: str = input_with_mode("日付 (YYYY-MM-DD、省略可)", mode="half")
-                if date_str and not validate_date(date_str):
+                normalized_date: str | None = validate_date(date_str) if date_str else date_str
+                if date_str and normalized_date is None:
                     print("年月日の値が不適合です。")
                     continue
+                date_str = normalized_date or date_str
 
                 time_str: str = input_with_mode("時刻 (HH:MM)", mode="half")
-                if not validate_time(time_str):
+                normalized_time: str | None = validate_time(time_str)
+                if normalized_time is None:
                     print("時刻の値が不適合です。")
                     continue
+                time_str = normalized_time
 
                 repeat: str = input_repeat()
 
@@ -285,8 +287,7 @@ def main(alarm_manager: "AlarmManager") -> None:
                 )
 
                 # 🔥 ここが重要
-                payload = AddPayload(ui_alarm=ui_alarm)
-                alarm_manager.apply_alarm_mutation("add", payload)
+                adapter.add_alarm(ui_alarm)
                 print("✅ アラームを追加しました。")
 
             except KeyboardInterrupt:
@@ -302,8 +303,7 @@ def main(alarm_manager: "AlarmManager") -> None:
                 print("無効な番号です")
                 continue
             alarm_id = alarm_list[index].alarm_id
-            payload = DeletePayload(alarm_id_list=[alarm_id])
-            alarm_manager.apply_alarm_mutation("delete", payload)
+            adapter.delete_alarms([alarm_id])
             print("✅ アラームを削除しました。")
 
         elif choice == "4":
@@ -319,11 +319,7 @@ def main(alarm_manager: "AlarmManager") -> None:
                 print("アラームが見つかりません")
                 continue
             patch = AlarmUIPatch(enabled=not alarm.enabled)
-            payload = UpdatePayload(
-                alarm_id=alarm_id,
-                patch=patch
-            )
-            alarm_manager.apply_alarm_mutation("update", payload)
+            adapter.update_alarm(alarm_id, patch)
 
         elif choice == "5":
             run_alarm_monitor(alarm_manager)
@@ -334,3 +330,9 @@ def main(alarm_manager: "AlarmManager") -> None:
 
         else:
             print("無効な選択です。")
+
+
+if __name__ == "__main__":
+    from alarm_manager import AlarmManager
+
+    main(AlarmManager())

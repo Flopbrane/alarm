@@ -7,8 +7,9 @@ manager -> checker -> player の連動を、
 import unittest
 from datetime import datetime, timedelta
 from typing import Any, cast
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
+from alarm_payloads import AddPayload
 from alarm_manager_cycle_control_options import CycleOptions
 from alarm_manager_temp import AlarmManager
 from alarm_states_model import AlarmStateInternal
@@ -43,6 +44,14 @@ class TestManagerMinimum(unittest.TestCase):
         # scheduler だけは固定値を返すようにして時刻条件を安定させる。
         self.mgr.scheduler.get_next_time = MagicMock(return_value=self.due_time)
 
+    def _set_cycle_now(self, current: datetime) -> None:
+        """manager の内部クロックを固定する"""
+        def fake_tick() -> datetime:
+            self.mgr._now = current
+            return current
+
+        self.mgr.tick = MagicMock(side_effect=fake_tick)
+
     def _new_ui_alarm(self) -> AlarmUI:
         """新規登録用の UI データを作る"""
         return AlarmUI(
@@ -55,13 +64,11 @@ class TestManagerMinimum(unittest.TestCase):
             duration=5,
         )
 
-    @patch("alarm_manager_temp.datetime")
-    def test_alarm_does_not_fire_before_due(self, mock_datetime: MagicMock) -> None:
+    def test_alarm_does_not_fire_before_due(self) -> None:
         """予定時刻前は checker が発火を許可しない"""
-        mock_datetime.now.return_value = self.fixed_now
-        mock_datetime.side_effect = datetime
+        self._set_cycle_now(self.fixed_now)
 
-        self.mgr.apply_alarm_mutation("add", self._new_ui_alarm())
+        self.mgr.apply_alarm_mutation("add", AddPayload(ui_alarm=self._new_ui_alarm()))
         self.mgr.start_cycle("loop", self.fire_cycle)
 
         state: AlarmStateInternal | None = self.mgr.states[0]
@@ -69,13 +76,11 @@ class TestManagerMinimum(unittest.TestCase):
         self.assertEqual(state.next_fire_datetime, self.due_time)
         self.player_play_mock.assert_not_called()
 
-    @patch("alarm_manager_temp.datetime")
-    def test_alarm_flows_from_manager_to_checker_to_player(self, mock_datetime: MagicMock) -> None:
+    def test_alarm_flows_from_manager_to_checker_to_player(self) -> None:
         """予定時刻到達で manager -> checker -> player が連動する"""
-        mock_datetime.now.return_value = self.fixed_now
-        mock_datetime.side_effect = datetime
+        self._set_cycle_now(self.fixed_now)
 
-        self.mgr.apply_alarm_mutation("add", self._new_ui_alarm())
+        self.mgr.apply_alarm_mutation("add", AddPayload(ui_alarm=self._new_ui_alarm()))
         alarm = self.mgr.alarms[0]
 
         # 1サイクル目: 再計算だけ行い、次回鳴動予定を確定させる
@@ -83,7 +88,7 @@ class TestManagerMinimum(unittest.TestCase):
         self.player_play_mock.assert_not_called()
 
         # 2サイクル目: 予定時刻に到達したので発火する
-        mock_datetime.now.return_value = self.due_time
+        self._set_cycle_now(self.due_time)
         self.mgr.start_cycle("loop", self.fire_cycle)
 
         self.player_play_mock.assert_called_once_with("dummy.wav", duration=5)

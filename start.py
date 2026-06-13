@@ -22,7 +22,7 @@ import psutil
 # 自作モジュール
 from logs.log_app import get_logger
 from alarm_config_manager import Config, ConfigManager
-from alarm_manager_temp import AlarmManager
+from alarm_manager import AlarmManager
 from gui_starter import main as gui_main
 from cui_starter import main as cui_main
 if TYPE_CHECKING:

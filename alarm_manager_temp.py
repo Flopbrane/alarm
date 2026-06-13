@@ -32,6 +32,7 @@ import threading
 import time
 import uuid
 from datetime import datetime as DateTimeType
+from datetime import datetime as datetime
 from datetime import time as TimeType, timedelta
 from pathlib import Path
 from typing import Any, Callable, Literal, TypedDict, Optional
@@ -1381,7 +1382,7 @@ class AlarmManager:
 
     # ① cycle開始の入り口（内部クロック確定）
     def _begin_cycle(self) -> DateTimeType:
-        self._now = self.internal_clock()  # ←1cycle=1now確定
+        self._now = self.tick()  # 1 cycle = 1 tick を必ず守る
         self.monitor.tick()  # ←ここで1回だけ
         return self._now
 

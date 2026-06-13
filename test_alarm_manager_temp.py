@@ -8,7 +8,7 @@
 # -*- coding: utf-8 -*-
 import unittest
 from datetime import datetime, timedelta
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 from alarm_internal_model import AlarmInternal
 from alarm_states_model import AlarmStateInternal
@@ -63,12 +63,18 @@ class TestAlarmManagerTemp(unittest.TestCase):
         self.mgr.alarms = [alarm]
         self.mgr.states = [state]
 
+    def _set_cycle_now(self, current: datetime) -> None:
+        """manager の内部クロックを固定する"""
+        def fake_tick() -> datetime:
+            self.mgr._now = current
+            return current
+
+        self.mgr.tick = MagicMock(side_effect=fake_tick)
+
     # --------------------------------------------------
-    @patch('alarm_manager_temp.datetime')
-    def test_process_sets_next_fire_datetime(self, mock_datetime: MagicMock) -> None:
+    def test_process_sets_next_fire_datetime(self) -> None:
         """process() で next_fire_datetime が計算される"""
-        mock_datetime.now.return_value = self.fixed_now
-        mock_datetime.side_effect = datetime
+        self._set_cycle_now(self.fixed_now)
 
         self.mgr.start_cycle(
             'loop',
@@ -84,11 +90,9 @@ class TestAlarmManagerTemp(unittest.TestCase):
         self.assertEqual(state.next_fire_datetime, self.next_time)
 
     # --------------------------------------------------
-    @patch("alarm_manager_temp.datetime")
-    def test_next_fire_times_updated_via_process(self, mock_datetime: MagicMock) -> None:
+    def test_next_fire_times_updated_via_process(self) -> None:
         """process() で next_fire_map が更新される"""
-        mock_datetime.now.return_value = self.fixed_now
-        mock_datetime.side_effect = datetime
+        self._set_cycle_now(self.fixed_now)
 
         self.mgr.start_cycle(
             'loop',
@@ -107,11 +111,9 @@ class TestAlarmManagerTemp(unittest.TestCase):
     # --------------------------------------------------
     # 🔹 以下のメソッドでエラーが発生
     # --------------------------------------------------
-    @patch("alarm_manager_temp.datetime")
-    def test_no_alarms_fire_before_due_time(self, mock_datetime: MagicMock) -> None:
+    def test_no_alarms_fire_before_due_time(self) -> None:
         """まだ鳴らない状態では play() が呼ばれない"""
-        mock_datetime.now.return_value = self.fixed_now
-        mock_datetime.side_effect = datetime
+        self._set_cycle_now(self.fixed_now)
 
         # play メソッドを明示的にモック化
         self.mgr.player.play = MagicMock()
@@ -131,17 +133,13 @@ class TestAlarmManagerTemp(unittest.TestCase):
     # --------------------------------------------------
     # 「鳴ること」を確認する専用テストを1本だけ作る
     # --------------------------------------------------
-    @patch("alarm_manager_temp.datetime")
-    def test_alarm_fires_when_due(self, mock_datetime: MagicMock) -> None:
+    def test_alarm_fires_when_due(self) -> None:
         """発火時刻到達で play() が呼ばれる"""
-        mock_datetime.now.return_value = self.fixed_now
-        mock_datetime.side_effect = datetime
-        # next_time を「過去」にする
-        self.mgr.scheduler.get_next_time = MagicMock(
-            return_value=self.fixed_now - timedelta(seconds=1)
-        )
-
         self.mgr.player.play = MagicMock()
+        state: AlarmStateInternal = self.mgr.states[0]
+        state.next_fire_datetime = self.fixed_now - timedelta(seconds=1)
+        state.needs_recalc = False
+        self._set_cycle_now(self.fixed_now)
 
         self.mgr.start_cycle(
             'loop',
