@@ -32,8 +32,8 @@ import threading
 import time
 import uuid
 from datetime import datetime as DateTimeType
-from datetime import datetime as datetime
-from datetime import time as TimeType, timedelta
+from datetime import time as TimeType
+from datetime import timedelta
 from pathlib import Path
 from typing import Any, Callable, Literal, TypedDict, Optional
 from typing import TYPE_CHECKING, overload
@@ -45,29 +45,34 @@ try:
 except ImportError:
     msvcrt = None
 
+# === utils ===
+from logs.system_monitor import SystemMonitor
 
 # Local modules
 # === mapper ===
-from alarm_data_json_mapper import InternalToJsonMapper, JsonToInternalMapper
-from alarm_ui_mapper import (
+from alarm.alarm_data_json_mapper import InternalToJsonMapper, JsonToInternalMapper
+from alarm.alarm_ui_mapper import (
     InternaltoUIMapper,
     UIpatchtoInternalMapper,
     UItoInternalMapper,
 )
 
 # === model ===
-from alarm_internal_model import AlarmInternal
-from alarm_states_model import AlarmStateInternal
-from alarm_json_model import AlarmJson, AlarmStateJson
-from alarm_ui_model import AlarmListItem, AlarmUI, AlarmUIPatch
+from alarm.alarm_payloads import AddPayload, UpdatePayload, DeletePayload
+from alarm.alarm_internal_model import AlarmInternal
+from alarm.alarm_states_model import AlarmStateInternal
+from alarm.alarm_json_model import AlarmJson, AlarmStateJson
+from alarm.alarm_ui_model import AlarmListItem, AlarmUI, AlarmUIPatch
+
+
+
 
 # === utils ===
-from logs.log_app import get_logger
-from logs.system_monitor import SystemMonitor
-from constants import DEFAULT_SOUND
+from alarm.logger_bridge import get_alarm_logger
+from alarm.constants import DEFAULT_SOUND
 
 # === controller ===
-from alarm_manager_cycle_control_options import (
+from alarm.alarm_manager_cycle_control_options import (
     CONFIG_CHANGED,
     RUNNING,
     STARTUP,
@@ -75,14 +80,14 @@ from alarm_manager_cycle_control_options import (
 )
 
 # === UI / GUI 関連 ===
-from alarm_player import AlarmPlayer
+from alarm.alarm_player import AlarmPlayer
 
 # === core components ===
-from alarm_repeat_datetime_checker import AlarmDatetimeChecker
-from alarm_scheduler import AlarmScheduler
-from alarm_storage import AlarmStorage
-from env_paths import ALARM_PATH, BACKUP_DIR, DATA_DIR, STANDBY_PATH
-from alarm_payloads import AddPayload, UpdatePayload, DeletePayload
+from alarm.alarm_repeat_datetime_checker import AlarmDatetimeChecker
+from alarm.alarm_scheduler import AlarmScheduler
+from alarm.alarm_storage import AlarmStorage
+from alarm.env_paths import ALARM_PATH, BACKUP_DIR, DATA_DIR, STANDBY_PATH
+
 
 if TYPE_CHECKING:
     from logs.multi_info_logger import AppLogger
@@ -175,7 +180,7 @@ class AlarmManager:
         self.ui_patch_to_internal_mapper = UIpatchtoInternalMapper()
         # === core ===
         self.player = AlarmPlayer()
-        self.logger: AppLogger = logger or get_logger()
+        self.logger: "AppLogger"= logger or get_alarm_logger()
         self.storage = AlarmStorage(
             self.logger,
             alarm_path=self.alarm_file_path,
