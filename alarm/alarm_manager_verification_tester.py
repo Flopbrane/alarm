@@ -12,11 +12,14 @@ from datetime import datetime
 from pathlib import Path
 from typing import Literal
 
-from alarm_internal_model import AlarmInternal
-from alarm_states_model import AlarmStateInternal
+# 3rd party
 from logs.multi_info_logger import AppLogger
-from env_paths import BASE_DIR
-from alarm_manager_temp import AlarmManager
+
+# 自作モジュール
+from alarm.alarm_internal_model import AlarmInternal
+from alarm.alarm_states_model import AlarmStateInternal
+from alarm.env_paths import BASE_DIR
+from alarm.alarm_manager_temp import AlarmManager
 
 # NEXT: AlarmStateJson の欠損時は initial を追加（test 追加）
 # WHY : GUI で状態が必要。保存系は state を落とす可能性があるため
@@ -50,7 +53,10 @@ class AlarmRuntime:
             self.alarm_path.write_text('{"alarms": []}', encoding="utf-8")
 
         if standby_source is not None:
-            self.standby_path.write_text(standby_source.read_text(encoding="utf-8"), encoding="utf-8")
+            self.standby_path.write_text(
+                standby_source.read_text(encoding="utf-8"),
+                encoding="utf-8")
+
         elif not self.standby_path.exists():
             self.standby_path.write_text('{"standby": []}', encoding="utf-8")
 

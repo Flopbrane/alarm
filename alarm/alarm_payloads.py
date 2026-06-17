@@ -8,7 +8,7 @@ manager と UIController 間でやり取りされるペイロードの型定義�
 #########################
 from dataclasses import dataclass
 
-from alarm_ui_model import AlarmUI, AlarmUIPatch
+from alarm.alarm_ui_model import AlarmUI, AlarmUIPatch
 
 @dataclass
 class AddPayload:

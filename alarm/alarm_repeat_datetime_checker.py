@@ -13,10 +13,16 @@ alarm + now + actual_now → True/False
 #########################
 
 from datetime import datetime, timedelta
+from typing import TYPE_CHECKING
 
-from alarm_internal_model import AlarmInternal
-from alarm_states_model import AlarmStateInternal
-from logs.multi_info_logger import AppLogger
+# 3rd party
+from alarm.logger_bridge import get_alarm_logger
+
+from alarm.alarm_internal_model import AlarmInternal
+from alarm.alarm_states_model import AlarmStateInternal
+
+if TYPE_CHECKING:
+    from logs.multi_info_logger import AppLogger
 # =============================================================
 
 class AlarmDatetimeChecker:
@@ -37,12 +43,12 @@ class AlarmDatetimeChecker:
         alarm: AlarmInternal,
         state: AlarmStateInternal,
         now: datetime,
-        logger: AppLogger) -> None:
+        logger: "AppLogger") -> None:
         """コンストラクタ"""
         self.alarm: AlarmInternal = alarm
         self.state: AlarmStateInternal = state
         self.drive_now: datetime = now
-        self.logger: AppLogger = logger
+        self.logger: "AppLogger" = logger or get_alarm_logger()
 
     # --------------------------------------------------------------
     # 🔹 repeat 設定に応じて、本当に鳴らして良いのかの最終判断

@@ -16,9 +16,8 @@ from pathlib import Path
 from typing import Optional
 
 # 自作モジュール
-from alarm_types import DateType, TimeType
-from constants import DEFAULT_SOUND, REPEAT_INTERNAL
-
+from alarm.alarm_types import DateType, TimeType
+from alarm.constants import DEFAULT_SOUND, REPEAT_INTERNAL
 
 # ユーティリティ関数：list[int] のデフォルト値用
 def _int_list() -> list[int]:

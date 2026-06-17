@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=C0301
 """アラームの次回鳴動日時を計算するスケジューラ
 alarm + now → datetime が返るか？
 次回鳴動日時を計算するだけのモジュール
@@ -23,11 +24,16 @@ Scheduler はこういう存在です。
 import calendar
 from collections.abc import Callable
 from datetime import datetime, time, timedelta
+from typing import TYPE_CHECKING
 
-from alarm_internal_model import AlarmInternal
-from cui_datetime_normalizer import normalize_base_date
-from logs.log_app import get_logger
-from logs.multi_info_logger import AppLogger
+# 自作モジュール
+from alarm.alarm_internal_model import AlarmInternal
+from alarm.cui_datetime_normalizer import normalize_base_date
+from alarm.logger_bridge import get_alarm_logger
+
+if TYPE_CHECKING:
+    from logs.multi_info_logger import AppLogger
+
 
 # 型エイリアスをクラス外で定義
 CallableType = Callable[[AlarmInternal, datetime], datetime | None]
@@ -42,7 +48,6 @@ class AlarmScheduler:
     1サイクル内でのみ共有する。
     Scheduler 自身は now を更新しない。
     """
-
     def __init__(self) -> None:
         # インスタンス固有の戦略表
         self._handlers: dict[str, CallableType] = {
@@ -53,8 +58,11 @@ class AlarmScheduler:
             "interval_days": self._next_interval_days,  # daily と同じロジック
             "custom": self._next_custom,
         }
-        self.logger: AppLogger = get_logger()
+        self.logger: "AppLogger" = get_alarm_logger()
         self.now: datetime | None = None
+
+    # ---------------------------------------
+    # Scheduler は「今がいつかは知らない。でも、教えてくれたら計算は正確にやる。」という人格を持つ。
     # マネージャーは外部からセットされる前提
     # ---------------------------------------
     # 次回アラーム時刻を取得
@@ -87,9 +95,9 @@ class AlarmScheduler:
     def _base(self, alarm: AlarmInternal, now: datetime) -> datetime:
         """
         繰り返し計算の起点を返す。
-        - base_date_ があればそれ
+        - repeat_base_datetime があればそれ
         - なければ datetime_
-        - それも無ければ internal_clock()
+        - それも無ければ now
         """
         base: datetime | None = alarm.repeat_base_datetime
         if isinstance(base, datetime):
@@ -98,27 +106,28 @@ class AlarmScheduler:
         dt: datetime | time | None = alarm.datetime_
         if isinstance(dt, datetime):
             return dt
-        # 最終フォールバック（明示的）
-        assert self.now is not None, "Scheduler.now must be set via get_next_time()"
-        if self.logger:
-            self.logger.warning(
-                message="Using internal clock as base date due to missing repeat_base_datetime and datetime_",
-                alarm_id=alarm.id,
-                context={
-                    "repeat_base_datetime": alarm.repeat_base_datetime,
-                    "datetime_": alarm.datetime_,
-                    "internal_clock": self.now,
-                    "alarm_id": alarm.id,
-                    "repeat": alarm.repeat,
-                    "alarm_name": alarm.name,
-                    "message": (
-                        "基準日が不明なため、内部クロックを基準日として使用します。"
-                        "正確な繰り返し計算のためには、repeat_base_datetime または "
-                        "datetime_ を設定してください。"
-                    ),
-                },
-            )
-        return self.now
+
+        self.logger.warning(
+            message=(
+                "Using now as base date due to missing "
+                "repeat_base_datetime and datetime_"
+            ),
+            alarm_id=alarm.id,
+            context={
+                "repeat_base_datetime": alarm.repeat_base_datetime,
+                "datetime_": alarm.datetime_,
+                "now": now,
+                "alarm_id": alarm.id,
+                "repeat": alarm.repeat,
+                "alarm_name": alarm.name,
+                "message": (
+                    "基準日が不明なため、現在時刻 now を基準日として使用します。"
+                    "正確な繰り返し計算のためには、repeat_base_datetime または "
+                    "datetime_ を設定してください。"
+                ),
+            },
+        )
+        return now
 
     # ======================================================
     # _with_time()：日付＋時刻の合成は必ずここ
@@ -246,7 +255,7 @@ class AlarmScheduler:
     # --------------------------------------------------------------
     # 🔹 weekly（毎週 / n週おき）
     # --------------------------------------------------------------
-    def _next_weekly(self, alarm: AlarmInternal, now: datetime) -> datetime:
+    def _next_weekly(self, alarm: AlarmInternal, now: datetime) -> datetime | None:
         """weekly（毎週 / n週おき 共通）"""
 
         interval: int = alarm.interval_weeks or 1
@@ -266,6 +275,17 @@ class AlarmScheduler:
                 weekdays = []
 
         weekdays = sorted(set(weekdays))
+
+        if not weekdays:
+            self.logger.warning(
+                message="Invalid weekday for weekly alarm",
+                alarm_id=alarm.id,
+                context={
+                    "weekday": alarm.weekday,
+                    "datetime_": alarm.datetime_,
+                },
+            )
+            return None
 
         # 次に来る曜日へ
         day_candidate: datetime = self._next_weekday_candidate(start, weekdays)
@@ -324,12 +344,11 @@ class AlarmScheduler:
 
         # 型ガード
         if not isinstance(dt, datetime):
-            if self.logger:
-                self.logger.warning(
-                    message=f"Invalid datetime for monthly alarm: {dt}",
-                    alarm_id=alarm.id,
-                    context={"datetime": dt},
-                )
+            self.logger.warning(
+                message=f"Invalid datetime for monthly alarm: {dt}",
+                alarm_id=alarm.id,
+                context={"datetime": dt},
+            )
             return None
 
         start: datetime = max(now, self._base(alarm, now=now))

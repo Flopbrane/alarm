@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# pylint: disable=too-many-lines
+# pylint: disable=C0301, C0302
 """アラームマネージャモジュール
 alarm + now + actual_now → state
 更新、次回鳴動日時更新、発火判定、鳴動制御

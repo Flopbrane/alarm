@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=C0415
 """
 alarm_player.py
 ---------------------
@@ -15,11 +16,21 @@ AlarmPlayerGUI   : Tkinter の after を使って停止を管理
 import threading
 import tkinter as tk
 from time import sleep
-from typing import Any, Optional
+from typing import Any, TYPE_CHECKING
 
-def _get_pygame() -> Any:
-    # pylint: disable=import-outside-toplevel
-    import pygame
+from alarm.logger_bridge import get_alarm_logger
+
+if TYPE_CHECKING:
+    from logs.multi_info_logger import AppLogger
+
+
+def _get_pygame() -> Any | None:
+    """pygame をインポートするユーティリティ関数"""
+    try:
+        import pygame
+    except ImportError:
+        return None
+
     return pygame
 
 
@@ -37,22 +48,29 @@ class AlarmPlayer:
             return
 
         try:
-            py_game: Any = _get_pygame()
+            py_game: Any | None= _get_pygame()
+            if py_game is None:
+                get_alarm_logger().warning("⚠ pygame がインポートできません")
+                self._init_failed = True
+                return
             py_game.mixer.init()
             self._initialized = True
 
         except Exception as e:  # pylint: disable=W0718
-            print(f"⚠ pygame 初期化に失敗しました: {e}")
+            get_alarm_logger().warning(f"⚠ pygame 初期化に失敗しました: {e}")
             self._init_failed = True
 
     def play(self, sound: str, duration: int = 10) -> None:
         """指定された音を duration 秒だけ再生する"""
         self._ensure_init()
         if self._init_failed:
-            print("⚠ pygame が初期化されていないため再生できません")
+            get_alarm_logger().warning("⚠ pygame が初期化されていないため再生できません")
             return
 
         py_game: Any = _get_pygame()
+        if py_game is None:
+            get_alarm_logger().warning("⚠ pygame がインポートされていないため再生できません")
+            return
 
         # 既存の再生を止める
         self.stop()
@@ -60,18 +78,18 @@ class AlarmPlayer:
         try:
             py_game.mixer.music.load(sound)
         except Exception as e:  # pylint: disable=W0718
-            print(f"⚠ サウンド読み込みエラー: {e}")
+            get_alarm_logger().warning(f"⚠ サウンド読み込みエラー: {e}")
             return
 
         try:
             dur = float(duration)
         except Exception as e:  # pylint: disable=W0718
-            print(f"⚠ duration 変換エラー: {e}")
+            get_alarm_logger().warning(f"⚠ duration 変換エラー: {e}")
             dur = 10.0
 
         if dur <= 0:
             py_game.mixer.music.play(loops=0)
-            self._stop_timer = None
+            self._after_id = None # pylint: disable=E1101,W0201
             return
 
         py_game.mixer.music.play(-1)
@@ -88,7 +106,10 @@ class AlarmPlayer:
         if self._init_failed:
             return
 
-        py_game: Any = _get_pygame()
+        py_game: Any | None = _get_pygame()
+        if py_game is None:
+            get_alarm_logger().warning("⚠ pygame がインポートされていないため停止できません")
+            return
         py_game.mixer.music.stop()
 
 
@@ -101,31 +122,34 @@ class AlarmPlayerGUI:
             py_game.mixer.init()
             self._init_failed = False
         except Exception as e:  # pylint: disable=W0718
-            print(f"⚠ pygame 初期化に失敗しました（SDL2 エラーなど）: {e}")
+            get_alarm_logger().warning(f"⚠ pygame 初期化に失敗しました（SDL2 エラーなど）: {e}")
             self._init_failed = True
 
         self.root: tk.Misc = root
-        self._after_id: Optional[str] = None
+        self._after_id: str | None = None
 
     def play(self, sound: str, duration: int = 10) -> None:
         """GUI 用の再生メソッド"""
         if self._init_failed:
-            print("⚠ pygame が初期化されていないため再生できません")
+            get_alarm_logger().warning("⚠ pygame が初期化されていないため再生できません")
             return
 
-        py_game: Any = _get_pygame()
+        py_game: Any | None = _get_pygame()
+        if py_game is None:
+            get_alarm_logger().warning("⚠ pygame がインポートされていないため再生できません")
+            return
         self.stop()
 
         try:
             py_game.mixer.music.load(sound)
         except Exception as e:  # pylint: disable=W0718
-            print(f"⚠ サウンド読み込みエラー: {e}")
+            get_alarm_logger().warning(f"⚠ サウンド読み込みエラー: {e}")
             return
 
         try:
             dur = float(duration)
         except Exception as e:  # pylint: disable=W0718
-            print(f"⚠ duration 変換エラー: {e}")
+            get_alarm_logger().warning(f"⚠ duration 変換エラー: {e}")
             dur = 10.0
 
         if dur <= 0:
@@ -145,6 +169,9 @@ class AlarmPlayerGUI:
             except Exception:  # pylint: disable=W0718
                 pass
 
-        py_game: Any = _get_pygame()
+        py_game: Any | None = _get_pygame()
+        if py_game is None:
+            get_alarm_logger().warning("⚠ pygame がインポートされていないため停止できません")
+            return
         py_game.mixer.music.stop()
         self._after_id = None

@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=C0301
 """JSON dataclass(JSONモデル ↔ 永続化ストレージとの境界)"""
 #########################
 # Author: F.Kurokawa
@@ -17,8 +18,7 @@ from datetime import datetime
 from pathlib import Path
 
 # 自作モジュール
-from constants import DEFAULT_SOUND
-
+from alarm.constants import DEFAULT_SOUND
 
 # ユーティリティ関数：list[int] のデフォルト値用
 # 「可変デフォルト回避」の意図が伝わりやすくなる

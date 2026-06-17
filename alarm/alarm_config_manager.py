@@ -14,7 +14,7 @@ from pathlib import Path
 from tkinter import messagebox
 from typing import Any, Final, Literal, TypeAlias, TypeGuard
 
-from env_paths import CONFIG_PATH
+from alarm.env_paths import CONFIG_PATH
 
 # =========================================================
 # 🔹 config.json の該当値以外を排除
