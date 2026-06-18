@@ -57,11 +57,16 @@ class AlarmStorage:
         alarm_path: Path | None = None,
         standby_path: Path | None = None,
     ) -> None:
+
         self.base_dir: Path = self.get_base_dir()
         self.logger: AppLogger = logger if logger else get_logger()
         self.alarm_path: Path = alarm_path or ALARM_PATH
         self.standby_path: Path = standby_path or STANDBY_PATH
         # ロガーは遅延初期化する（このクラスは起動直後から呼ばれるため、先にロガーを作ると循環参照になる可能性がある）
+        # JSON破損時の状態を示す、fallback boolen
+        self.safe_mode: bool = False
+        self.allow_save: bool = True
+        self.storage_errors: list[str] = []
 
     def _show_dialog(
         self,
@@ -121,6 +126,7 @@ class AlarmStorage:
                 level="info",
             )
             return []
+
         # alarm.jsonが破損している場合[]を返す
         try:
             with open(self.alarm_path, "r", encoding="utf-8") as f:
@@ -135,6 +141,9 @@ class AlarmStorage:
                 "alarm記録ファイルが破損しています",
                 level="error",
             )
+            self.safe_mode: bool = True
+            self.allow_save: bool = False
+            self.storage_errors: list[str] = []
             return []
 
         if not isinstance(raw_any, dict):
@@ -147,6 +156,9 @@ class AlarmStorage:
                 "alarm記録ファイルが破損しています",
                 level="error",
             )
+            self.safe_mode: bool = True
+            self.allow_save: bool = False
+            self.storage_errors: list[str] = []
             return []
 
         alarms: list[AlarmJson] = []
