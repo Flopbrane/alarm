@@ -20,9 +20,10 @@ from typing import TYPE_CHECKING
 from tkinter import TclError, Tk, messagebox
 
 # Local modules
-from logs.log_app import get_logger
-from alarm_json_model import AlarmJson, AlarmStateJson
-from env_paths import ALARM_PATH, BACKUP_DIR, STANDBY_PATH
+from alarm.logger_bridge import get_alarm_logger
+from alarm.alarm_json_model import AlarmJson, AlarmStateJson
+from alarm.env_paths import ALARM_PATH, BACKUP_DIR, STANDBY_PATH
+
 # 実行時にも必要なもの
 # 型だけ必要なもの
 if TYPE_CHECKING:
@@ -53,13 +54,13 @@ class AlarmStorage:
 
     def __init__(
         self,
-        logger: AppLogger | None = None,
+        logger: "AppLogger | None" = None,
         alarm_path: Path | None = None,
         standby_path: Path | None = None,
     ) -> None:
 
         self.base_dir: Path = self.get_base_dir()
-        self.logger: AppLogger = logger if logger else get_logger()
+        self.logger: "AppLogger" = logger if logger else get_alarm_logger()
         self.alarm_path: Path = alarm_path or ALARM_PATH
         self.standby_path: Path = standby_path or STANDBY_PATH
         # ロガーは遅延初期化する（このクラスは起動直後から呼ばれるため、先にロガーを作ると循環参照になる可能性がある）
@@ -112,6 +113,18 @@ class AlarmStorage:
     # ==============================
     # 📥 Load — AlarmJson[]
     # ==============================
+    def _enter_storage_safe_mode(self, title: str, message: str) -> None:
+        """保存系の異常時に safe mode へ移行する。"""
+        self._show_dialog(
+            title,
+            message,
+            level="error",
+        )
+        self.safe_mode = True
+        self.allow_save = False
+        self.storage_errors = []
+
+
     def load_alarms(self) -> List[AlarmJson]:
         """alarmsの読み込み"""
         raw_any: (
@@ -141,9 +154,10 @@ class AlarmStorage:
                 "alarm記録ファイルが破損しています",
                 level="error",
             )
-            self.safe_mode: bool = True
-            self.allow_save: bool = False
-            self.storage_errors: list[str] = []
+            self._enter_storage_safe_mode(
+                "alarm記録ファイルエラー",
+                "alarm記録ファイルが破損しています",
+            )
             return []
 
         if not isinstance(raw_any, dict):
@@ -156,9 +170,10 @@ class AlarmStorage:
                 "alarm記録ファイルが破損しています",
                 level="error",
             )
-            self.safe_mode: bool = True
-            self.allow_save: bool = False
-            self.storage_errors: list[str] = []
+            self._enter_storage_safe_mode(
+                "alarm記録ファイルエラー",
+                "alarm記録ファイルが破損しています",
+            )
             return []
 
         alarms: list[AlarmJson] = []
@@ -211,11 +226,19 @@ class AlarmStorage:
             self.logger.error(
                 f"[ERROR] standby.json が壊れています: {e}",
             )
+            self._enter_storage_safe_mode(
+                "standby記録ファイルエラー",
+                "standby記録ファイルが破損しています",
+            )
             return []
         # ① dict か？
         if not isinstance(raw_any, dict):
             self.logger.error(
                 "[ERROR] standby.json format invalid (not dict)",
+            )
+            self._enter_storage_safe_mode(
+                "standby記録ファイルエラー",
+                "standby記録ファイルが破損しています",
             )
             return []
         # ② dict として信じる
@@ -227,6 +250,10 @@ class AlarmStorage:
         if not isinstance(standby_raw, list):
             self.logger.error(
                 "[ERROR] standby.json format invalid (standby not list)",
+            )
+            self._enter_storage_safe_mode(
+                "standby記録ファイルエラー",
+                "standby記録ファイルが破損しています",
             )
             return []
         standby_raw = cast(list[dict[str, Any]], standby_raw)

@@ -20,22 +20,22 @@ from typing import Any, Literal, TextIO, cast, TYPE_CHECKING
 import time
 
 # 自作モジュール（順序を整理）
-from alarm_internal_model import AlarmInternal
-from alarm_ui_model import (
+from alarm.alarm_internal_model import AlarmInternal
+from alarm.alarm_ui_model import (
     AlarmUI,
     AlarmUIPatch,
     AlarmListItem,
 )  # ← UI層のAlarmState定義
-from constants import DEFAULT_SOUND, REPEAT_INTERNAL
-from data_ui_to_mgr_adapter import DataEditAdapter
-from cui_repeat_normalizer import normalize_repeat_input
-from cui_datetime_normalizer import normalize_commas, validate_date, validate_time
-from cui_weekday_normalizer import normalize_weekday_list
+from alarm.constants import DEFAULT_SOUND, REPEAT_INTERNAL
+from alarm.data_ui_to_mgr_adapter import DataEditAdapter
+from alarm.cui_repeat_normalizer import normalize_repeat_input
+from alarm.cui_datetime_normalizer import normalize_commas, validate_date, validate_time
+from alarm.cui_weekday_normalizer import normalize_weekday_list
 from utils.utils import select_sound_file
 from utils.text_utils import to_hankaku
 
 if TYPE_CHECKING:
-    from alarm_manager import AlarmManager
+    from alarm.alarm_manager import AlarmManager
 
 
 # stdout の文字コードを UTF-8 に強制設定（Windows 対応）
@@ -333,6 +333,6 @@ def main(alarm_manager: "AlarmManager") -> None:
 
 
 if __name__ == "__main__":
-    from alarm_manager import AlarmManager
+    from alarm.alarm_manager import AlarmManager
 
     main(AlarmManager())

@@ -9,7 +9,7 @@
 from typing import List
 
 # 自作定数モジュール
-from constants import WEEKDAY_LABELS
+from alarm.constants import WEEKDAY_LABELS
 
 
 # ===============================

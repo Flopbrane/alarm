@@ -17,7 +17,7 @@ def main(manager: "AlarmManager") -> None:
     manager.logger.info("CUI 起動")
 
     # 循環参照回避のため、ここでインポート
-    from cui_controller import CUIController  # pylint: disable=import-outside-toplevel
+    from alarm.cui_controller import CUIController  # pylint: disable=import-outside-toplevel
 
     controller = CUIController(manager)
     controller.run()

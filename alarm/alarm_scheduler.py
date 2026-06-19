@@ -26,10 +26,12 @@ from collections.abc import Callable
 from datetime import datetime, time, timedelta
 from typing import TYPE_CHECKING
 
+# 3rd partyモジュール
+from alarm.logger_bridge import get_alarm_logger
+
 # 自作モジュール
 from alarm.alarm_internal_model import AlarmInternal
 from alarm.cui_datetime_normalizer import normalize_base_date
-from alarm.logger_bridge import get_alarm_logger
 
 if TYPE_CHECKING:
     from logs.multi_info_logger import AppLogger

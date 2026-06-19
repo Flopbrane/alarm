@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=C0415
 """GUI 起動エントリーポイント"""
 #########################
 # Author: F.Kurokawa
@@ -9,7 +10,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from alarm_manager_temp import AlarmManager
+    from alarm.alarm_manager_temp import AlarmManager
 
 
 def main(
@@ -17,6 +18,6 @@ def main(
 ) -> None:
     """GUI 起動エントリーポイント"""
 
-    from gui_controller import GUIController
+    from alarm.gui_controller import GUIController
 
     GUIController(manager).start()

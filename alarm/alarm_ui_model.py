@@ -31,7 +31,7 @@ from dataclasses import dataclass, field
 from typing import List, Optional, Union, cast
 
 # 自作モジュール
-from constants import DEFAULT_SOUND
+from alarm.constants import DEFAULT_SOUND
 
 @dataclass
 class AlarmUI:

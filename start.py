@@ -17,23 +17,30 @@ from __future__ import annotations
 import tkinter as tk
 from tkinter import ttk
 from typing import TYPE_CHECKING
+
+## 外部ライブラリ
 import psutil
 
-# 自作モジュール
-from logs.log_app import get_logger
-from alarm_config_manager import Config, ConfigManager
-from alarm_manager import AlarmManager
-from gui_starter import main as gui_main
-from cui_starter import main as cui_main
+## 自作モジュール
+from alarm.alarm_config_manager import Config, ConfigManager
+from alarm.alarm_manager import AlarmManager
+from alarm.cui_starter import main as cui_main
+from alarm.gui_starter import main as gui_main
+from alarm.logger_bridge import get_alarm_logger
+
+
 if TYPE_CHECKING:
     from logs.multi_info_logger import AppLogger
+
 # =====================================================
 # 🔹 起動処理本体
 # =====================================================
 def start_application() -> None:
     """アプリケーションの起動処理"""
+    logger: "AppLogger | None" = None
+
     try:
-        logger: "AppLogger" = get_logger()
+        logger = get_alarm_logger()
         boot_time: float = psutil.boot_time()
 
         logger.info(
@@ -56,7 +63,14 @@ def start_application() -> None:
             start_by_last_mode(manager, cfg_mgr, cfg)
 
     except Exception as e:  # pylint: disable=broad-exception-caught
-        print(f"[警告] 起動失敗: {e}")
+        print(f"[エラー] アプリケーションの起動に失敗しました: {e}")
+        if logger is not None:
+            logger.error(
+                "アプリケーションの起動に失敗しました",
+                context={
+                    "error": str(e),
+                },
+            )
 
 
 def start_by_last_mode(

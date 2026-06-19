@@ -27,9 +27,9 @@ from typing import Any, Dict, List, Optional
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 
-from alarm_manager_temp import AlarmManager
-from mini_calendar import MiniCalendar, TimePicker
-from constants import (
+from alarm.alarm_manager_temp import AlarmManager
+from alarm.mini_calendar import MiniCalendar, TimePicker
+from alarm.constants import (
     REPEAT_DISPLAY,
     REPEAT_INTERNAL,
     COLUMN_LABELS_EDITOR,

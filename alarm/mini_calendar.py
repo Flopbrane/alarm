@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-
+# pylint: disable=C0301
+"""汎用ミニカレンダー（単一日付選択用）"""
 #########################
 # Author: F.Kurokawa
 # Description:
@@ -14,11 +15,20 @@ from __future__ import annotations
 
 import tkinter as tk
 from tkinter import Toplevel
+from tkinter import ttk
 import calendar
 import re
 from pathlib import Path
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
+
+
+from alarm.logger_bridge import get_alarm_logger
+
+
+if TYPE_CHECKING:
+    from logs.multi_info_logger import AppLogger
 
 
 def load_window_position(_window: tk.Misc, _key: str) -> None:
@@ -47,6 +57,7 @@ LOG_DATE_PATTERN: re.Pattern[str] = re.compile(r"(?P<date>\d{4}-\d{2}-\d{2})")
 def collect_log_dates(log_dir: Path) -> set[date]:
     """ログ/JSONLファイル名に含まれる YYYY-MM-DD を有効日として収集する"""
     dates: set[date] = set()
+    logger: "AppLogger" = get_alarm_logger()
 
     for path in log_dir.iterdir():
         if not path.is_file():
@@ -60,7 +71,14 @@ def collect_log_dates(log_dir: Path) -> set[date]:
 
         try:
             dates.add(datetime.strptime(match.group("date"), "%Y-%m-%d").date())
-        except ValueError:
+        except (ValueError, TypeError, AttributeError) as e:
+            logger.warning(f"無効な日付形式: {match.group('date')}",
+                           context={"error": str(e),
+                                    "file": str(path),
+                                    "type": type(match.group("date")).__name__,
+                                    "match": match.group("date"),
+                                    }
+                           )
             continue
 
     return dates
@@ -362,108 +380,132 @@ class LogDateRangeCalendar:
             self.window.destroy()
 
 
-# # =============================
-# # 🕒 TimePicker クラス（時刻ピッカー）
-# # =============================
-# # クリックで時と分を選択して "HH:MM" を返す汎用モジュール
-# class TimePicker:
-#     """
-#     シンプルな時刻選択ダイアログ。
-#     00〜23時、00〜59分を選択して "HH:MM" を返す。
+# =============================
+# 🕒 TimePicker クラス（時刻ピッカー）
+# =============================
+# クリックで時と分を選択して "HH:MM" を返す汎用モジュール
+class TimePicker:
+    """
+    シンプルな時刻選択ダイアログ。
+    00〜23時、00〜59分を選択して "HH:MM" を返す。
+    例：
+    tp = TimePicker(initial_time="07:30")
+    result = tp.show()
+    """
+    def __init__(
+        self,
+        parent: tk.Misc,
+        initial_time: str = "07:00",
+        window_key: str | None = None,
+        now: datetime | None = None,
+    ) -> None:
+        self.parent: tk.Misc = parent
+        self.now: datetime = now or datetime.now()
+        self.logger: "AppLogger" = get_alarm_logger()
 
+        try:
+            h: int
+            m: int
+            h, m = map(int, initial_time.split(":"))
+        except (ValueError, AttributeError, TypeError) as e:
+            now = self.now
+            base: datetime = now.replace(second=0, microsecond=0)
+            if now.second or now.microsecond:
+                base = base + timedelta(minutes=1)
+            h, m = base.hour, base.minute
+            self.logger.warning(
+                f"初期時刻の形式が無効でした: {initial_time}. 初期値を現在時刻に補正します。",
+                context={
+                    "error": str(e),
+                    "initial_time": initial_time,
+                    "type": type(initial_time).__name__,
+                    "corrected_time": f"{h:02d}:{m:02d}",
+                },
+            )
 
-#     例：
-#     tp = TimePicker(initial_time="07:30")
-#     result = tp.show()
-#     """
-#     def __init__(
-#         self,
-#         parent: tk.Misc,
-#         initial_time: str = "07:00",
-#         window_key: str | None = None,
-#     ) -> None:
-#         self.parent: tk.Misc = parent
-#         try:
-#             h: int
-#             m: int
-#             h, m = map(int, initial_time.split(":"))
-#         except Exception:
-#             now: datetime = datetime.now()
-#             # 秒があれば切り上げて次の分
-#             base: datetime = now.replace(second=0, microsecond=0)
-#             if now.second or now.microsecond:
-#                 base = base + timedelta(minutes=1)
-#             h, m = base.hour, base.minute
+        self.hour: int = h
+        self.minute: int = m
+        self.selected_time: str | None = None
+        self.window_key: str | None = window_key
+        self.master: tk.Toplevel | None = None
+        self.hour_var: tk.StringVar | None = None
+        self.minute_var: tk.StringVar | None = None
 
-#         self.hour: int = h
-#         self.minute: int = m
-#         self.selected_time: str | None = None
-#         self.window_key: str | None = window_key
-#         self.master: Toplevel | None = None
-#         self.hour_var: tk.StringVar | None = None
-#         self.minute_var: tk.StringVar | None = None
+    # -----------------------------
+    def show(self) -> str | None:
+        """メイン呼び出し"""
+        self._build_window()
+        if self.master is not None:
+            self.master.wait_window()
+        return self.selected_time
 
-#     # -----------------------------
-#     def show(self) -> str | None:
-#         """メイン呼び出し"""
-#         self._build_window()
-#         if self.master is not None:
-#             self.master.wait_window()
-#         return self.selected_time
+    # -----------------------------
+    def _build_window(self) -> None:
+        self.master = tk.Toplevel(self.parent)
+        self.master.title("時刻を選択")
+        self.master.geometry("220x180")
+        self.master.resizable(False, False)
+        if self.window_key:
+            try:
+                load_window_position(self.master, self.window_key)
+            except (TypeError, ValueError) as e:
+                self.logger.error(
+                    f"ウィンドウ位置の読み込みに失敗しました: {e}",
+                    context={
+                        "error": str(e),
+                        "window_key": self.window_key,
+                        "window_key_type": type(self.window_key).__name__,
+                    },
+                )
 
-#     # -----------------------------
-#     def _build_window(self) -> None:
-#         self.master = Toplevel(self.parent)
-#         self.master.title("時刻を選択")
-#         self.master.geometry("220x180")
-#         self.master.resizable(False, False)
-#         if self.window_key:
-#             try:
-#                 load_window_position(self.master, self.window_key)
-#             except Exception:
-#                 pass
+        frame = tk.Frame(self.master)
+        frame.pack(pady=20)
 
-#         frame = tk.Frame(self.master)
-#         frame.pack(pady=20)
+        # 時の選択
+        tk.Label(frame, text="時：").grid(row=0, column=0)
+        self.hour_var = tk.StringVar(value=f"{self.hour:02d}")
+        hour_box = ttk.Combobox(frame,
+        textvariable=self.hour_var,
+        values=[f"{i:02d}" for i in range(24)],
+        width=5,
+        state="readonly"
+        )
+        hour_box.grid(row=0, column=1, padx=5)
 
-#         # 時の選択
-#         tk.Label(frame, text="時：").grid(row=0, column=0)
-#         self.hour_var = tk.StringVar(value=f"{self.hour:02d}")
-#         hour_box = ttk.Combobox(frame,
-#         textvariable=self.hour_var,
-#         values=[f"{i:02d}" for i in range(24)],
-#         width=5,
-#         state="readonly"
-#         )
-#         hour_box.grid(row=0, column=1, padx=5)
+        # 分の選択
+        tk.Label(frame, text="分：").grid(row=1, column=0)
+        self.minute_var = tk.StringVar(value=f"{self.minute:02d}")
+        minute_box = ttk.Combobox(frame,
+        textvariable=self.minute_var,
+        values=[f"{i:02d}" for i in range(60)],
+        width=5,
+        state="readonly"
+        )
+        minute_box.grid(row=1, column=1, padx=5)
 
-#         # 分の選択
-#         tk.Label(frame, text="分：").grid(row=1, column=0)
-#         self.minute_var = tk.StringVar(value=f"{self.minute:02d}")
-#         minute_box = ttk.Combobox(frame,
-#         textvariable=self.minute_var,
-#         values=[f"{i:02d}" for i in range(60)],
-#         width=5,
-#         state="readonly"
-#         )
-#         minute_box.grid(row=1, column=1, padx=5)
+        # 決定ボタン
+        ttk.Button(self.master, text="OK", width=12,
+        command=self._commit
+        ).pack(pady=15)
 
-#         # 決定ボタン
-#         ttk.Button(self.master, text="OK", width=12,
-#         command=self._commit
-#         ).pack(pady=15)
-
-#     # -----------------------------
-#     def _commit(self) -> None:
-#         if self.hour_var is None or self.minute_var is None:
-#             return
-#         h: str = self.hour_var.get()
-#         m: str = self.minute_var.get()
-#         self.selected_time = f"{h}:{m}"
-#         if self.window_key and self.master is not None:
-#             try:
-#                 save_window_position(self.master, self.window_key)
-#             except Exception:
-#                 pass
-#         if self.master is not None:
-#             self.master.destroy()
+    # -----------------------------
+    def _commit(self) -> None:
+        if self.hour_var is None or self.minute_var is None:
+            return
+        h: str = self.hour_var.get()
+        m: str = self.minute_var.get()
+        self.selected_time = f"{h}:{m}"
+        if self.window_key and self.master is not None:
+            try:
+                save_window_position(self.master, self.window_key)
+            except (TypeError, ValueError) as e:
+                self.logger.error(
+                    "ウィンドウ位置の保存に失敗しました",
+                    context={
+                        "error": str(e),
+                        "window_key": self.window_key,
+                        "window_key_type": type(self.window_key).__name__,
+                    },
+                )
+        if self.master is not None:
+            self.master.destroy()

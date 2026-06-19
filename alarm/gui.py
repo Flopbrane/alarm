@@ -17,12 +17,13 @@ from datetime import datetime, timedelta
 from tkinter import filedialog, messagebox, ttk
 from typing import TYPE_CHECKING, Literal
 
+from alarm.alarm_internal_model import AlarmInternal
 from alarm_config_manager import Config, ConfigManager
 
 # --- 自作モジュール ---------------------------------------------------------
-from alarm_player import AlarmPlayerGUI
-from alarm_storage import AlarmStorage
-from constants import (
+from alarm.alarm_player import AlarmPlayerGUI
+from alarm.alarm_storage import AlarmStorage
+from alarm.constants import (
     COLUMN_BASE,
     COLUMN_LABELS,
     DEFAULT_SOUND,
@@ -32,15 +33,21 @@ from constants import (
     WEEKDAY_LABELS,
     WEEKS_CUSTOM_INTERNAL,
 )
-from json_editor import JsonEditor
-from mini_calendar import MiniCalendar, TimePicker
-from utils.utils import save_config, to_hankaku, validate_date, validate_time, weekday_to_str
-from window_keys import WINDOW_KEYS
-from window_position_store import WindowPositionStore
+from alarm.json_editor import JsonEditor
+from alarm.mini_calendar import MiniCalendar, TimePicker
+from alarm.utils.utils import (
+    save_config,
+    to_hankaku,
+    validate_date,
+    validate_time,
+    weekday_to_str,
+)
+from alarm.window_keys import WINDOW_KEYS
+from alarm.window_position_store import WindowPositionStore
 
 # print(python_version := os.sys.version) # デバッグ用
 if TYPE_CHECKING:
-    from gui_controller import GUIController
+    from alarm.gui_controller import GUIController
 # =========================================================
 # 🔹 GUIクラス（AlarmManagerと連携）
 # =========================================================
@@ -175,7 +182,7 @@ class AlarmGUI:
 
     def _finish_alarm(self, alarm_id: int):
         """鳴動終了時にフラグと表示をリセット"""
-        alarm = self.controller.manager.get_alarm_by_id(alarm_id)
+        alarm: AlarmInternal | None = self.controller.manager.get_alarm_by_id(alarm_id)
         if not alarm:
             return
         # pylint: disable=protected-access
@@ -258,7 +265,7 @@ class AlarmGUI:
                 weekday_list = alarm.get("weekday", [])
                 weekday_str = weekday_to_str(weekday_list) if weekday_list else ""
 
-                line1 = (
+                line1: str = (
                     f"{icon} 次のアラーム：{name} {next_time_calc.strftime('%H:%M')}"
                 )
                 if repeat_display:
@@ -292,15 +299,15 @@ class AlarmGUI:
         if diff <= 15:
             remaining = "まもなく鳴ります"
         else:
-            minutes = math.ceil(diff / 60)
+            minutes: int = math.ceil(diff / 60)
             if minutes >= 60:
-                h = minutes // 60
-                m = minutes % 60
-                remaining = f"あと {h} 時間 {m} 分"
+                h: int = minutes // 60
+                m: int = minutes % 60
+                remaining: str = f"あと {h} 時間 {m} 分"
             elif minutes >= 1:
-                remaining = f"あと {minutes} 分"
+                remaining: str = f"あと {minutes} 分"
             else:
-                remaining = "まもなく鳴ります"
+                remaining: str = "まもなく鳴ります"
 
         self.next_label.config(text=f"{self._next_label_line1}\n{remaining}")
 
@@ -320,7 +327,7 @@ class AlarmGUI:
         if x is None:
             return lambda widget: None  # セルが不可視の場合
 
-        def editor_setter(widget):
+        def editor_setter(widget) -> None:
             # 位置とサイズをセルに合わせる
             widget.place(in_=tree, x=x, y=y, width=width, height=height)
 
@@ -328,13 +335,13 @@ class AlarmGUI:
             widget.focus_set()
 
             # 編集完了（Enter）
-            def done(event=None):
+            def done(event=None) -> None:
                 value = widget.get()
                 widget.destroy()
                 commit_callback(value)
 
             # キャンセル（Escape）
-            def cancel(event=None):
+            def cancel(event=None) -> None:
                 widget.destroy()
 
             widget.bind("<Return>", done)

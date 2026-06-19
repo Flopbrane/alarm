@@ -11,7 +11,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Final
 
-from env_paths import BASE_DIR
+from alarm.env_paths import BASE_DIR
 
 # ==========================================================
 # 🔊 サウンド・基本パス

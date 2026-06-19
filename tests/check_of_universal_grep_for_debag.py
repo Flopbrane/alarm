@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
+# pylint: disable=R0914,R0915,C0301,W0718,W1309
+# ruff: disable=F541
 """
 universal_grep.py
 rootフォルダ配下の *.py を再帰検索し、指定文字列（複数可）の一致箇所を集計してHTMLレポート出力する。
@@ -20,10 +21,16 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import html
-import os
 import re
 from pathlib import Path
-from typing import Iterable, List, Dict, Any, Tuple, Literal
+from typing import Iterable, List, Dict, Any, Literal, TYPE_CHECKING
+
+
+from alarm.logger_bridge import get_alarm_logger
+
+
+if TYPE_CHECKING:
+    from logs.multi_info_logger import AppLogger
 
 
 def _iter_py_files(root_dir: Path, exclude_dirs: Iterable[str]) -> Iterable[Path]:
@@ -45,28 +52,52 @@ def _read_text_safely(load_file_path: Path) -> str | None:
     for enc in encodings:
         try:
             return load_file_path.read_text(encoding=enc, errors="strict")
-        except Exception:
+        except Exception as e:
+            get_alarm_logger().warning(
+                f"ファイル読み込みに失敗しました: {load_file_path} / encoding={enc} / error={e}",
+                context={
+                    "file": str(load_file_path),
+                    "encoding": enc,
+                    "error": str(e),
+                },
+            )
             continue
     # 最後の手段: 置換しつつ読む
     try:
         return load_file_path.read_text(encoding="utf-8", errors="replace")
-    except Exception:
+    except Exception as e:
+        get_alarm_logger().error(
+            f"ファイル読み込みに失敗しました: {load_file_path} / encoding=utf-8 / errors=replace / error={e}",
+            context={
+                "file": str(load_file_path),
+                "encoding": "utf-8",
+                "errors": "replace",
+                "error": str(e),
+            },
+        )
         return None
 
 
 def _build_patterns(terms: List[str], use_regex: bool, ignore_case: bool) -> List[re.Pattern[str]]:
     """
-    _build_patterns の Docstring
-    
-    :param terms: 説明
+    検索語リストから、検索用の正規表現パターン一覧を生成する。
+
+    use_regex が True の場合は、terms の各要素を正規表現として扱う。
+    use_regex が False の場合は、terms の各要素を通常文字列として扱い、
+    re.escape() でエスケープしてから正規表現パターンに変換する。
+
+    ignore_case が True の場合は、大文字小文字を区別しない検索用にする。
+
+    :param terms: 検索対象となる文字列、または正規表現パターン文字列の一覧
     :type terms: List[str]
-    :param use_regex: 説明
+    :param use_regex: True の場合は terms を正規表現として扱い、False の場合は通常文字列として扱う
     :type use_regex: bool
-    :param ignore_case: 説明
+    :param ignore_case: True の場合は大文字小文字を区別せずに検索する
     :type ignore_case: bool
-    :return: 説明
-    :rtype: List[Pattern[str]]
+    :return: 検索に使用するコンパイル済み正規表現パターンの一覧
+    :rtype: List[re.Pattern[str]]
     """
+
     flags: re.RegexFlag = re.MULTILINE
     if ignore_case:
         flags |= re.IGNORECASE
@@ -81,7 +112,6 @@ def _build_patterns(terms: List[str], use_regex: bool, ignore_case: bool) -> Lis
 
 
 def _collect_hits(
-    load_file_path: Path,
     rel_path: str,
     text: str,
     patterns: List[re.Pattern[str]],
@@ -97,7 +127,8 @@ def _collect_hits(
     """
     lines: List[str] = text.splitlines()
     hits: List[Dict[str, Any]] = []
-
+    start:int
+    end:int
     # 行単位で走査（大きめファイルでも扱いやすい）
     for i, line in enumerate(lines):
         line_no: int = i + 1
@@ -184,7 +215,7 @@ def _render_html(
     parts.append("</head>")
     parts.append("<body>")
 
-    parts.append(f"<h1>universal_grep report</h1>")
+    parts.append("<h1>universal_grep report</h1>")
     parts.append(f'<div class="meta">生成: {esc(now)} / root: <code>{esc(str(root_dir))}</code></div>')
 
     parts.append('<div class="box">')
@@ -319,13 +350,13 @@ def main() -> int:
             continue
 
         scanned_files += 1
-        hits: List[Dict[str, Any]] = _collect_hits(load_file_path, rel_path, text, patterns, context_lines=args.context)
+        hits: List[Dict[str, Any]] = _collect_hits(rel_path, text, patterns, context_lines=args.context)
         if hits:
             file_hits.setdefault(rel_path, []).extend(hits)
             for h in hits:
                 hits_by_term[h["term_index"]] += 1
 
-    total_hits = sum(hits_by_term)
+    total_hits: int = sum(hits_by_term)
 
     results: Dict[str, int | List[str] | List[int] | Dict[str, List[Dict[str, Any]]]] = {
         "total_files": total_files,

@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=C0415
 """cui.pyを呼び出すCUIコントローラクラス"""
 #########################
 # Author: F.Kurokawa
@@ -8,8 +9,10 @@
 from __future__ import annotations
 import time
 from typing import TYPE_CHECKING
+
+
 if TYPE_CHECKING:
-    from alarm_manager import AlarmManager
+    from alarm.alarm_manager import AlarmManager
 
 class CUIController:
     """CUI 開始コントローラクラス"""

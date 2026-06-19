@@ -6,7 +6,6 @@ from datetime import datetime
 import typing
 
 
-
 @dataclass
 class AlarmStateInternal:
     """アラーム状態を「状態＋予定」を持つクラスで保持するためのデータクラス
@@ -26,6 +25,10 @@ class AlarmStateInternal:
         next_fire_datetime != None & lifecycle_finished == True  → エラー状態
         → is_invalid_state() が True
         _needs_recalc は Scheduler が参照 / 書き込み
+        has_error(self) -> bool:
+           内部エラー情報を持っているかどうか
+        requires_attention(self) -> bool:
+           再計算またはエラー対応が必要かどうか
     """
 
     id: str = ""  # 行識別子（必ず先頭）(UUIDに変更)
@@ -51,6 +54,9 @@ class AlarmStateInternal:
     # ❌ エラー
     # ⭕ 再計算待ち
     # この違いが非常に重要です。
+    # =====Error情報=====
+    _error_message: str | None = None
+    _error_occurred_at: datetime | None = None
 
     @classmethod
     def initial(cls, alarm_id: str) -> "AlarmStateInternal":
@@ -71,6 +77,8 @@ class AlarmStateInternal:
             _lifecycle_finished=False,
             # ★ 追加
             _needs_recalc=False,
+            _error_message=None,
+            _error_occurred_at=None,
         )
 
     # ===== Getter/Setter（こちらの方が自然で綺麗） =====
@@ -201,6 +209,42 @@ class AlarmStateInternal:
     def needs_recalc(self, value: bool) -> None:
         self._needs_recalc = value
 
+    # ----------------------------------------------------
+    # 🔥 error_message（str）:エラー発生時のメッセージ
+    # ----------------------------------------------------
+    @property
+    def error_message(self) -> str | None:
+        """最後に発生した内部エラーメッセージ"""
+        return self._error_message
+
+    @error_message.setter
+    def error_message(self, value: str | None) -> None:
+        """最後に発生した内部エラーメッセージを設定"""
+        self._error_message = value
+
+    # ----------------------------------------------------
+    # 🔥 error_occurred_at（datetime）:エラー発生時刻
+    # ----------------------------------------------------
+    @property
+    def error_occurred_at(self) -> datetime | None:
+        """最後に発生した内部エラーの発生時刻を取得"""
+        return self._error_occurred_at
+
+    @error_occurred_at.setter
+    def error_occurred_at(self, value: datetime | str | None) -> None:
+        if value is None:
+            self._error_occurred_at = None
+            return
+
+        if isinstance(value, datetime):
+            self._error_occurred_at = value
+            return
+
+        try:
+            self._error_occurred_at = datetime.fromisoformat(value)
+        except ValueError:
+            self._error_occurred_at = None
+
     ################################################################################
     # ===== 派生プロパティ =====
     ################################################################################
@@ -226,5 +270,13 @@ class AlarmStateInternal:
         """本来起こらない状態（ガード・デバッグ用）"""
         return self.next_fire_datetime is not None and self.lifecycle_finished
 
+    @property
+    def has_error(self) -> bool:
+        """内部エラー情報を持っているかどうか"""
+        return self.error_message is not None
 
+    @property
+    def requires_attention(self) -> bool:
+        """再計算またはエラー対応が必要かどうか"""
+        return self.needs_recalc or self.has_error or self.is_invalid_state
 # =========================================================

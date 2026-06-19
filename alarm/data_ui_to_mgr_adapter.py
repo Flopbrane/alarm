@@ -13,11 +13,11 @@ start_cycle
 from __future__ import annotations
 from typing import TYPE_CHECKING
 
-from alarm_ui_model import AlarmUI, AlarmUIPatch
-from alarm_payloads import AddPayload, UpdatePayload, DeletePayload
+from alarm.alarm_ui_model import AlarmUI, AlarmUIPatch
+from alarm.alarm_payloads import AddPayload, UpdatePayload, DeletePayload
 
 if TYPE_CHECKING:
-    from alarm_manager import AlarmManager
+    from alarm.alarm_manager import AlarmManager
 
 
 class DataEditAdapter:

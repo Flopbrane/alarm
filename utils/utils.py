@@ -20,10 +20,10 @@ from tkinter import filedialog
 from typing import Any, Dict, List, Optional, cast
 
 # 自作定数モジュール
-from constants import DEFAULT_SOUND
+from alarm.constants import DEFAULT_SOUND
 
 # 自作モジュール
-from env_paths import BASE_DIR, CONFIG_PATH
+from alarm.env_paths import BASE_DIR, CONFIG_PATH
 
 # =========================================================
 # 🔹 1. 文字列・日付・時刻の基本ユーティリティ（頻度高）

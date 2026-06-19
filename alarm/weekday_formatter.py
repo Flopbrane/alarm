@@ -10,7 +10,7 @@ weekday_list (list[int]) → str 変換
 # 自作定数モジュール
 from typing import List
 
-from constants import WEEKDAY_LABELS
+from alarm.constants import WEEKDAY_LABELS
 
 
 def weekday_to_str(weekday_list: List[int]) -> str:

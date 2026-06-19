@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=C0415
 """gui.pyを呼び出すGUIコントローラクラス"""
 #########################
 # Author: F.Kurokawa
@@ -9,8 +10,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from alarm_manager_temp import AlarmManager
-    from gui import AlarmGUI
+    from alarm.alarm_manager_temp import AlarmManager
+    from alarm.gui import AlarmGUI
 
 
 class GUIController:
@@ -24,7 +25,7 @@ class GUIController:
     def start(self) -> None:
         """GUI を開始する"""
         # 循環参照回避のため、ここでインポート
-        from gui import AlarmGUI
+        from alarm.gui import AlarmGUI
 
         self.gui = AlarmGUI(controller=self)
 

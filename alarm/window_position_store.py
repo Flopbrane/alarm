@@ -16,9 +16,9 @@ from __future__ import annotations
 import json
 from typing import Dict
 
-from env_paths import WINDOW_POSITION_PATH
-from window_geometry import WindowGeometry
-from window_keys import WindowKey
+from alarm.env_paths import WINDOW_POSITION_PATH
+from alarm.window_geometry import WindowGeometry
+from alarm.window_keys import WindowKey
 
 
 class WindowPositionStore:

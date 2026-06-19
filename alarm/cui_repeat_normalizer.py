@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import unicodedata
 
-from constants import DEFAULT_REPEAT_INTERNAL
+from alarm.constants import DEFAULT_REPEAT_INTERNAL
 
 _REPEAT_ALIASES: dict[str, str] = {
     "単発": "single",
