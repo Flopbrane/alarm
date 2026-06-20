@@ -46,7 +46,17 @@ except ImportError:
     msvcrt = None
 
 # === utils ===
-from logs.system_monitor import SystemMonitor
+try:
+    from logs.system_monitor import SystemMonitor
+except ModuleNotFoundError:
+    class SystemMonitor:
+        """logs パッケージが無い環境向けの最小 monitor。"""
+
+        def __init__(self, logger: Any) -> None:
+            self.logger = logger
+
+        def tick(self) -> None:
+            return
 
 # Local modules
 # === mapper ===

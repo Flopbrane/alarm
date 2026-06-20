@@ -42,6 +42,11 @@ class DataEditAdapter:
         self.manager.apply_alarm_mutation("update", payload)
 
 
+    def delete_alarm(self, alarm_id: str) -> None:
+        """単体削除の互換入口。内部では複数削除APIへ委譲する。"""
+        self.delete_alarms([alarm_id])
+
+
     def delete_alarms(self, alarm_id_list: list[str]) -> None:
         """アラームを削除する"""
         payload = DeletePayload(alarm_id_list=alarm_id_list)

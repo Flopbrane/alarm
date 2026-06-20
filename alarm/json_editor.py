@@ -22,22 +22,30 @@ from __future__ import annotations
 import json
 import re
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional
 
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 
-from alarm.alarm_manager_temp import AlarmManager
-from alarm.mini_calendar import MiniCalendar, TimePicker
 from alarm.constants import (
     REPEAT_DISPLAY,
     REPEAT_INTERNAL,
     COLUMN_LABELS_EDITOR,
     WEEKDAY_LABELS,
     DEFAULT_SOUND,
-
+)
+from alarm.logger_bridge import get_alarm_logger
+from alarm.json_editor_service import (
+    ALARM_KEYS,
+    ALARM_TEMPLATE,
+    read_text_file,
+    save_alarm_editor_json,
 )
 from utils.utils import normalize_alarm_input_dict
+
+if TYPE_CHECKING:
+    from logs.multi_info_logger import AppLogger
 
 
 # -----------------------------------------------------
@@ -46,10 +54,15 @@ from utils.utils import normalize_alarm_input_dict
 class JsonEditor:
     """alarms.json を修復・編集するための GUI ツール"""
 
-    def __init__(self, master: tk.Misc, manager: AlarmManager) -> None:
-        self.manager = manager
-        # ✅ 編集対象 JSON ファイル
-        self.json_path = manager.save_file_path
+    def __init__(
+        self,
+        master: tk.Misc,
+        json_path: str | Path,
+        on_saved: Callable[[], None] | None = None,
+    ) -> None:
+        self.json_path = Path(json_path)
+        self.on_saved = on_saved
+        self.logger: "AppLogger" = get_alarm_logger()
 
         # 編集用メモリ上データ（各行 = 1アラームの dict）
         self.rows: List[Dict[str, Any]] = []
@@ -111,6 +124,23 @@ class JsonEditor:
         # 初回読み込み
         self.reload_from_file()
 
+    def _log_editor_warning(self, message: str, **context: object) -> None:
+        """JSON editor の warning を context 付きで残す。"""
+        self.logger.warning(message, context=context)
+
+    def _log_editor_error(
+        self,
+        message: str,
+        error: Exception | None = None,
+        **context: object,
+    ) -> None:
+        """JSON editor の error を context 付きで残す。"""
+        payload = dict(context)
+        if error is not None:
+            payload["error"] = repr(error)
+            payload["error_type"] = type(error).__name__
+        self.logger.error(message, context=payload)
+
     # -------------------------------------------------
     #  JSON 読み込み＆修復
     # -------------------------------------------------
@@ -119,12 +149,20 @@ class JsonEditor:
 
         # ① 生データ読み込み
         try:
-            with open(self.json_path, "r", encoding="utf-8") as f:
-                raw = f.read()
+            raw = read_text_file(self.json_path)
         except FileNotFoundError:
+            self._log_editor_error(
+                "JSON file not found in JsonEditor.reload_from_file",
+                json_path=str(self.json_path),
+            )
             messagebox.showerror("エラー", f"JSONファイルが見つかりません:\n{self.json_path}")
             return
-        except FileExistsError as e:
+        except OSError as e:
+            self._log_editor_error(
+                "Failed to open JSON file in JsonEditor.reload_from_file",
+                e,
+                json_path=str(self.json_path),
+            )
             messagebox.showerror("エラー", f"JSONファイルを開けませんでした:\n{e}")
             return
 
@@ -133,6 +171,11 @@ class JsonEditor:
 
         # ③ 失敗したら heavy_repair_json へ
         if data is None:
+            self._log_editor_warning(
+                "safe_load_json returned None; trying heavy_repair_json",
+                json_path=str(self.json_path),
+                raw_length=len(raw),
+            )
             messagebox.showwarning(
                 "警告",
                 "通常の修復に失敗しました。\n重症修復モード（heavy_repair）を試みます。"
@@ -141,6 +184,11 @@ class JsonEditor:
             data = self.heavy_repair_json(raw)
 
             if data is None:
+                self._log_editor_error(
+                    "heavy_repair_json failed to recover JSON",
+                    json_path=str(self.json_path),
+                    raw_length=len(raw),
+                )
                 messagebox.showerror(
                     "エラー",
                     "JSON修復に失敗しました（構造が壊れ過ぎています）"
@@ -155,6 +203,12 @@ class JsonEditor:
             self.snooze_default = 10
             alarms = data
         else:
+            self._log_editor_error(
+                "Invalid JSON structure loaded in JsonEditor.reload_from_file",
+                json_path=str(self.json_path),
+                data=data,
+                data_type=type(data).__name__,
+            )
             messagebox.showerror("エラー", "JSON構造が不正です（dict または list が必要です）")
             return
 
@@ -388,8 +442,7 @@ class JsonEditor:
             # その他のキーはそのまま保持
 
             fixed[key] = val
-
-            fixed: Dict[str, Any] = normalize_alarm_input_dict(fixed, ALARM_TEMPLATE)
+        fixed = normalize_alarm_input_dict(fixed, ALARM_TEMPLATE)
         # pylint: enable=protected-access
 
         return fixed
@@ -456,6 +509,14 @@ class JsonEditor:
     # -------------------------------------------------
     def refresh_tree(self) -> None:
         """self.rows から Treeview を再構築する"""
+        if not hasattr(self, "tree") or not self.tree.winfo_exists():
+            self._log_editor_warning(
+                "Skipped JsonEditor.refresh_tree because tree does not exist",
+                rows=self.rows,
+                rows_type=type(self.rows).__name__,
+            )
+            return
+
         self.tree.delete(*self.tree.get_children())
 
         for alarm in self.rows:
@@ -475,6 +536,11 @@ class JsonEditor:
                     int(r.get("id", 0)) for r in self.rows if str(r.get("id", "")).strip() != ""
                 ) + 1
             except ValueError:
+                self._log_editor_warning(
+                    "Invalid id found while calculating new row id",
+                    rows=self.rows,
+                    rows_type=type(self.rows).__name__,
+                )
                 new_id = len(self.rows) + 1
 
         row: Dict[str, Any] = {
@@ -505,6 +571,11 @@ class JsonEditor:
         """選択された行を削除"""
         sel = self.tree.selection()
         if not sel:
+            self._log_editor_warning(
+                "Delete row requested without selection",
+                selected_items=list(sel),
+                rows=self.rows,
+            )
             messagebox.showwarning("削除", "削除する行を選択してください。")
             return
 
@@ -703,11 +774,15 @@ class JsonEditor:
     # -------------------------------------------------
     def select_date_dialog(self, initial_date: Optional[str] = None) -> Optional[str]:
         """ミニカレンダーを開き、YYYY-MM-DD を返す"""
+        from alarm.mini_calendar import MiniCalendar
+
         cal = MiniCalendar(self.root, initial_date)
         return cal.show()
 
     def select_time_dialog(self, initial_time: Optional[str] = None) -> Optional[str]:
         """TimePicker を開き、HH:MM を返す"""
+        from alarm.mini_calendar import TimePicker
+
         tp = TimePicker(self.root, initial_time or "07:00")
         return tp.show()
 
@@ -825,21 +900,21 @@ class JsonEditor:
             fixed = self.repair_alarm_dict(row)
             alarms.append(fixed)
 
-        save_data = {
-            "snooze_default": self.snooze_default,
-            "alarms": alarms,
-        }
-
         try:
-            with open(self.json_path, "w", encoding="utf-8") as f:
-                json.dump(save_data, f, ensure_ascii=False, indent=4)
+            save_alarm_editor_json(
+                path=self.json_path,
+                snooze_default=self.snooze_default,
+                alarms=alarms,
+            )
             messagebox.showinfo("保存", "JSONファイルを正常に保存しました。")
-            # 🔄 AlarmManager 側も再読み込みしておくと安全
-            # pylint: disable=protected-access
-            try:
-                self.manager.load_all()
-            except (FileNotFoundError, json.JSONDecodeError):
-                pass
-            # pylint: enable=protected-access
-        except(FileNotFoundError, json.JSONDecodeError) as e:
+            if self.on_saved is not None:
+                self.on_saved()
+        except (FileNotFoundError, json.JSONDecodeError, OSError) as e:
+            self._log_editor_error(
+                "Failed to save JSON from JsonEditor.save_json",
+                e,
+                json_path=str(self.json_path),
+                snooze_default=self.snooze_default,
+                alarms=alarms,
+            )
             messagebox.showerror("保存エラー", str(e))

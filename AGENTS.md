@@ -274,3 +274,161 @@ UI → UIマッパー → 内部モデル → マネージャー → 内部toJSO
 - 責任の明確な分離
 - 副作用の最小化
 - 決定論的な動作
+
+# Codex 作業指示：gui.py / json_editor.py の Error 修正と安全な分割
+
+## 現在の状況
+
+tests フォルダ以外の import 文は、ほぼすべて新しい構成に合わせて修正済みです。
+
+残っている主な対象は以下の2ファイルです。
+
+* gui.py
+* json_editor.py
+
+今回の目的は、Error 修正と責務分離です。
+
+大規模な再設計や、関係ないモジュールの書き換えは行わないでください。
+
+---
+
+## 最優先方針
+
+このプロジェクトでは、Silent Breaking Bugs を最優先で防ぎます。
+
+そのため、以下を必ず守ってください。
+
+* UI は Manager の内部関数を直接呼ばない
+* UI は state を直接変更しない
+* UI は storage を直接操作しない
+* UI からの操作は必ず UI Controller 層を通す
+* 型変換は Mapper 層で行う
+* JSON への変換や保存処理は UI に書かない
+* 既存の state 構造を壊さない
+* alarm.id == state.id を維持する
+
+---
+
+## gui.py の扱い
+
+gui.py は、原則として GUI の表示とユーザー操作の受付だけを担当してください。  
+gui.py は画面表示とイベント受付のみを担当し、状態変更・保存・変換・修復判断は Controller / Mapper / Manager / Storage / Repair 層へ委譲してください。  
+
+gui.py に置いてよい責務：
+
+* メイン画面の表示
+* メニューバーの表示
+* 現在時刻の表示
+* 次のアラーム表示
+* アラームまでの残り時間表示
+* ボタン・メニュー・セルクリックなどの UI イベント受付
+* サブウインドウの起動
+* Controller から受け取った表示用データを画面に反映する処理
+
+gui.py に置かない責務：
+
+* AlarmStateInternal の直接変更
+* Manager 内部メソッドの直接呼び出し
+* JSON データの直接生成
+* JSON ファイルの直接保存
+* JSON ファイルの直接読み込み
+* アラーム発火判定
+* next_fire_datetime の計算
+* キャッシュ更新
+* state 修復ロジック
+* 保存処理
+
+これらは、必要に応じて UI Controller / Mapper / Manager / Storage / Repair 系モジュールに委譲してください。
+
+---
+
+## gui.py の分割方針
+
+gui.py が大きすぎる場合、以下のように小さく分割してください。
+
+例：
+
+* gui.py
+
+  * アプリ起動とメインウインドウ
+* alarm_list_window.py
+
+  * アラーム一覧画面
+* alarm_edit_window.py
+
+  * アラーム追加・編集用の小ウインドウ
+* alarm_cell_edit_window.py
+
+  * 一覧セルクリック時の編集用小ウインドウ
+* repair_menu_window.py
+
+  * 記録データfile修復画面を開く入口
+* ui_controller.py
+
+  * UI から Manager へ処理を渡す唯一の入口
+* ui_mapper.py
+
+  * UI 入力値と内部モデルの変換
+
+ただし、すでに同等のファイルやクラスが存在する場合は、新規作成ではなく既存構成に合わせてください。
+
+---
+
+## json_editor.py の扱い
+
+json_editor.py は、破損した記録データfileを修復するための UI として扱ってください。
+
+ただし、json_editor.py が直接 Storage や Manager の内部構造を壊さないようにしてください。
+
+json_editor.py に置いてよい責務：
+
+* 破損候補データの一覧表示
+* 仮修復結果の表示
+* ユーザーによる修復候補の選択
+* セルクリック時の小ウインドウ表示
+* ユーザーが選んだ修復内容を Controller / Repair 層へ渡す
+
+json_editor.py に置かない責務：
+
+* state の直接変更
+* alarm_id の再生成
+* 既存の state 構造破壊
+* JSON 保存処理の直接実行
+* Manager 内部メソッドの直接呼び出し
+* UI 内での複雑な修復判断
+
+修復判断が必要な場合は、repair 系モジュールまたは controller に切り出してください。
+
+---
+
+## 修正時の注意
+
+* Error 修正を優先してください
+* import path の修正を優先してください
+* 既存の動作を壊さないでください
+* 無関係なファイルを大きく変更しないでください
+* 変更理由をコメントまたは説明に残してください
+* 影響範囲を明確にしてください
+* 一度に大きく書き換えず、小さく安全に分割してください
+
+---
+
+## 作業のゴール
+
+1. gui.py / json_editor.py の import Error を解消する
+2. UI が Manager / State / Storage を直接触らない構造に近づける
+3. 小ウインドウ系の処理を必要に応じて別ファイル・別クラスへ分割する
+4. 既存の AlarmInternal / AlarmStateInternal の構造を壊さない
+5. Silent Breaking Bugs を増やさない
+
+---
+
+## 禁止事項
+
+* gui.py に判断ロジックを集約しない
+* gui.py で JSON を直接編集しない
+* gui.py で state を直接変更しない
+* json_editor.py で Manager の内部状態を直接変更しない
+* 既存の alarm_id / state_id の対応関係を壊さない
+* tests 以外の無関係なファイルを大規模に書き換えない
+

@@ -13,6 +13,7 @@ window_position_manager.py
 # window_position_store.py
 from __future__ import annotations
 
+import tkinter as tk
 import json
 from typing import Dict
 
@@ -23,6 +24,33 @@ from alarm.window_keys import WindowKey
 
 class WindowPositionStore:
     """🗂 ウインドウ位置の永続化専用"""
+
+    @staticmethod
+    def load_window_position(window:tk.Misc, key: WindowKey) -> bool:
+        """既存 GUI 互換: 単一ウインドウ位置を復元する。"""
+        all_data: Dict[WindowKey, WindowGeometry] = WindowPositionStore.load_all()
+        geometry: WindowGeometry | None = all_data.get(key)
+        if geometry is None:
+            return False
+
+        window.geometry(
+            f"{geometry.width}x{geometry.height}+{geometry.x}+{geometry.y}"
+        )
+        return True
+
+    @staticmethod
+    def save_window_position(window:tk.Misc, key: WindowKey) -> None:
+        """既存 GUI 互換: 単一ウインドウ位置を保存する。"""
+        window.update_idletasks()
+
+        all_data: Dict[WindowKey, WindowGeometry] = WindowPositionStore.load_all()
+        all_data[key] = WindowGeometry(
+            x=int(window.winfo_x()),
+            y=int(window.winfo_y()),
+            width=int(window.winfo_width()),
+            height=int(window.winfo_height()),
+        )
+        WindowPositionStore.save_all(all_data)
 
     @staticmethod
     def load_all() -> Dict[WindowKey, WindowGeometry]:
