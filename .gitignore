@@ -18,7 +18,7 @@ venv-alarm312/
 *.jsonl
 *.csv
 *.html
-
+window_position.json
 # === Backup / generated ===
 backup/
 call_index_out/
@@ -60,3 +60,15 @@ desktop.ini
 
 # === sound effects ===
 sound/*.wav
+
+.mypy_cache/
+.ruff_cache/
+.venv/
+.vscode/
+__pycache__/
+data/
+logs/
+_verification_runtime/
+backup/
+favorite_songs/
+sound/
