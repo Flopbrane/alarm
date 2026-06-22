@@ -27,6 +27,7 @@ from alarm.alarm_ui_model import (
     AlarmListItem,
 )  # ← UI層のAlarmState定義
 from alarm.constants import DEFAULT_SOUND, REPEAT_INTERNAL
+from alarm.alarm_manager_cycle_control_options import CUI_STARTUP
 from alarm.data_ui_to_mgr_adapter import DataEditAdapter
 from alarm.cui_repeat_normalizer import normalize_repeat_input
 from alarm.cui_datetime_normalizer import normalize_commas, validate_date, validate_time
@@ -57,6 +58,42 @@ InputMode = Literal["raw", "half", "half_commas"]
 # alarm: AlarmInternal
 # next_datetime: datetime
 # time_until: float
+
+
+def format_repeat_for_display(repeat: str | None) -> str:
+    """繰り返し設定を表示用文字列に変換する。"""
+    repeat_map: dict[str, str] = {
+        "none": "なし",
+        "once": "一回のみ",
+        "daily": "毎日",
+        "weekly": "毎週",
+        "monthly": "毎月",
+        "yearly": "毎年",
+    }
+
+    if repeat is None:
+        return "なし"
+
+    return repeat_map.get(repeat, repeat)
+
+
+def format_weekday_for_display(weekday: list[int] | None) -> str:
+    """曜日番号を表示用文字列に変換する。0=月曜日。"""
+    if not weekday:
+        return ""
+
+    weekday_map: dict[int, str] = {
+        0: "月",
+        1: "火",
+        2: "水",
+        3: "木",
+        4: "金",
+        5: "土",
+        6: "日",
+    }
+
+    return ", ".join(weekday_map.get(w, str(w)) for w in weekday)
+
 
 def print_upcoming_alarms(manager: "AlarmManager") -> None:
     """次のアラームの表示(5件)"""
@@ -93,17 +130,21 @@ def print_upcoming_alarms(manager: "AlarmManager") -> None:
         else:
             print("   ⏰ 不明")
 
-        print(f"   🔁 繰り返し: {alarm_ui.repeat}")
+        repeat_text: str = format_repeat_for_display(alarm_ui.repeat)
+        print(f"   🔁 繰り返し: {repeat_text}")
 
-        if alarm_ui.weekday:
-            print(f"   📅 曜日指定: {', '.join(str(w) for w in alarm_ui.weekday)}")
-
+        weekday_text: str = format_weekday_for_display(cast(list[int] | None, alarm_ui.weekday))
+        if weekday_text:
+            print(f"   📅 曜日指定: {weekday_text}")
 
 # ------------------------------------------
 # 🔹 メインメニュー
 # ------------------------------------------
 def main(alarm_manager: "AlarmManager") -> None:
     """メニュー表示"""
+
+    alarm_manager.start_cycle("startup", CUI_STARTUP)
+
     adapter = DataEditAdapter(alarm_manager)
 
     def run_alarm_monitor(manager: "AlarmManager") -> None:

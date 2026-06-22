@@ -40,7 +40,7 @@ class GUIController:
 
         self.gui = AlarmGUI(controller=self)  # type: ignore[arg-type]
 
-        self.manager.start_cycle(condition="startup")
+        # self.manager.start_cycle(condition="startup")
         self._started = True
 
         self.gui.start_gui()

@@ -29,7 +29,7 @@ class CycleOptions:
 RUNNING = CycleOptions(
     load=False,
     fire=True,
-    save=True,
+    save=False,
     notify=True,
     validate=True,
 )
@@ -47,6 +47,14 @@ CONFIG_CHANGED = CycleOptions(
     fire=False,
     save=True,
     notify=True,
+    validate=True,
+)
+# =====CUI用起動時======
+CUI_STARTUP = CycleOptions(
+    load=True,
+    fire=False,
+    save=False,
+    notify=False,
     validate=True,
 )
 # =========test_config_changed===================================

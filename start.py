@@ -54,6 +54,8 @@ def start_application() -> None:
             logger=logger,
         )
 
+        manager.start_cycle("startup")
+
         cfg_mgr = ConfigManager()
         cfg: Config = cfg_mgr.load_config()
 

@@ -16,6 +16,10 @@ venv-alarm312/
 *.tmp
 *.ini
 *.jsonl
+*.json
+*.csv
+*.html
+
 # === Backup / generated ===
 backup/
 call_index_out/

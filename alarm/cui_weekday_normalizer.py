@@ -37,6 +37,9 @@ def normalize_weekday_list(text: str | None) -> list[int]:
     # 1. 全角→半角（数字・記号）
     text = unicodedata.normalize("NFKC", text)
 
+    if ("." or "．") in text:
+        text = text.replace(".", ",").replace("．", ",")  # 小数点は区切りとみなす
+
     # 2. 日本語読点をカンマに統一
     text = text.replace("、", ",")
 

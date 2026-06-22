@@ -14,9 +14,9 @@ import os
 
 # --- Tkinter関連 ------------------------------------------------------------
 import tkinter as tk
-from datetime import datetime
+from datetime import date, datetime
 from tkinter import filedialog, messagebox, ttk
-from typing import TYPE_CHECKING, Callable, Literal
+from typing import TYPE_CHECKING, Any, Callable, Literal, LiteralString
 
 from alarm.alarm_config_manager import Config, ConfigManager
 from alarm.alarm_ui_model import AlarmUI, AlarmUIPatch
@@ -844,7 +844,7 @@ class AlarmGUI:
         # ---------------------------------------
         # 🔹 新規登録フォーム（2カラム美しい版）
         # ---------------------------------------
-        form = ttk.LabelFrame(win, text="新規アラーム登録", padding=12)
+        form: ttk.LabelFrame = ttk.LabelFrame(win, text="新規アラーム登録", padding=12)
         form.pack(fill="x", padx=20, pady=15)
 
         # グリッド列の設定
@@ -913,7 +913,7 @@ class AlarmGUI:
         ttk.Label(form, text="曜日：").grid(
             row=0, column=3, sticky="e", padx=padx, pady=pady
         )
-        self.weekday_selected = []
+        self.weekday_selected: list[int] = []
         self.weekday_btn = ttk.Button(
             form, text="選択", width=8, command=self.pick_weekday
         )
@@ -1010,34 +1010,35 @@ class AlarmGUI:
     # --------------------------------------------
     # 🔹 新規アラーム登録処理
     # --------------------------------------------
-    def add_alarm_action(self):
-        name = self.name_entry.get().strip()
+    def add_alarm_action(self) -> None:
+        """新規アラーム登録処理"""
+        name: str = self.name_entry.get().strip()
         if not name:
             self._warn("入力エラー", "アラーム名が入力されていません。")
             return
 
         # 📅 日付
-        date_raw = to_hankaku(self.date_entry.get().strip())
-        date = validate_date(date_raw)
+        date_raw: str = to_hankaku(self.date_entry.get().strip())
+        date: str | None = validate_date(date_raw)
         if date is None and date_raw != "":
             self._warn("入力エラー", "日付は YYYY-MM-DD の形式で入力してください。")
             return
 
         # ⏰ 時刻
-        time_raw = to_hankaku(self.time_entry.get().strip())
-        time_str = validate_time(time_raw)
+        time_raw: str = to_hankaku(self.time_entry.get().strip())
+        time_str: str | None = validate_time(time_raw)
         if time_str is None:
             self._warn("入力エラー", "時刻は HH:MM の形式で入力してください。")
             return
 
         # 🔁 繰り返し（内部英語に変換）
-        repeat_display = self.repeat_combo.get()
-        repeat = REPEAT_INTERNAL.get(repeat_display, "none")
+        repeat_display: str = self.repeat_combo.get()
+        repeat: str = REPEAT_INTERNAL.get(repeat_display, "none")
 
         # 🗓️ カスタム繰り返し選択
-        weekday = []
-        week_of_month = []
-        interval_weeks = 1
+        weekday: list[int] = []
+        week_of_month: list[int] = []
+        interval_weeks: int = 1
 
         # ✔ weekly_*（毎週／隔週／3週／4週）の場合
         if repeat.startswith("weekly_"):
@@ -1047,7 +1048,7 @@ class AlarmGUI:
         # ✔ カスタム
         elif repeat == "custom":
             # 既存の custom_data を信頼して使う（登録時に再度ダイアログは開かない）
-            result = self.custom_data
+            result: dict[str, Any] | None = self.custom_data
             if not result:
                 self._warn("入力エラー", "カスタム設定を入力してください。")
                 return
@@ -1056,14 +1057,14 @@ class AlarmGUI:
             interval_weeks = result.get("interval_weeks", 1)
 
         # 🎌 祝日スキップ
-        skip_holiday = self.skip_holiday_combo.get() == "〇"
+        skip_holiday: bool = self.skip_holiday_combo.get() == "〇"
 
         # 🔊 音ファイル
-        sound = self.sound_entry.get().strip()
+        sound: str = self.sound_entry.get().strip()
 
         # 😴 スヌーズ上限
         try:
-            snooze_limit = int(self.snooze_limit_combo.get())
+            snooze_limit: int = int(self.snooze_limit_combo.get())
         except Exception:
             snooze_limit = 3
 
@@ -1095,24 +1096,30 @@ class AlarmGUI:
     # --------------------------------------------
     # 🔧 小ウインド位置ユーティリティ（全ウインド共通)
     # --------------------------------------------
-    def place_subwindow_near_parent(self, parent, child, offset_x=20, offset_y=40):
+    def place_subwindow_near_parent(
+        self,
+        parent: Any | tk.Tk,
+        child: tk.Toplevel,
+        offset_x: int = 20,
+        offset_y: int = 40
+        ) -> None:
         """小ウインドを親ウインドの右横に表示する"""
         parent.update_idletasks()
-        px = parent.winfo_x()
-        py = parent.winfo_y()
-        pw = parent.winfo_width()
+        px: int = parent.winfo_x()
+        py: int = parent.winfo_y()
+        pw: int = parent.winfo_width()
 
         # 子ウインド位置
         child.update_idletasks()
-        x = px + pw + offset_x
-        y = py + offset_y
+        x: int = px + pw + offset_x
+        y: int = py + offset_y
 
         child.geometry(f"+{x}+{y}")
 
-    def _dock_child_window(self, child):
+    def _dock_child_window(self, child: tk.Toplevel) -> None:
         """サブウインドを設定ウインドの右隣に寄せ、前面・フォーカスを与える"""
         try:
-            parent = getattr(self, "settings_window", self.root)
+            parent: Any | tk.Tk = getattr(self, "settings_window", self.root)
             self.place_subwindow_near_parent(parent, child)
             child.transient(parent)
             child.lift()
@@ -1123,9 +1130,9 @@ class AlarmGUI:
     # --------------------------------------------
     # 🔹 曜日選択ダイアログ（毎週専用）
     # --------------------------------------------
-    def select_weekdays_dialog(self, initial=None):
+    def select_weekdays_dialog(self, initial=None) -> list[int] | None:
         """毎週繰り返し用のシンプルな曜日選択ダイアログ"""
-        selected_days = initial or []
+        selected_days: list[int] = initial or []
         win = tk.Toplevel(self.root)
         # 位置復元（無ければドッキング）
         if not self.load_window_position(win, WINDOW_KEYS["WEEKDAY"]):
@@ -1146,7 +1153,7 @@ class AlarmGUI:
         frame = ttk.Frame(win)
         frame.pack(padx=10, pady=5)
 
-        weekday_vars = []
+        weekday_vars: list[tk.BooleanVar] = []
         for i, label in enumerate(WEEKDAY_LABELS):
             var = tk.BooleanVar(value=i in selected_days)
             weekday_vars.append(var)
@@ -1158,18 +1165,18 @@ class AlarmGUI:
         btn_frame = ttk.Frame(win)
         btn_frame.pack(pady=12)
 
-        result = None
+        result: list[int] | None = None
 
-        def on_ok():
+        def on_ok() -> None:
             nonlocal result
-            result = [i for i, var in enumerate(weekday_vars) if var.get()]
+            result: list[int] = [i for i, var in enumerate(weekday_vars) if var.get()]
             win.destroy()
 
-        def on_clear():
+        def on_clear() -> None:
             for v in weekday_vars:
                 v.set(False)
 
-        def on_cancel():
+        def on_cancel() -> None:
             nonlocal result
             result = None
             win.destroy()
@@ -1203,7 +1210,7 @@ class AlarmGUI:
     # 両者は参照基準が異なるため、
     # 同時指定は意味を持たず、UIレベルで禁止する。
 
-    def open_custom_dialog(self, initial=None):
+    def open_custom_dialog(self, initial=None) -> dict[str, list[str] | int] | None:
         """第n週／曜日／週おきを設定できるカスタム設定ダイアログ"""
         initial = initial or {"weekday": [], "week_of_month": [], "interval_weeks": 1}
 
@@ -1214,7 +1221,7 @@ class AlarmGUI:
         if not self.load_window_position(win, WINDOW_KEYS["CUSTOM"]):
             self._dock_child_window(win)
         try:
-            parent = getattr(self, "settings_window", self.root)
+            parent: Any | tk.Tk = getattr(self, "settings_window", self.root)
             self.place_subwindow_near_parent(parent, win)
             win.transient(parent)
             win.lift()
@@ -1247,7 +1254,7 @@ class AlarmGUI:
         )
         weekday_frame = ttk.Frame(win)
         weekday_frame.pack(pady=(0, 8))
-        weekday_vars = []
+        weekday_vars: list[tk.BooleanVar] = []
         for i, label in enumerate(WEEKDAY_LABELS):
             var = tk.BooleanVar(value=(i in initial.get("weekday", [])))
             ttk.Checkbutton(weekday_frame, text=label, variable=var).pack(
@@ -1273,9 +1280,9 @@ class AlarmGUI:
         btn_frame = ttk.Frame(win)
         btn_frame.pack(pady=(10, 8))
 
-        result = {}
+        result: dict[str, list[str] | int] = {}
 
-        def on_ok():
+        def on_ok() -> None:
             result["week_of_month"] = [
                 i + 1 for i, var in enumerate(week_vars) if var.get()
             ]
@@ -1283,12 +1290,12 @@ class AlarmGUI:
             result["interval_weeks"] = int(interval_var.get())
             win.destroy()
 
-        def on_clear():
+        def on_clear() -> None:
             for var in week_vars + weekday_vars:
                 var.set(False)
             interval_var.set("1")
 
-        def on_cancel():
+        def on_cancel() -> None:
             result.clear()
             win.destroy()
 
@@ -1310,7 +1317,7 @@ class AlarmGUI:
     # --------------------------------------------
     # 🔹 新規登録フォーム用：曜日選択ハンドラ
     # --------------------------------------------
-    def pick_weekday(self):
+    def pick_weekday(self) -> None:
         """新規登録フォームの「曜日：選択」ボタンから呼ばれる"""
         result = self.select_weekdays_dialog(self.weekday_selected)
         if result is not None:
@@ -1331,8 +1338,8 @@ class AlarmGUI:
 
     def on_repeat_change(self, event: tk.Event | None = None) -> None:
         """繰り返しコンボ選択時の挙動を制御"""
-        repeat_display = self.repeat_combo.get()
-        repeat = REPEAT_INTERNAL.get(repeat_display, "none")
+        repeat_display: str = self.repeat_combo.get()
+        repeat: str = REPEAT_INTERNAL.get(repeat_display, "none")
 
         # カスタムのみ詳細ボタンを有効化
         if repeat == "custom":
@@ -1349,11 +1356,11 @@ class AlarmGUI:
             "week_of_month": [],
             "interval_weeks": 1,
         }
-        result = self.open_custom_dialog(initial=initial)
+        result: dict[str, list[str] | int] | None = self.open_custom_dialog(initial=initial)
         if result:
             self.custom_data = result
             # ボタンに簡易表示
-            label = (
+            label: LiteralString | Literal['詳細設定'] = (
                 "".join(WEEKDAY_LABELS[i] for i in result.get("weekday", []))
                 or "詳細設定"
             )
@@ -1366,16 +1373,17 @@ class AlarmGUI:
     # このコードは gui.py の on_double_click を丸ごと置き換えます。
     # Treeview の "repeat" と "weekday" の両方を編集可能にした完全版です。
     def on_double_click(self, event: tk.Event) -> str:
-        tree = self.tree
+        """Treeview のセルをダブルクリックしたときの編集処理"""
+        tree: ttk.Treeview = self.tree
         if not tree or not tree.winfo_exists():
             return "break"
 
-        region = tree.identify_region(event.x, event.y)
+        region: Literal['heading'] | Literal['separator'] | Literal['tree'] | Literal['cell'] | Literal['nothing'] = tree.identify_region(event.x, event.y)
         if region != "cell":
             return "break"
 
-        item_id = tree.identify_row(event.y)
-        column_id = tree.identify_column(event.x)
+        item_id: str = tree.identify_row(event.y)
+        column_id: str = tree.identify_column(event.x)
         if not item_id or column_id == "#0":
             return "break"
 
@@ -1384,8 +1392,8 @@ class AlarmGUI:
         tree.focus(item_id)
         tree.focus_set()
 
-        item = tree.item(item_id)
-        values = item.get("values")
+        item: ttk._TreeviewItemDict = tree.item(item_id)
+        values: list[Any] | Literal[''] = item.get("values")
         if not values:
             return "break"
 
@@ -1406,15 +1414,15 @@ class AlarmGUI:
         col_name = columns[col_index]
         old_value = values[col_index]
 
-        def set_editor(widget, commit_callback):
-            editor_setter = self.create_cell_editor(
+        def set_editor(widget, commit_callback) -> None:
+            editor_setter: Callable[[Entry | Combobox], None] = self.create_cell_editor(
                 tree, item_id, column_id, commit_callback
             )
             editor_setter(widget)
 
         if col_name == "weekday":
-            current = list(alarm.weekday or [])
-            result = self.select_weekdays_dialog(current)
+            current: list[int | str] = list(alarm.weekday or [])
+            result: list[int | str] | None = self.select_weekdays_dialog(current)
             if result is None:
                 return "break"
             self.controller.update_alarm_from_ui(
@@ -1426,15 +1434,15 @@ class AlarmGUI:
             return "break"
 
         if col_name == "repeat":
-            current_internal = alarm.repeat or "none"
-            current_display = REPEAT_DISPLAY.get(current_internal, "単発")
+            current_internal: str = alarm.repeat or "none"
+            current_display: str = REPEAT_DISPLAY.get(current_internal, "単発")
 
             cb = ttk.Combobox(
                 tree, values=list(REPEAT_INTERNAL.keys()), state="readonly"
             )
             cb.set(current_display)
 
-            def commit_repeat(value):
+            def commit_repeat(value) -> None:
                 internal = REPEAT_INTERNAL.get(value, "none")
                 patch = AlarmUIPatch(
                     repeat=internal,
@@ -1445,11 +1453,11 @@ class AlarmGUI:
 
                 if internal.startswith("weekly_"):
                     interval_weeks = int(internal.split("_")[1])
-                    result = self.select_weekdays_dialog(list(alarm.weekday or []))
+                    result: list[str] | None = self.select_weekdays_dialog(list(alarm.weekday or []))
                     patch.interval_weeks = interval_weeks
                     patch.weekday = result if result else []
                 elif internal == "custom":
-                    result = self.open_custom_dialog(
+                    result: dict[str, list[str] | int] | None = self.open_custom_dialog(
                         initial={
                             "weekday": list(alarm.weekday or []),
                             "week_of_month": list(alarm.week_of_month or []),
@@ -1474,7 +1482,7 @@ class AlarmGUI:
             cb = ttk.Combobox(tree, values=["ON", "OFF"], state="readonly")
             cb.set("ON" if alarm.enabled else "OFF")
 
-            def commit_enabled(value):
+            def commit_enabled(value) -> None:
                 self.controller.update_alarm_from_ui(
                     alarm_id,
                     AlarmUIPatch(enabled=(value == "ON")),
@@ -1491,7 +1499,7 @@ class AlarmGUI:
             cb = ttk.Combobox(tree, values=["✔", "×"], state="readonly")
             cb.set("✔" if alarm.skip_holiday else "×")
 
-            def commit_skip(value):
+            def commit_skip(value) -> None:
                 self.controller.update_alarm_from_ui(
                     alarm_id,
                     AlarmUIPatch(skip_holiday=(value == "✔")),
@@ -1508,7 +1516,7 @@ class AlarmGUI:
             cb = ttk.Combobox(tree, values=[1, 2, 3, 4, 5, 6], state="readonly")
             cb.set(str(alarm.snooze_limit))
 
-            def commit_snooze(value):
+            def commit_snooze(value) -> None:
                 try:
                     snooze_limit = int(value)
                 except Exception:
@@ -1529,8 +1537,8 @@ class AlarmGUI:
             if not alarm.date or not alarm.time:
                 return "break"
 
-            old_date = alarm.date
-            new_date = self.select_date_dialog(old_date)
+            old_date: str = alarm.date
+            new_date: date | None = self.select_date_dialog(old_date)
             if not new_date:
                 return "break"
 
@@ -1546,8 +1554,8 @@ class AlarmGUI:
             if not alarm.time:
                 return "break"
 
-            old_time = alarm.time
-            new_time = self.select_time_dialog(old_time)
+            old_time: str = alarm.time
+            new_time: str | None = self.select_time_dialog(old_time)
             if not new_time:
                 return "break"
 
@@ -1563,7 +1571,7 @@ class AlarmGUI:
             entry = ttk.Entry(tree)
             entry.insert(0, old_value)
 
-            def commit_text(value):
+            def commit_text(value) -> None:
                 self.controller.update_alarm_from_ui(
                     alarm_id,
                     AlarmUIPatch(name=value),
@@ -1580,19 +1588,19 @@ class AlarmGUI:
     # =================================================================
     # 🔹 年月日用ミニカレンダーのコール(一覧編集用)
     # =================================================================
-    def select_date_dialog(self, initial_date=None):
+    def select_date_dialog(self, initial_date=None) -> date | None:
         """ミニカレンダーを開き、YYYY-MM-DD を返す"""
         from alarm.mini_calendar import MiniCalendar
 
         cal = MiniCalendar(
-            self.root, initial_date, window_key=WINDOW_KEYS.get("CALENDAR")
+            self.root, initial_date=initial_date
         )
         return cal.show()
 
     # -----------------------------
     # 🕒 TimePicker 呼び出し関数(一覧編集用)
     # -----------------------------
-    def select_time_dialog(self, initial_time=None):
+    def select_time_dialog(self, initial_time=None) -> str | None:
         """TimePicker を開き "HH:MM" を返す"""
         if not initial_time:
             initial_time = datetime.now().strftime("%H:%M")
@@ -1610,9 +1618,10 @@ class AlarmGUI:
     # --------------------------------------------
     # 🔹 ミニカレンダー呼び出し（新規登録用）
     # --------------------------------------------
-    def pick_date(self):
-        old = self.date_entry.get() or None
-        new = self.select_date_dialog(old)
+    def pick_date(self) -> None:
+        """新規登録フォームの「日付」クリック時に呼ばれる"""
+        old: str | None = self.date_entry.get() or None
+        new: str | None = self.select_date_dialog(old)
         if new:
             self.date_entry.config(state="normal")
             self.date_entry.delete(0, tk.END)
@@ -1622,9 +1631,10 @@ class AlarmGUI:
     # --------------------------------------------
     # 🔹 TimePicker 呼び出し（新規登録用）
     # --------------------------------------------
-    def pick_time(self):
-        old = self.time_entry.get() or None
-        new = self.select_time_dialog(old)
+    def pick_time(self) -> None:
+        """新規登録フォームの時刻欄クリックで TimePicker を開く"""
+        old: str | None = self.time_entry.get() or None
+        new: str | None = self.select_time_dialog(old)
         if new:
             self.time_entry.config(state="normal")
             self.time_entry.delete(0, tk.END)
@@ -1634,7 +1644,8 @@ class AlarmGUI:
     # --------------------------------------------
     # 🔹 STOPボタン押下時
     # --------------------------------------------
-    def stop_alarm(self):
+    def stop_alarm(self) -> None:
+        """STOPボタン押下時の処理"""
         if not self.controller.stop_alarm_from_ui():
             self._info("情報", "現在鳴動中のアラームはありません。")
             return
@@ -1647,7 +1658,8 @@ class AlarmGUI:
     # --------------------------------------------
     # 🔹 スヌーズボタン押下時
     # --------------------------------------------
-    def snooze_alarm(self):
+    def snooze_alarm(self) -> None:
+        """スヌーズボタン押下時の処理"""
         # スヌーズ時間の取得
         try:
             snooze_min = int(self.snooze_entry.get())
@@ -1677,24 +1689,24 @@ class AlarmGUI:
         self.root.mainloop()
 
 
-# =========================================================
-# 🔹 メイン実行
-# =========================================================
-def main() -> None:
-    """`python -m alarm.gui` 用の最小起動入口。"""
-    from alarm.alarm_manager import AlarmManager
-    from alarm.gui_controller import GUIController
+# # =========================================================
+# # 🔹 メイン実行
+# # =========================================================
+# def main() -> None:
+#     """`python -m alarm.gui` 用の最小起動入口。"""
+#     from alarm.alarm_manager import AlarmManager
+#     from alarm.gui_controller import GUIController
 
-    manager = AlarmManager()
-    controller = GUIController(manager)
-    app = AlarmGUI(controller)
+#     manager = AlarmManager()
+#     controller = GUIController(manager)
+#     app = AlarmGUI(controller)
 
-    # NOTE:
-    # Manager の起動サイクルは mainloop 開始前に同期実行せず、
-    # GUI 表示後に回して初期描画の詰まりを減らす。
-    app.root.after(1000, lambda: manager.start_cycle(condition="startup"))
-    app.start_gui()
+#     # NOTE:
+#     # Manager の起動サイクルは mainloop 開始前に同期実行せず、
+#     # GUI 表示後に回して初期描画の詰まりを減らす。
+#     app.root.after(1000, lambda: manager.start_cycle(condition="startup"))
+#     app.start_gui()
 
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()

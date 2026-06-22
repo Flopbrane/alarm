@@ -13,6 +13,7 @@ start_cycle
 from __future__ import annotations
 from typing import TYPE_CHECKING
 
+from alarm.alarm_internal_model import AlarmInternal
 from alarm.alarm_ui_model import AlarmUI, AlarmUIPatch
 from alarm.alarm_payloads import AddPayload, UpdatePayload, DeletePayload
 
@@ -25,14 +26,17 @@ class DataEditAdapter:
     def __init__(self, manager: "AlarmManager") -> None:
         self.manager: "AlarmManager" = manager
 
-    def add_alarm(self, ui_alarm: AlarmUI) -> None:
+
+    def add_alarm(self, ui_alarm: AlarmUI) -> AlarmInternal:
         """アラームを追加する"""
         if not ui_alarm.name:
             raise ValueError("アラーム名が空です")
 
         payload = AddPayload(ui_alarm=ui_alarm)
 
-        self.manager.apply_alarm_mutation("add", payload)
+        alarm: AlarmInternal = self.manager.apply_alarm_mutation("add", payload)
+
+        return alarm
 
 
     def update_alarm(self, alarm_id: str, patch: AlarmUIPatch) -> None:
@@ -41,11 +45,9 @@ class DataEditAdapter:
 
         self.manager.apply_alarm_mutation("update", payload)
 
-
     def delete_alarm(self, alarm_id: str) -> None:
         """単体削除の互換入口。内部では複数削除APIへ委譲する。"""
         self.delete_alarms([alarm_id])
-
 
     def delete_alarms(self, alarm_id_list: list[str]) -> None:
         """アラームを削除する"""

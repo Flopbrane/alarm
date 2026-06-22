@@ -99,16 +99,26 @@ class AlarmStorage:
     # ==============================
     # 原子書き込み（atomic write）
     # ==============================
-    def _atomic_write_json(
-        self, path: Path, data: dict[str, list[dict[str, Any]]]
-    ) -> None:
+    def _atomic_write_json(self, path: Path, data: dict[str, list[dict[str, Any]]]) -> None:
         """不可分（atomic）なJSON書き込み。途中状態を残さない。"""
+
+        print("[DEBUG atomic_write]")
+        print(f"  path        = {path}")
+        print(f"  parent      = {path.parent}")
+        print(f"  exists      = {path.exists()}")
+        print(f"  parent_exists = {path.parent.exists()}")
+
+        path.parent.mkdir(parents=True, exist_ok=True)
+
         tmp: Path = path.with_suffix(".tmp")
         with open(tmp, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
             f.flush()
             os.fsync(f.fileno())
+
         tmp.replace(path)
+
+        print(f"  write_ok    = {path}")
 
     # ==============================
     # 📥 Load — AlarmJson[]
@@ -123,7 +133,6 @@ class AlarmStorage:
         self.safe_mode = True
         self.allow_save = False
         self.storage_errors = []
-
 
     def load_alarms(self) -> List[AlarmJson]:
         """alarmsの読み込み"""

@@ -45,18 +45,23 @@ try:
 except ImportError:
     msvcrt = None
 
-# === utils ===
-try:
-    from logs.system_monitor import SystemMonitor
-except ModuleNotFoundError:
-    class SystemMonitor:
-        """logs パッケージが無い環境向けの最小 monitor。"""
+# Third party
+if TYPE_CHECKING:
+    from logs.system_monitor import SystemMonitor as _SystemMonitorType
+else:
+    try:
+        from logs.system_monitor import SystemMonitor as _SystemMonitorType
+    except ModuleNotFoundError:
+        class _SystemMonitorType:
+            """logs パッケージが無い環境向けの最小 monitor。"""
 
-        def __init__(self, logger: Any) -> None:
-            self.logger = logger
+            def __init__(self, logger: Any) -> None:
+                self.logger = logger
 
-        def tick(self) -> None:
-            return
+            def tick(self) -> None:
+                return
+
+SystemMonitor = _SystemMonitorType
 
 # Local modules
 # === mapper ===
@@ -73,9 +78,6 @@ from alarm.alarm_internal_model import AlarmInternal
 from alarm.alarm_states_model import AlarmStateInternal
 from alarm.alarm_json_model import AlarmJson, AlarmStateJson
 from alarm.alarm_ui_model import AlarmListItem, AlarmUI, AlarmUIPatch
-
-
-
 
 # === utils ===
 from alarm.logger_bridge import get_alarm_logger
@@ -197,7 +199,7 @@ class AlarmManager:
             standby_path=self.standby_path,
         )
         self.scheduler = AlarmScheduler()
-        self.monitor = SystemMonitor(self.logger)
+        self.monitor: SystemMonitor = SystemMonitor(self.logger)
         # === time ===
         # _now は「1サイクル内で共有される現在時刻」
         # internal_clock() からのみ設定される
@@ -628,6 +630,17 @@ class AlarmManager:
                 assert isinstance(payload, AddPayload)
                 result_alarm = self._add_alarm(payload.ui_alarm)
 
+                if result_alarm is None:
+                    self.logger.error(
+                        message="Add alarm failed: _add_alarm returned None",
+                        context={
+                            "ui_alarm": repr(payload.ui_alarm),
+                            "alarms_count": len(self.alarms),
+                            "states_count": len(self.states),
+                        },
+                    )
+                    return None
+
             case "update":
                 assert isinstance(payload, UpdatePayload)
 
@@ -646,6 +659,15 @@ class AlarmManager:
                     result_alarm = self._update_alarm(alarm_id, updated_internal)
 
                     if result_alarm is None:
+                        self.logger.error(
+                            message="Update alarm failed: _update_alarm returned None",
+                            context={
+                                "alarm_id": alarm_id,
+                                "patch": repr(patch),
+                                "alarms_count": len(self.alarms),
+                                "states_count": len(self.states),
+                            },
+                        )
                         return None
 
                     self._mark_skip_fire_this_cycle(alarm_id)
@@ -653,7 +675,7 @@ class AlarmManager:
                 else:
                     self.logger.error(
                         message="Update target alarm was not found",
-                        alarm_id=alarm_id,
+                        context={"alarm_id": alarm_id},
                     )
                     return None
 
@@ -686,7 +708,25 @@ class AlarmManager:
         # =========================================
         # ⑤ save
         # =========================================
-        self._save_phase()
+        try:
+            self._save_phase()
+        except Exception as e:
+            self.logger.error(
+                message="Save phase failed after alarm mutation",
+                context={
+                    "action": action,
+                    "error_type": type(e).__name__,
+                    "error": str(e),
+                    "alarms_count": len(self.alarms),
+                    "states_count": len(self.states),
+                    "alarm_path": str(self.alarm_file_path),
+                    "standby_path": str(self.standby_path),
+                },
+            )
+            print(f"❌ 保存フェーズで失敗しました: {type(e).__name__}: {e}")
+            print(f"   alarm_path   : {self.alarm_file_path}")
+            print(f"   standby_path : {self.standby_path}")
+            raise
 
         return result_alarm
     # ======================================================
@@ -1196,10 +1236,19 @@ class AlarmManager:
 
         # state に存在しない alarm を除外したい場合はここで絞れる
         valid_ids: set[str] = {s.id for s in self.states}
+
+        print("[DEBUG save]")
+        print(f"  alarms_count      = {len(self.alarms)}")
+        print(f"  states_count      = {len(self.states)}")
+        print(f"  valid_ids_count   = {len(valid_ids)}")
+        print(f"  alarm_file_path   = {self.alarm_file_path}")
+
         normalized: list[AlarmInternal] = [
             a for a in alarms_by_id.values()
             if a.id in valid_ids
             ]
+
+        print(f"  normalized_count = {len(normalized)}")
 
         json_alarms: list[AlarmJson] = [
             result
@@ -1207,7 +1256,17 @@ class AlarmManager:
             if (result := self.internal_to_json_mapper.alarm_internal_to_json(a)) is not None
             ]
 
+        print(f"  json_alarms_count = {len(json_alarms)}")
+        
+        if self.alarms and not json_alarms:
+            raise RuntimeError(
+                "self.alarms は存在するのに json_alarms が空です。"
+                " mapper変換失敗、datetime_ None、または state ID 不整合の可能性があります。"
+            )
+
         self.storage.save_alarms(json_alarms)
+
+
 
     def save_standby(self) -> None:
         """standby.json を保存する（alarms と同レベルで正規化）"""
