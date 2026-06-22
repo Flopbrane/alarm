@@ -16,14 +16,13 @@ venv-alarm312/
 *.tmp
 *.ini
 *.jsonl
-*.json
 *.csv
 *.html
 
 # === Backup / generated ===
 backup/
 call_index_out/
-
+data/*.json
 # === OS Generated ===
 .DS_Store
 Thumbs.db
