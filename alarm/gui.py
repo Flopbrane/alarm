@@ -1169,7 +1169,7 @@ class AlarmGUI:
 
         def on_ok() -> None:
             nonlocal result
-            result: list[int] = [i for i, var in enumerate(weekday_vars) if var.get()]
+            result = [i for i, var in enumerate(weekday_vars) if var.get()]
             win.destroy()
 
         def on_clear() -> None:
@@ -1443,7 +1443,7 @@ class AlarmGUI:
             cb.set(current_display)
 
             def commit_repeat(value) -> None:
-                internal = REPEAT_INTERNAL.get(value, "none")
+                internal: str = REPEAT_INTERNAL.get(value, "none")
                 patch = AlarmUIPatch(
                     repeat=internal,
                     weekday=[],
