@@ -7,6 +7,7 @@
 # GUIの呼び出しコントローラクラス
 #########################
 from __future__ import annotations
+from dataclasses import dataclass
 from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
@@ -21,6 +22,23 @@ from alarm.data_ui_to_mgr_adapter import DataEditAdapter
 if TYPE_CHECKING:
     from alarm.alarm_manager import AlarmManager
     from alarm.gui import AlarmGUI
+
+
+@dataclass(frozen=True)
+class AlarmDisplayRow:
+    """GUI のアラーム一覧表示用の行データ構造"""
+    row_no: int
+    alarm_id: str
+    name: str
+    date: str
+    time: str
+    repeat: str
+    weekday: str
+    enabled: bool
+    next_alarm_datetime: datetime | None
+    skip_holiday: bool = False
+    snooze_limit: int = 3
+    custom_desc: str = ""
 
 
 class GUIController:
@@ -178,3 +196,46 @@ class GUIController:
     def remove_gui_listener(self, listener: Callable[[], None]) -> None:
         """GUI の listener 解除を Manager の公開窓口側で仲介する。"""
         self.manager.remove_listener(listener)
+
+    def get_alarm_display_rows(self) -> list[AlarmDisplayRow]:
+        """GUI のアラーム一覧表示用の行データを生成して返す。"""
+        valid_alarms: list[AlarmInternal] = [
+            alarm for alarm in self.manager.alarms if alarm.id
+        ]
+
+        next_alarms_list: list[NextAlarmInfo] = self.manager.get_next_alarms(
+            len(valid_alarms)
+        )
+
+        next_datetime_map: dict[str, datetime] = {
+            item["alarm"].id: item["next_datetime"]
+            for item in next_alarms_list
+            if item["alarm"].id
+        }
+
+        sorted_alarms: list[AlarmInternal] = sorted(
+            valid_alarms,
+            key=lambda alarm: next_datetime_map.get(alarm.id, datetime.max),
+        )
+
+        rows: list[AlarmDisplayRow] = []
+
+        for row_no, alarm in enumerate(sorted_alarms, start=1):
+            rows.append(
+                AlarmDisplayRow(
+                    row_no=row_no,
+                    alarm_id=alarm.id,
+                    name=alarm.name or "(名称なし)",
+                    date=str(alarm.date) if alarm.date else "",
+                    time=str(alarm.time) if alarm.time else "",
+                    repeat=alarm.repeat or "none",
+                    weekday="",
+                    enabled=alarm.enabled,
+                    next_alarm_datetime=next_datetime_map.get(alarm.id),
+                    skip_holiday=alarm.skip_holiday,
+                    snooze_limit=alarm.snooze_limit,
+                    custom_desc="",
+                )
+            )
+
+        return rows
