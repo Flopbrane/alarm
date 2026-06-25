@@ -100,10 +100,7 @@ class AlarmUIPatch:
 
 @dataclass(frozen=True)
 class AlarmStateView:
-    """状態表示用のdataclass
-    このdataclassを所持しているのは、
-    manager経由で、次回時刻計算された
-    既存のアラームデータのみ。"""
+    """将来的に 状態表示専用の画面 / CUI表示 / Viewer表示 を作る場合に備えて、状態表示専用の dataclass を作っておく"""
     id: Optional[str] = None  # 行識別子（必ず先頭）
     snoozed_until: Optional[str] = None  # ISO文字列
     snooze_count: int = 0 # スヌーズ回数
@@ -113,12 +110,28 @@ class AlarmStateView:
     next_fire_datetime: Optional[str] = None  # 次回鳴動予定日
 
 
-@dataclass(frozen=True)
-class AlarmListItem:
-    """CUI表示用のアラームリストアイテム"""
-    alarm_id: str
-    alarm_ui: AlarmUI
-    next_datetime: datetime | None
+# @dataclass(frozen=True)
+# class AlarmListItem:
+#     """CUI表示用のアラームリストアイテム"""
+#     alarm_id: str
+#     alarm_ui: AlarmUI
+#     next_datetime: datetime | None
 
+
+@dataclass(frozen=True)
+class AlarmDisplayRow:
+    """GUI / CUI / Viewer 共通のアラーム表示行データ。"""
+    row_no: int #UIに表示されるナンバー
+    alarm_id: str # 本来のアラームUUID(表示用には使用しない内部値)
+    name: str
+    date: str
+    time: str
+    repeat: str
+    weekday: str
+    enabled: bool
+    next_alarm_datetime: datetime | None
+    skip_holiday: bool = False
+    snooze_limit: int = 3
+    custom_desc: str = ""
 
 # --- EOF ---

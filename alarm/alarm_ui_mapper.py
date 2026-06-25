@@ -25,11 +25,12 @@ UI ↔ Internal 変換・受け渡し専用モジュール
 from __future__ import annotations
 from datetime import datetime, time, date
 from dataclasses import fields
-from typing import Any
+from typing import Any, cast
 
 from alarm.alarm_internal_model import AlarmInternal
 from alarm.alarm_states_model import AlarmStateInternal
-from alarm.alarm_ui_model import AlarmStateView, AlarmUI, AlarmUIPatch
+from alarm.alarm_ui_model import AlarmUI, AlarmUIPatch, AlarmDisplayRow, AlarmStateView
+from alarm.weekday_formatter import weekday_to_str
 from alarm.constants import DEFAULT_SOUND
 
 
@@ -150,13 +151,13 @@ class InternaltoUIMapper:
         )
 
 
-class InternaltoViewMapper:
+class InternaltoView:
     """InternalモデルからViewモデルへの変換クラス"""
     # ----------------------------------------------
     # 🔹 AlarmStateInternal -> AlarmStateView マッパー
     # ----------------------------------------------
     @staticmethod
-    def stateinternal_to_stateview(state: AlarmStateInternal) -> AlarmStateView:
+    def stateinternal_to_view(state: AlarmStateInternal) -> AlarmStateView:
         """AlarmStateInternal → AlarmStateView"""
         return AlarmStateView(
             id=state.id,
@@ -222,5 +223,48 @@ class UIpatchtoInternalMapper:
             setattr(internal, f.name, value)
 
         return internal
+
+
+class InternalToViewMapper:
+    """Internalモデルから表示用の行データへの変換クラス"""
+
+    @staticmethod
+    def internal_to_display_row(
+        row_no: int,
+        alarm: AlarmInternal,
+        state: AlarmStateInternal | None = None,
+    ) -> AlarmDisplayRow:
+        """AlarmInternal → AlarmDisplayRow"""
+        # AlarmInternal は AlarmManager 通過後に必ず UUID が補完される。
+        # DisplayRow は Manager 管理下の既存アラームだけを対象にするため、
+        # ここでは alarm.id を str として扱う。
+        alarm_id: str = alarm.id
+
+        dt: datetime | None = alarm.datetime_
+
+        date_str: str = dt.strftime("%Y-%m-%d") if dt else ""
+        time_str: str = dt.strftime("%H:%M") if dt else ""
+
+        weekday_str: str = weekday_to_str(list(alarm.weekday)) if alarm.weekday else ""
+
+        next_alarm_datetime: datetime | None = (
+            state.next_fire_datetime if state else None
+        )
+
+        return AlarmDisplayRow(
+            row_no=row_no,  # UIに表示されるナンバー
+            alarm_id=alarm_id,  # 本来のアラームUUID。表示用には使用しない内部値
+            name=alarm.name or "(名称なし)",
+            date=date_str,
+            time=time_str,
+            repeat=alarm.repeat or "single",
+            weekday=weekday_str,
+            enabled=bool(alarm.enabled),
+            next_alarm_datetime=next_alarm_datetime,
+            skip_holiday=bool(alarm.skip_holiday),
+            snooze_limit=int(alarm.snooze_limit),
+            custom_desc=alarm.custom_desc or "",
+        )
+
 
 # =========================================================

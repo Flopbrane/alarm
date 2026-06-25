@@ -16,29 +16,12 @@ from typing import TYPE_CHECKING
 from alarm.alarm_internal_model import AlarmInternal
 from alarm.alarm_manager_temp import NextAlarmInfo
 from alarm.alarm_states_model import AlarmStateInternal
-from alarm.alarm_ui_model import AlarmUI, AlarmUIPatch
+from alarm.alarm_ui_model import AlarmUI, AlarmUIPatch, AlarmDisplayRow
 from alarm.data_ui_to_mgr_adapter import DataEditAdapter
 
 if TYPE_CHECKING:
     from alarm.alarm_manager import AlarmManager
     from alarm.gui import AlarmGUI
-
-
-@dataclass(frozen=True)
-class AlarmDisplayRow:
-    """GUI のアラーム一覧表示用の行データ構造"""
-    row_no: int
-    alarm_id: str
-    name: str
-    date: str
-    time: str
-    repeat: str
-    weekday: str
-    enabled: bool
-    next_alarm_datetime: datetime | None
-    skip_holiday: bool = False
-    snooze_limit: int = 3
-    custom_desc: str = ""
 
 
 class GUIController:
