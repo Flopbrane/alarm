@@ -1,0 +1,15 @@
+{
+  "standby": [
+    {
+      "id": "119a5e4b-ef09-4737-9e2a-177e08ad152b",
+      "_snoozed_until": null,
+      "_snooze_count": 0,
+      "_triggered": false,
+      "_triggered_at": null,
+      "_last_fired_at": null,
+      "_next_fire_datetime": "2026-06-27T15:49:00",
+      "_lifecycle_finished": false,
+      "_needs_recalc": false
+    }
+  ]
+}

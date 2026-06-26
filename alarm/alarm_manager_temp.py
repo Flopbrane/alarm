@@ -84,7 +84,11 @@ from alarm.alarm_storage import AlarmStorage
 from alarm.env_paths import ALARM_PATH, BACKUP_DIR, DATA_DIR, STANDBY_PATH
 
 # Third party
-from alarm.system_monitor_bridge import SystemMonitor
+# NOTE:
+# CPU/GPU/メモリなどのシステム負荷ログ取得は
+# logger_project 側の責務に寄せる方針のため、
+# alarm 本体では SystemMonitor を常時駆動しない。
+# from alarm.system_monitor_bridge import SystemMonitor
 
 if TYPE_CHECKING:
     from logs.multi_info_logger import AppLogger
@@ -184,7 +188,10 @@ class AlarmManager:
             standby_path=self.standby_path,
         )
         self.scheduler = AlarmScheduler()
-        self.monitor: SystemMonitor = SystemMonitor(self.logger)
+        # NOTE:
+        # cpu_percentage / gpu_percentage などの取得は
+        # alarm の通常ログから外し、logger_project 側へ分離する。
+        # self.monitor: SystemMonitor = SystemMonitor(self.logger)
         # === time ===
         # _now は「1サイクル内で共有される現在時刻」
         # internal_clock() からのみ設定される
@@ -1442,7 +1449,10 @@ class AlarmManager:
     # ① cycle開始の入り口（内部クロック確定）
     def _begin_cycle(self) -> DateTimeType:
         self._now = self.tick()  # 1 cycle = 1 tick を必ず守る
-        self.monitor.tick()  # ←ここで1回だけ
+        # NOTE:
+        # システム負荷ログ取得は alarm 本体では行わない。
+        # 必要な監視は logger_project 側で実施する。
+        # self.monitor.tick()  # ←ここで1回だけ
         return self._now
 
     # ② loadフェーズ

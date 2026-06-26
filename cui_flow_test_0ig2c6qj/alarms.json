@@ -1,0 +1,24 @@
+{
+  "alarms": [
+    {
+      "id": "915839c0-be91-4f63-9910-d332a2d236b8",
+      "name": "CUI flow test",
+      "date": "2026-06-26",
+      "time": "15:48",
+      "repeat": "single",
+      "weekday": [],
+      "week_of_month": [],
+      "interval_weeks": 1,
+      "interval_days": 0,
+      "base_date": null,
+      "custom_desc": "",
+      "enabled": true,
+      "sound": "D:\\PC\\Python\\alarm\\sound\\Alarm01.wav",
+      "skip_holiday": false,
+      "duration": 5,
+      "snooze_minutes": 30,
+      "snooze_limit": 3,
+      "end_at": null
+    }
+  ]
+}
