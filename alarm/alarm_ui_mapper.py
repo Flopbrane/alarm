@@ -25,7 +25,7 @@ UI ↔ Internal 変換・受け渡し専用モジュール
 from __future__ import annotations
 from datetime import datetime, time, date
 from dataclasses import fields
-from typing import Any, cast
+from typing import Any
 
 from alarm.alarm_internal_model import AlarmInternal
 from alarm.alarm_states_model import AlarmStateInternal
@@ -187,7 +187,7 @@ class UIpatchtoInternalMapper:
 
         if (date_str is not None or time_str is not None) and internal.datetime_ is not None:
             # 既存値を取得
-            current_dt: datetime= internal.datetime_
+            current_dt: datetime = internal.datetime_
 
             # date補完
             if date_str is not None:
@@ -207,7 +207,7 @@ class UIpatchtoInternalMapper:
         # 🔹 その他フィールド
         # =========================================
         for f in fields(AlarmUIPatch):
-            value = patch_dict[f.name]
+            value: Any = patch_dict[f.name]
 
             if value is None:
                 continue

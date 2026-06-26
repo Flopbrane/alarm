@@ -60,7 +60,7 @@ class AlarmScheduler:
             "interval_days": self._next_interval_days,  # daily と同じロジック
             "custom": self._next_custom,
         }
-        self.logger: "AppLogger" = get_alarm_logger()
+        self.logger = get_alarm_logger()
         self.now: datetime | None = None
 
     # ---------------------------------------

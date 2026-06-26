@@ -70,7 +70,7 @@ def dt_to_any(dt: datetime | None) -> str | None: # Jsonへの変換用
 
 def logger() -> "AppLogger":
     """マッパーから共通ロガーを取得する"""
-    return get_alarm_logger()
+    return get_alarm_logger()  # type: ignore[return-value]
 
 # =========================================================
 # 🔹 Jsonモデル → Internalモデル マッパー
@@ -163,7 +163,7 @@ class InternalToJsonMapper(JsonToInternalMapper):
 
         # datetime_ → ISO8601 → date / time 分離
         if not a.datetime_:
-            log: "AppLogger | None" = get_alarm_logger()
+            log = get_alarm_logger()
             if log:
                 log.warning(
                     message="AlarmInternal の datetime_ が None です。正確な繰り返し計算のためには、datetime_ を設定してください。",

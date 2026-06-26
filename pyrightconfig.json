@@ -18,6 +18,7 @@
     "venv-alarm312",
     "**/Lib",
     "**/typeshed",
+    "**/tests/**",
   ],
   "typeCheckingMode": "strict",
   "useLibraryCodeForTypes": false,
@@ -27,5 +28,9 @@
   "reportMissingTypeStubs": "none",
   "reportUnusedImport": "none",
   "reportUnusedVariable": "none",
-  "reportUnnecessaryIsInstance": "none"
+  "reportUnnecessaryIsInstance": "none",
+  "python.analysis.extraPaths": [
+    "${workspaceFolder}",
+    "D:/PC/Python/logger_project"
+  ],
 }

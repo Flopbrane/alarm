@@ -24,7 +24,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 
-from alarm.logger_bridge import get_alarm_logger
+from alarm.logger_bridge import AlarmLogger, get_alarm_logger
 
 
 if TYPE_CHECKING:
@@ -57,7 +57,7 @@ LOG_DATE_PATTERN: re.Pattern[str] = re.compile(r"(?P<date>\d{4}-\d{2}-\d{2})")
 def collect_log_dates(log_dir: Path) -> set[date]:
     """ログ/JSONLファイル名に含まれる YYYY-MM-DD を有効日として収集する"""
     dates: set[date] = set()
-    logger: "AppLogger" = get_alarm_logger()
+    logger = get_alarm_logger()
 
     for path in log_dir.iterdir():
         if not path.is_file():
@@ -401,7 +401,7 @@ class TimePicker:
     ) -> None:
         self.parent: tk.Misc = parent
         self.now: datetime = now or datetime.now()
-        self.logger: "AppLogger" = get_alarm_logger()
+        self.logger: AlarmLogger = get_alarm_logger()
 
         try:
             h: int

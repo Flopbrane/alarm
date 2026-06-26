@@ -94,7 +94,7 @@ class AlarmGUI:
     # =========================================
     def __init__(self, controller: "GUIController") -> None:
         self.controller: "GUIController" = controller
-        self.logger: "AppLogger" = get_alarm_logger()
+        self.logger = get_alarm_logger()
         self.root = tk.Tk()
         # Tk after 版のプレーヤーを使用
         from alarm.alarm_player import AlarmPlayerGUI
@@ -204,7 +204,7 @@ class AlarmGUI:
         復元に成功すれば True、位置が無ければ False を返す。
         """
         try:
-            return self.window_position_store.load_window_position(window, key)
+            return self.window_position_store.load_window_position(cast(tk.Wm, window), key)
         except Exception as e: # pylint: disable=broad-exception-caught
             self._log_ui_error(
                 "Failed to load window position",

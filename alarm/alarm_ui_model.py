@@ -110,12 +110,12 @@ class AlarmStateView:
     next_fire_datetime: Optional[str] = None  # 次回鳴動予定日
 
 
-# @dataclass(frozen=True)
-# class AlarmListItem:
-#     """CUI表示用のアラームリストアイテム"""
-#     alarm_id: str
-#     alarm_ui: AlarmUI
-#     next_datetime: datetime | None
+@dataclass(frozen=True)
+class AlarmListItem:
+    """CUI表示用のアラームリストアイテム"""
+    alarm_id: str
+    alarm_ui: AlarmUI
+    next_datetime: datetime | None
 
 
 @dataclass(frozen=True)

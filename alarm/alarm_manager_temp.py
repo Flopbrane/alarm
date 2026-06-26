@@ -45,23 +45,6 @@ try:
 except ImportError:
     msvcrt = None
 
-# Third party
-if TYPE_CHECKING:
-    from logs.system_monitor import SystemMonitor as _SystemMonitorType
-else:
-    try:
-        from logs.system_monitor import SystemMonitor as _SystemMonitorType
-    except ModuleNotFoundError:
-        class _SystemMonitorType:
-            """logs パッケージが無い環境向けの最小 monitor。"""
-
-            def __init__(self, logger: Any) -> None:
-                self.logger = logger
-
-            def tick(self) -> None:
-                return
-
-SystemMonitor = _SystemMonitorType
 
 # Local modules
 # === mapper ===
@@ -77,7 +60,7 @@ from alarm.alarm_payloads import AddPayload, UpdatePayload, DeletePayload
 from alarm.alarm_internal_model import AlarmInternal
 from alarm.alarm_states_model import AlarmStateInternal
 from alarm.alarm_json_model import AlarmJson, AlarmStateJson
-from alarm.alarm_ui_model import AlarmListItem, AlarmUI, AlarmUIPatch
+from alarm.alarm_ui_model import AlarmUI, AlarmUIPatch, AlarmListItem
 
 # === utils ===
 from alarm.logger_bridge import get_alarm_logger
@@ -100,6 +83,8 @@ from alarm.alarm_scheduler import AlarmScheduler
 from alarm.alarm_storage import AlarmStorage
 from alarm.env_paths import ALARM_PATH, BACKUP_DIR, DATA_DIR, STANDBY_PATH
 
+# Third party
+from alarm.system_monitor_bridge import SystemMonitor
 
 if TYPE_CHECKING:
     from logs.multi_info_logger import AppLogger
@@ -166,7 +151,7 @@ class AlarmManager:
         self,
         alarm_path: Path = ALARM_PATH,
         standby_path: Path = STANDBY_PATH,
-        logger: AppLogger | None = None,
+        logger: Any | None = None,
     ) -> None:
         # === paths ===
         self.base_dir: Path = self.get_base_dir()
@@ -192,7 +177,7 @@ class AlarmManager:
         self.ui_patch_to_internal_mapper = UIpatchtoInternalMapper()
         # === core ===
         self.player = AlarmPlayer()
-        self.logger: "AppLogger"= logger or get_alarm_logger()
+        self.logger: Any = logger or get_alarm_logger()
         self.storage = AlarmStorage(
             self.logger,
             alarm_path=self.alarm_file_path,
@@ -1257,7 +1242,7 @@ class AlarmManager:
             ]
 
         print(f"  json_alarms_count = {len(json_alarms)}")
-        
+
         if self.alarms and not json_alarms:
             raise RuntimeError(
                 "self.alarms は存在するのに json_alarms が空です。"

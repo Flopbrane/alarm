@@ -10,7 +10,7 @@ venv-alarm312/
 # === Editor ===
 .vscode/
 *.code-workspace
-
+tests/
 # === Logs / temp ===
 *.log
 *.tmp

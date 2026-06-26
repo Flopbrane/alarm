@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=C0301,C0325
 #########################
 # Author: F.Kurokawa
 # Description:
@@ -21,12 +22,16 @@ from __future__ import annotations
 
 import json
 import re
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Literal, Optional, cast
 
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
+
+
+from alarm.logger_bridge import get_alarm_logger
+
 
 from alarm.constants import (
     REPEAT_DISPLAY,
@@ -35,17 +40,18 @@ from alarm.constants import (
     WEEKDAY_LABELS,
     DEFAULT_SOUND,
 )
-from alarm.logger_bridge import get_alarm_logger
+
 from alarm.json_editor_service import (
     ALARM_KEYS,
     ALARM_TEMPLATE,
     read_text_file,
     save_alarm_editor_json,
 )
+from alarm.mini_calendar import MiniCalendar, TimePicker
 from utils.utils import normalize_alarm_input_dict
 
 if TYPE_CHECKING:
-    from logs.multi_info_logger import AppLogger
+    from alarm.logger_bridge import AlarmLogger
 
 
 # -----------------------------------------------------
@@ -61,8 +67,8 @@ class JsonEditor:
         on_saved: Callable[[], None] | None = None,
     ) -> None:
         self.json_path = Path(json_path)
-        self.on_saved = on_saved
-        self.logger: "AppLogger" = get_alarm_logger()
+        self.on_saved: Callable[[], None] | None = on_saved
+        self.logger: AlarmLogger = get_alarm_logger()
 
         # 編集用メモリ上データ（各行 = 1アラームの dict）
         self.rows: List[Dict[str, Any]] = []
@@ -84,7 +90,7 @@ class JsonEditor:
 
         # 列ヘッダ / 幅
         for col in ALARM_KEYS:
-            label = COLUMN_LABELS_EDITOR.get(col, col)
+            label: str = COLUMN_LABELS_EDITOR.get(col, col)
             self.tree.heading(col, text=label)
             width = 140
             if col in ("id", "interval_weeks", "snooze_limit"):
@@ -96,9 +102,13 @@ class JsonEditor:
             self.tree.column(col, width=width, anchor="center")
 
         # スクロールバー
-        y_scroll = ttk.Scrollbar(self.root, orient="vertical", command=self.tree.yview)
-        x_scroll = ttk.Scrollbar(self.root, orient="horizontal", command=self.tree.xview)
-        self.tree.configure(yscroll=y_scroll.set, xscroll=x_scroll.set)
+        y_scroll = ttk.Scrollbar(
+            self.root, orient="vertical", command=self._on_tree_yview
+        )
+        x_scroll = ttk.Scrollbar(
+            self.root, orient="horizontal", command=self._on_tree_xview
+        )
+        self.tree.configure(yscrollcommand=y_scroll.set, xscrollcommand=x_scroll.set)
 
         self.tree.grid(row=0, column=0, sticky="nsew")
         y_scroll.grid(row=0, column=1, sticky="ns")
@@ -124,6 +134,14 @@ class JsonEditor:
         # 初回読み込み
         self.reload_from_file()
 
+    def _on_tree_yview(self, *args: object) -> None:
+        """Scrollbar callback を Treeview.yview へ中継する。"""
+        self.tree.yview(*args)  # type: ignore[no-untyped-call]
+
+    def _on_tree_xview(self, *args: object) -> None:
+        """Scrollbar callback を Treeview.xview へ中継する。"""
+        self.tree.xview(*args)  # type: ignore[no-untyped-call]
+
     def _log_editor_warning(self, message: str, **context: object) -> None:
         """JSON editor の warning を context 付きで残す。"""
         self.logger.warning(message, context=context)
@@ -135,7 +153,7 @@ class JsonEditor:
         **context: object,
     ) -> None:
         """JSON editor の error を context 付きで残す。"""
-        payload = dict(context)
+        payload: Dict[str, object] = dict(context)
         if error is not None:
             payload["error"] = repr(error)
             payload["error_type"] = type(error).__name__
@@ -149,7 +167,7 @@ class JsonEditor:
 
         # ① 生データ読み込み
         try:
-            raw = read_text_file(self.json_path)
+            raw: str = read_text_file(self.json_path)
         except FileNotFoundError:
             self._log_editor_error(
                 "JSON file not found in JsonEditor.reload_from_file",
@@ -167,7 +185,7 @@ class JsonEditor:
             return
 
         # ② 軽症修復（safe_load_json）
-        data = self.safe_load_json(raw)
+        data: Any | None = self.safe_load_json(raw)
 
         # ③ 失敗したら heavy_repair_json へ
         if data is None:
@@ -197,11 +215,15 @@ class JsonEditor:
 
         # ④ snooze_default / alarms抽出
         if isinstance(data, dict):
-            self.snooze_default = int(data.get("snooze_default", 10) or 10)
-            alarms = data.get("alarms", [])
+            typed_data: dict[str, Any] = cast(dict[str, Any], data)
+            snooze_val = cast(int | str | None, typed_data.get("snooze_default", 10))
+            self.snooze_default = (
+                int(snooze_val) if snooze_val not in (None, "") else 10
+            )
+            alarms: list[Any] = cast(list[Any], typed_data.get("alarms", []))
         elif isinstance(data, list):
             self.snooze_default = 10
-            alarms = data
+            alarms = cast(list[Any], data)
         else:
             self._log_editor_error(
                 "Invalid JSON structure loaded in JsonEditor.reload_from_file",
@@ -217,7 +239,8 @@ class JsonEditor:
         for a in alarms:
             if not isinstance(a, dict):
                 continue
-            fixed = self.repair_alarm_dict(a)
+            alarm_dict: Dict[str, Any] = cast(Dict[str, Any], a)
+            fixed: Dict[str, Any] = self.repair_alarm_dict(alarm_dict)
             self.rows.append(fixed)
 
         # ⑥ 表示更新
@@ -233,7 +256,7 @@ class JsonEditor:
         ・値抜け（"key": ,）→ "key": "" に補完
         ・カッコ不足 → '}' を追加して調整
         """
-        text = raw_text
+        text: str = raw_text
 
         # 1) "key": の後が空（値が無い）場合 → 空文字を補う
         text = re.sub(
@@ -243,8 +266,8 @@ class JsonEditor:
         )
 
         # 2) { の数と } の数を合わせる（必要なら } を補う）
-        open_braces = text.count("{")
-        close_braces = text.count("}")
+        open_braces: int = text.count("{")
+        close_braces: int = text.count("}")
         if open_braces > close_braces:
             text += "}" * (open_braces - close_braces)
 
@@ -261,27 +284,27 @@ class JsonEditor:
         JSON が重症レベルで壊れている場合の最終修復関数。
         行単位でキーを抽出して疑似 JSON を復元する。
         """
-        lines = raw_text.splitlines()
+        lines: List[str] = raw_text.splitlines()
         repaired_items: List[Dict[str, Any]] = []
         current: Dict[str, Any] = {}
 
         # キーバリューの正規表現
-        pattern = re.compile(r'"(?P<key>[A-Za-z0-9_]+)"\s*:\s*(?P<value>.*)')
+        pattern: re.Pattern[str] = re.compile(r'"(?P<key>[A-Za-z0-9_]+)"\s*:\s*(?P<value>.*)')
 
         for line in lines:
-            line = line.strip()
+            line: str = line.strip()
 
             # 新しいオブジェクト開始の可能性
             if line.startswith("{") and current:
                 repaired_items.append(current)
                 current = {}
 
-            m = pattern.search(line)
+            m: re.Match[str] | None = pattern.search(line)
             if not m:
                 continue
 
-            key = m.group("key")
-            value = m.group("value").rstrip(", ")
+            key: str | Any = m.group("key")
+            value: str | Any = m.group("value").rstrip(", ")
 
             # 値が空 → "" を補完
             if value == "" or value is None:
@@ -309,7 +332,7 @@ class JsonEditor:
         # ALARM_KEYS に補正して完全な辞書に整形
         fixed_items: List[Dict[str, Any]] = []
         for item in repaired_items:
-            fixed = self.repair_alarm_dict(item)
+            fixed: Dict[str, Any] = self.repair_alarm_dict(item)
             fixed_items.append(fixed)
 
         return {"alarms": fixed_items}
@@ -325,7 +348,7 @@ class JsonEditor:
         if isinstance(v, (int, float)):
             return v != 0
         if isinstance(v, str):
-            s = v.strip().lower()
+            s: str = v.strip().lower()
             if s in ("true", "1", "on", "yes", "y", "✔"):
                 return True
             if s in ("false", "0", "off", "no", "n", "", "null"):
@@ -338,7 +361,7 @@ class JsonEditor:
         if isinstance(v, float):
             return int(v)
         if isinstance(v, str):
-            s = v.strip()
+            s: str = v.strip()
             if s == "":
                 return default
             try:
@@ -350,32 +373,32 @@ class JsonEditor:
     def _to_list_int(self, v: Any) -> List[int]:
         if isinstance(v, list):
             out: List[int] = []
-            for x in v:
+            for x in cast(List[Any], v):
                 try:
                     out.append(int(x))
-                except TypeError:
+                except (ValueError, TypeError):
                     continue
             return out
         if isinstance(v, str):
-            s = v.strip()
+            s: str = v.strip()
             if not s:
                 return []
             # JSON の文字列っぽいとき
             if s.startswith("[") and s.endswith("]"):
                 try:
-                    arr = json.loads(s)
+                    arr: Any = json.loads(s)
                     return self._to_list_int(arr)
-                except ValueError:
+                except (ValueError, TypeError, json.JSONDecodeError):
                     return []
             # カンマ区切り "1,3,5" など
-            parts = [p.strip() for p in s.split(",")]
+            parts: List[str] = [p.strip() for p in s.split(",")]
             out: List[int] = []
             for p in parts:
                 if not p:
                     continue
                 try:
                     out.append(int(p))
-                except TypeError:
+                except (ValueError, TypeError):
                     continue
             return out
         return []
@@ -391,16 +414,16 @@ class JsonEditor:
         ・テンプレートの不足キーは全部埋める
         ・型変換変換（bool, int, list, datetime）はこの中で完結
         """
-        fixed = {}
+        fixed: Dict[str, Any] = {}
 
         # 1) datetime / dt → date / time
-        dt_raw = d.get("datetime") or d.get("dt")
-        date_str = d.get("date", "")
-        time_str = d.get("time", "")
+        dt_raw: Any | None = d.get("datetime") or d.get("dt")
+        date_str: str = d.get("date", "")
+        time_str: str = d.get("time", "")
 
         if isinstance(dt_raw, str) and dt_raw:
             try:
-                dt = datetime.fromisoformat(dt_raw)
+                dt: datetime = datetime.fromisoformat(dt_raw)
                 date_str = dt.strftime("%Y-%m-%d")
                 time_str = dt.strftime("%H:%M")
             except ValueError:
@@ -410,25 +433,32 @@ class JsonEditor:
         fixed["time"] = time_str
         # pylint: disable=protected-access
         # 2) その他のキーをテンプレート順で埋める
-        for key in ALARM_TEMPLATE:
+        for key, template_val in ALARM_TEMPLATE.items():
             if key in ("date", "time"):
                 continue
 
-            val = d.get(key, ALARM_TEMPLATE[key])
+            val: Any = d.get(key, template_val)
 
             if val is None:
-                val = ALARM_TEMPLATE[key]
+                val = template_val
 
             # --- 型補正 ---
-            if key in ("id", "interval_weeks", "duration", "snooze_minutes", "snooze_limit", "_snooze_count"):
+            int_keys = (
+                "id", "interval_weeks", "duration",
+                "snooze_minutes", "snooze_limit",
+                "_snooze_count"
+            )
+            if key in int_keys:
                 try:
                     val = int(val)
                 except (ValueError, TypeError):
-                    val = ALARM_TEMPLATE[key]
+                    val = template_val
 
             elif key in ("enabled", "skip_holiday", "_triggered"):
                 if isinstance(val, str):
-                    val = val.lower() in ("true", "1", "yes", "on")
+                    val = val.lower() in (
+                        "true", "1", "yes", "on"
+                    )
                 else:
                     val = bool(val)
 
@@ -464,23 +494,28 @@ class JsonEditor:
         d["time"] = _val("time")
 
         # repeat → 日本語
-        rep_raw = alarm.get("repeat", "none")
-        rep = "none" if rep_raw is None else rep_raw
+        rep_raw: Any | None = alarm.get("repeat", "none")
+        rep: Any | Literal['none'] = "none" if rep_raw is None else rep_raw
         d["repeat"] = REPEAT_DISPLAY.get(rep, rep)
 
         # weekday → 「月火水」
-        wd_list = alarm.get("weekday", [])
+        wd_list: Any | None = alarm.get("weekday", [])
         if isinstance(wd_list, list):
+            weekday_items: List[int] = [
+                i for i in cast(List[Any], wd_list)
+                if isinstance(i, int) and 0 <= i < len(WEEKDAY_LABELS)
+            ]
             d["weekday"] = "".join(
-                WEEKDAY_LABELS[i] for i in wd_list if isinstance(i, int) and 0 <= i < len(WEEKDAY_LABELS)
+                WEEKDAY_LABELS[i] for i in weekday_items
             )
         else:
             d["weekday"] = ""
 
         # week_of_month
-        wom = alarm.get("week_of_month", [])
+        wom: Any | None = alarm.get("week_of_month", [])
         if isinstance(wom, list):
-            d["week_of_month"] = ",".join(str(x) for x in wom)
+            wom_items: List[Any] = cast(List[Any], wom)
+            d["week_of_month"] = ",".join(str(x) for x in wom_items)
         else:
             d["week_of_month"] = ""
 
@@ -520,8 +555,8 @@ class JsonEditor:
         self.tree.delete(*self.tree.get_children())
 
         for alarm in self.rows:
-            disp = self.build_display_dict(alarm)
-            row = [disp.get(key, "") for key in ALARM_KEYS]
+            disp: Dict[str, Any] = self.build_display_dict(alarm)
+            row: List[Any] = [disp.get(key, "") for key in ALARM_KEYS]
             self.tree.insert("", "end", values=row)
 
     # -------------------------------------------------
@@ -529,10 +564,10 @@ class JsonEditor:
     # -------------------------------------------------
     def add_row(self) -> None:
         """末尾に空の行を追加"""
-        new_id = 1
+        new_id: int = 1
         if self.rows:
             try:
-                new_id = max(
+                new_id: int = max(
                     int(r.get("id", 0)) for r in self.rows if str(r.get("id", "")).strip() != ""
                 ) + 1
             except ValueError:
@@ -569,7 +604,7 @@ class JsonEditor:
 
     def delete_row(self) -> None:
         """選択された行を削除"""
-        sel = self.tree.selection()
+        sel: tuple[str, ...] = self.tree.selection()
         if not sel:
             self._log_editor_warning(
                 "Delete row requested without selection",
@@ -582,7 +617,9 @@ class JsonEditor:
         if not messagebox.askyesno("確認", f"{len(sel)} 件の行を削除しますか？"):
             return
 
-        indices = sorted((self.tree.index(item_id) for item_id in sel), reverse=True)
+        indices: List[int] = sorted(
+            (self.tree.index(item_id) for item_id in sel), reverse=True
+        )
         for idx in indices:
             if 0 <= idx < len(self.rows):
                 del self.rows[idx]
@@ -592,34 +629,39 @@ class JsonEditor:
     # -------------------------------------------------
     #  セル編集（ダブルクリック）
     # -------------------------------------------------
-    def on_double_click(self, event) -> None:
+    def on_double_click(self, event: tk.Event) -> str | None:
         """セルをダブルクリックしたときに適切なエディタを表示して編集する"""
-        region = self.tree.identify_region(event.x, event.y)
+        region: Literal["heading", "separator", "tree", "cell", "nothing"] = (
+            self.tree.identify_region(event.x, event.y)
+        )
         if region != "cell":
             return "break"
 
-        item_id = self.tree.identify_row(event.y)
-        col_id = self.tree.identify_column(event.x)  # "#1", "#2", ...
+        item_id: str = self.tree.identify_row(event.y)
+        col_id: str = self.tree.identify_column(event.x)  # "#1", "#2", ...
         if not item_id or col_id == "#0":
             return "break"
 
         # 行選択を強制（ダブルクリックで選択が外れるのを防ぐ）
+
+
+
         self.tree.selection_set(item_id)
         self.tree.focus(item_id)
         self.tree.focus_set()
 
-        row_index = self.tree.index(item_id)
+        row_index: int = self.tree.index(item_id)
         if not (0 <= row_index < len(self.rows)):
             return "break"
 
-        col_index = int(col_id[1:]) - 1
+        col_index: int = int(col_id[1:]) - 1
         if not (0 <= col_index < len(ALARM_KEYS)):
             return "break"
 
-        key = ALARM_KEYS[col_index]
-        row = self.rows[row_index]
+        key: str = ALARM_KEYS[col_index]
+        row: Dict[str, Any] = self.rows[row_index]
 
-        bbox = self.tree.bbox(item_id, col_id)
+        bbox: tuple[int, int, int, int] | Literal[''] = self.tree.bbox(item_id, col_id)
         if not bbox:
             return "break"
         x, y, width, height = bbox
@@ -628,7 +670,7 @@ class JsonEditor:
             widget.place(in_=self.tree, x=x, y=y, width=width, height=height)
             widget.focus_set()
 
-            def on_focus_out(event=None):
+            def on_focus_out(_event_: tk.Event[tk.Misc] | None = None) -> None:
                 widget.destroy()
                 # 編集後は表示更新
                 self.refresh_tree()
@@ -640,7 +682,7 @@ class JsonEditor:
         # 日付（ミニカレンダー）
         if key == "date":
             current = str(row.get("date", ""))
-            new_date = self.select_date_dialog(current or None)
+            new_date: str | None = self.select_date_dialog(current or None)
             if new_date:
                 row["date"] = new_date
                 self.refresh_tree()
@@ -649,7 +691,7 @@ class JsonEditor:
         # 時刻（TimePicker）
         if key == "time":
             current = str(row.get("time", ""))
-            new_time = self.select_time_dialog(current or None)
+            new_time: str | None = self.select_time_dialog(current or None)
             if new_time:
                 row["time"] = new_time
                 self.refresh_tree()
@@ -657,14 +699,14 @@ class JsonEditor:
 
         # repeat（コンボボックス、日本語表示）
         if key == "repeat":
-            internal = row.get("repeat", "none")
-            current_label = REPEAT_DISPLAY.get(internal, "単発")
+            internal: str = row.get("repeat", "none")
+            current_label: str = REPEAT_DISPLAY.get(internal, "単発")
 
             cb = ttk.Combobox(self.tree, state="readonly")
             cb["values"] = list(REPEAT_INTERNAL.keys())
             cb.set(current_label)
 
-            def commit_repeat(event=None):
+            def commit_repeat(_event: tk.Event[tk.Misc] | None = None) -> None:
                 label = cb.get()
                 internal_val = REPEAT_INTERNAL.get(label, "none")
                 row["repeat"] = internal_val
@@ -686,6 +728,8 @@ class JsonEditor:
 
         # 第n週（カスタム選択ダイアログで曜日も同時編集）
         if key == "week_of_month":
+            weeks: List[int] | None
+            wdays: List[int] | None
             weeks, wdays = self.select_custom_repeat_dialog(
                 initial_weeks=row.get("week_of_month", []),
                 initial_weekday=row.get("weekday", []),
@@ -698,8 +742,8 @@ class JsonEditor:
 
         # 曜日（チェックボックスダイアログ）
         if key == "weekday":
-            current = row.get("weekday", [])
-            result = self.select_weekdays_dialog(current)
+            current: Any = row.get("weekday", [])
+            result: List[int] | None = self.select_weekdays_dialog(current)
             if result is not None:
                 row["weekday"] = result
                 self.refresh_tree()
@@ -711,23 +755,23 @@ class JsonEditor:
             cb["values"] = ["✔", ""]
             cb.set("✔" if row.get(key) else "")
 
-            def commit_boolean(event=None):
+            def commit_boolean(_event: tk.Event[tk.Misc] | None = None) -> None:
                 v = cb.get()
-                row[key] = (v == "✔")
+                row[key] = v == "✔"
                 cb.destroy()
                 self.refresh_tree()
 
             cb.bind("<<ComboboxSelected>>", commit_boolean)
             cb.bind("<Return>", commit_boolean)
             place_widget(cb)
-            return
+            return "break"
 
         # 数値系
         if key in ("interval_weeks", "duration", "snooze_minutes", "snooze_limit", "_snooze_count"):
             entry = ttk.Entry(self.tree)
             entry.insert(0, str(row.get(key, "")))
 
-            def commit_numeric(event=None):
+            def commit_numeric(_event: tk.Event[tk.Misc] | None = None) -> None:
                 text = entry.get().strip()
                 if text == "":
                     entry.destroy()
@@ -761,7 +805,7 @@ class JsonEditor:
         entry = ttk.Entry(self.tree)
         entry.insert(0, str(row.get(key, "")))
 
-        def commit_generic(event=None):
+        def commit_generic(_event: tk.Event[tk.Misc] | None = None) -> None:
             row[key] = entry.get()
             entry.destroy()
             self.refresh_tree()
@@ -774,15 +818,21 @@ class JsonEditor:
     # -------------------------------------------------
     def select_date_dialog(self, initial_date: Optional[str] = None) -> Optional[str]:
         """ミニカレンダーを開き、YYYY-MM-DD を返す"""
-        from alarm.mini_calendar import MiniCalendar
+        parsed_initial_date: date | None = None
+        if initial_date:
+            try:
+                parsed_initial_date = datetime.strptime(initial_date, "%Y-%m-%d").date()
+            except ValueError:
+                parsed_initial_date = None
 
-        cal = MiniCalendar(self.root, initial_date)
-        return cal.show()
+        cal = MiniCalendar(self.root, initial_date=parsed_initial_date)
+        selected_date = cal.show()
+        if selected_date is None:
+            return None
+        return selected_date.strftime("%Y-%m-%d")
 
     def select_time_dialog(self, initial_time: Optional[str] = None) -> Optional[str]:
         """TimePicker を開き、HH:MM を返す"""
-        from alarm.mini_calendar import TimePicker
-
         tp = TimePicker(self.root, initial_time or "07:00")
         return tp.show()
 
@@ -845,8 +895,10 @@ class JsonEditor:
         week_frame.pack(pady=(0, 6))
         week_vars: list[tk.BooleanVar] = []
         for i in range(1, 6):
-            var = tk.BooleanVar(value=(i in (initial_weeks or [])))
-            ttk.Checkbutton(week_frame, text=f"第{i}週", variable=var).pack(side="left", padx=4)
+            var = tk.BooleanVar(value=i in (initial_weeks or []))
+            ttk.Checkbutton(week_frame, text=f"第{i}週", variable=var).pack(
+                side="left", padx=4
+            )
             week_vars.append(var)
 
         ttk.Label(win, text="曜日を選択").pack(pady=(6, 2))
@@ -854,7 +906,7 @@ class JsonEditor:
         wd_frame.pack(pady=(0, 6))
         wd_vars: list[tk.BooleanVar] = []
         for i, label in enumerate(WEEKDAY_LABELS):
-            var = tk.BooleanVar(value=(i in (initial_weekday or [])))
+            var = tk.BooleanVar(value=i in (initial_weekday or []))
             ttk.Checkbutton(wd_frame, text=label, variable=var).pack(side="left", padx=4)
             wd_vars.append(var)
 

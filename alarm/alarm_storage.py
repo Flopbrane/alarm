@@ -60,7 +60,7 @@ class AlarmStorage:
     ) -> None:
 
         self.base_dir: Path = self.get_base_dir()
-        self.logger: "AppLogger" = logger if logger else get_alarm_logger()
+        self.logger: "AppLogger | Any" = logger if logger else get_alarm_logger()
         self.alarm_path: Path = alarm_path or ALARM_PATH
         self.standby_path: Path = standby_path or STANDBY_PATH
         # ロガーは遅延初期化する（このクラスは起動直後から呼ばれるため、先にロガーを作ると循環参照になる可能性がある）

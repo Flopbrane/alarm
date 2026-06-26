@@ -26,7 +26,7 @@ from alarm.alarm_config_manager import Config, ConfigManager
 from alarm.alarm_manager import AlarmManager
 from alarm.cui_starter import main as cui_main
 from alarm.gui_starter import main as gui_main
-from alarm.logger_bridge import get_alarm_logger
+from alarm.logger_bridge import AlarmLogger, get_alarm_logger
 
 
 if TYPE_CHECKING:
@@ -37,7 +37,7 @@ if TYPE_CHECKING:
 # =====================================================
 def start_application() -> None:
     """アプリケーションの起動処理"""
-    logger: "AppLogger | None" = None
+    logger: AlarmLogger | None = None
 
     try:
         logger = get_alarm_logger()
