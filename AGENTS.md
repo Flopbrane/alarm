@@ -43,8 +43,8 @@ Fixing "Silent Breaking Bugs"
 
 - From data entry to sounding
 UI → UI Mapper → Internal Model → Manager → Scheduler → Checker → Player
-- From data entry to saving			↓
-UI → UI Mapper → Internal Model → Manager → Internal_to_json_mapper→Storage→Save as a JSON file
+- From data entry to saving         ↓
+UI → UI Mapper → Internal Model → Manager → Internal_to_json_mapper → Storage → Save as a JSON file
 
 ---
 
@@ -453,4 +453,3 @@ json_editor.py に置かない責務：
 * json_editor.py で Manager の内部状態を直接変更しない
 * 既存の alarm_id / state_id の対応関係を壊さない
 * tests 以外の無関係なファイルを大規模に書き換えない
-
