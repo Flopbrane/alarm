@@ -20,7 +20,7 @@ from tkinter import filedialog, messagebox, ttk
 from typing import TYPE_CHECKING, Any, Callable, Literal, TypedDict, cast
 
 from alarm.alarm_config_manager import Config, ConfigManager
-from alarm.alarm_ui_model import AlarmUI, AlarmUIPatch
+from alarm.alarm_ui_model import AlarmDisplayRow, AlarmUI, AlarmUIPatch
 from alarm.window_position_store import WindowPositionStore
 
 # --- 自作モジュール ---------------------------------------------------------
@@ -463,7 +463,7 @@ class AlarmGUI:
             self._log_ui_warning(
                 "Skipped re-entrant refresh_tree",
                 tree_exists=hasattr(self, "tree"),
-                manager_alarm_count=len(self.controller.get_all_alarm_uis()),
+                manager_alarm_count=len(self.controller.get_alarm_display_rows()),
             )
             return
 
@@ -476,80 +476,51 @@ class AlarmGUI:
 
             self.tree.delete(*self.tree.get_children())
 
-            for alarm in self.controller.get_all_alarm_uis():
+            display_rows: list[AlarmDisplayRow] = self.controller.get_alarm_display_rows()
+            for row in display_rows:
                 # ID 0（ダミー行など）は一覧に出さない
                 try:
-                    if not alarm.id:
+                    if not row.alarm_id:
                         continue
                 except(ValueError, AttributeError) as e:
                     self._log_ui_warning(
                         "Skipped alarm with invalid id during refresh_tree",
-                        alarm_data=alarm,
-                        alarm_type=type(alarm).__name__,
+                        alarm_data=row,
+                        alarm_type=type(row).__name__,
                         error=repr(e),
                         error_type=type(e).__name__,
                     )
                     continue
 
-                if not alarm.name:
+                if not row.name:
                     self._log_ui_warning(
                         "Skipped alarm with empty name during refresh_tree",
-                        alarm_id=alarm.id,
+                        alarm_id=row.alarm_id,
                     )
-                date_str: str = (alarm.date.strftime("%Y-%m-%d")
-                                 if isinstance(alarm.date, datetime) else "")
-                time_str: str = (alarm.time.strftime("%H:%M")
-                                 if isinstance(alarm.time, datetime) else "")
-
-                # 曜日
-                weekday_list: list[int | str] = list(alarm.weekday or [])
-                weekday_str: str = weekday_to_str([x for x in weekday_list if isinstance(x, int)]) if weekday_list else ""
-
-                # 有効/祝日/スヌーズ
-                enabled_str: str = "ON" if alarm.enabled else "OFF"
-                skip_str: str = "✔" if alarm.skip_holiday else "×"
-                snooze_limit: int = alarm.snooze_limit
-
-                # 🔹 繰り返し表示（内部 → 日本語）
-                repeat_type: str = alarm.repeat or "none"
-                repeat_display: str = REPEAT_DISPLAY.get(repeat_type, repeat_type)
-
-                # 🔹 カスタム詳細の日本語説明を生成
-                custom_desc: str = ""
-                if repeat_type == "custom":
-                    weeks: list[int] = list(alarm.week_of_month or [])
-                    interval: int = alarm.interval_weeks or 1
-                    parts: list[str] = []
-
-                    # 第n週
-                    if weeks:
-                        nth_text: str = "・".join([f"第{i}週" for i in weeks])
-                        parts.append(nth_text)
-
-                    # 曜日
-                    if weekday_list:
-                        parts.append("".join(WEEKDAY_LABELS[i] for i in weekday_list if isinstance(i, int)))
-
-                    # 週おき
-                    if interval > 1:
-                        parts.append(f"{interval}週おき")
-
-                    custom_desc: str = "／".join(parts) if parts else ""
+                # NOTE:
+                # 表示用の連番と、更新用の alarm_id を分離する。
+                # Treeview の iid に alarm_id を保持し、ID列は row_no のみ表示する。
+                display_id: int = row.row_no
+                enabled_str: str = "ON" if row.enabled else "OFF"
+                skip_str: str = "✔" if row.skip_holiday else "×"
+                repeat_display: str = REPEAT_DISPLAY.get(row.repeat, row.repeat)
 
                 # 🔹 表示行を構築
                 values: list[str | int] = [
-                    alarm.id,
-                    alarm.name,
-                    date_str,
-                    time_str,
+                    display_id,
+                    row.name,
+                    row.date,
+                    row.time,
                     repeat_display,
-                    weekday_str,
+                    row.weekday,
                     enabled_str,
                     skip_str,
-                    snooze_limit,
-                    custom_desc,  # ← 新カラム
+                    "",
+                    row.snooze_limit,
+                    "",
+                    row.custom_desc,
                 ]
-                self.tree.insert("", "end", values=values)
+                self.tree.insert("", "end", iid=row.alarm_id, values=values)
 
             # NOTE:
             # 「次のアラーム」表示は next_alarm_update_loop() 側で定期更新する。
@@ -839,7 +810,7 @@ class AlarmGUI:
         win = tk.Toplevel(self.root)
         self.settings_window: tk.Toplevel = win  # ← 追加！！
         win.title("アラーム設定")
-        win.geometry("1080x830")
+        win.geometry("1320x830")
         win.minsize(1080, 830)
         win.resizable(True, True)
 
@@ -1460,22 +1431,19 @@ class AlarmGUI:
         if not values:
             return "break"
 
-        try:
-            alarm_id = str(values[0])
-        except Exception:
-            return "break"
+        alarm_id: str = item_id
 
         alarm: AlarmUI | None = self.controller.get_alarm_ui_by_id(alarm_id)
         if alarm is None:
             return "break"
 
         col_index: int = int(column_id[1:]) - 1
-        columns: str = tree["columns"]
+        columns: tuple[str, ...] = cast(tuple[str, ...], tree["columns"])
         if not 0 <= col_index < len(columns):
             return "break"
 
         col_name: str = columns[col_index]
-        old_value = values[col_index]
+        old_value: Any = values[col_index]
 
         def set_editor(widget: tk.Entry | ttk.Combobox, commit_callback: Callable[[str], None]) -> None:
             editor_setter: Callable[[tk.Entry | ttk.Combobox], None] = self.create_cell_editor(
@@ -1485,12 +1453,12 @@ class AlarmGUI:
 
         if col_name == "weekday":
             current: list[int] = [int(x) for x in (alarm.weekday or [])]
-            result: list[int] | None = self.select_weekdays_dialog(current)
-            if result is None:
+            weekday_result: list[int] | None = self.select_weekdays_dialog(current)
+            if weekday_result is None:
                 return "break"
             self.controller.update_alarm_from_ui(
                 alarm_id,
-                AlarmUIPatch(weekday=cast(list[int | str], result)),
+                AlarmUIPatch(weekday=cast(list[int | str], weekday_result)),
             )
             self.refresh_tree()
             self.update_next_alarm_label()
@@ -1522,17 +1490,17 @@ class AlarmGUI:
                     patch.weekday = [str(w) for w in result_weekdays] if result_weekdays else []
                 elif internal == "custom":
                     weekday_ints_custom: list[int] = [int(w) for w in (alarm.weekday or [])]
-                    result: dict[str, list[int] | int] | None = self.open_custom_dialog(
+                    custom_result: dict[str, list[int] | int] | None = self.open_custom_dialog(
                         initial={
                             "weekday": weekday_ints_custom,
                             "week_of_month": list(alarm.week_of_month or []),
                             "interval_weeks": alarm.interval_weeks or 1,
                         }
                     )
-                    if result:
-                        patch.weekday = [str(w) for w in (result["weekday"] if isinstance(result["weekday"], list) else [])]
-                        patch.week_of_month = result["week_of_month"] if isinstance(result["week_of_month"], list) else []
-                        patch.interval_weeks = result["interval_weeks"] if isinstance(result["interval_weeks"], int) else 1
+                    if custom_result:
+                        patch.weekday = [str(w) for w in (custom_result["weekday"] if isinstance(custom_result["weekday"], list) else [])]
+                        patch.week_of_month = custom_result["week_of_month"] if isinstance(custom_result["week_of_month"], list) else []
+                        patch.interval_weeks = custom_result["interval_weeks"] if isinstance(custom_result["interval_weeks"], int) else 1
 
                 self.controller.update_alarm_from_ui(alarm_id, patch)
                 self.refresh_tree()
@@ -1598,6 +1566,31 @@ class AlarmGUI:
             cb.after(100, lambda: cb.event_generate("<Down>"))
             return "break"
 
+        if col_name == "duration_time":
+            cb = ttk.Combobox(
+                tree,
+                values=["10", "20", "30", "60", "120"],
+                state="readonly",
+            )
+            cb.set(str(alarm.duration))
+
+            def commit_duration(value: str) -> None:
+                try:
+                    duration = int(value)
+                except Exception:
+                    duration = alarm.duration
+                self.controller.update_alarm_from_ui(
+                    alarm_id,
+                    AlarmUIPatch(duration=duration),
+                )
+                self.refresh_tree()
+                self.update_next_alarm_label()
+
+            set_editor(cb, commit_duration)
+            cb.bind("<<ComboboxSelected>>", lambda e: commit_duration(cb.get()))
+            cb.after(100, lambda: cb.event_generate("<Down>"))
+            return "break"
+
         if col_name == "date":
             if not alarm.date or not alarm.time:
                 return "break"
@@ -1632,6 +1625,50 @@ class AlarmGUI:
             self.controller.update_alarm_from_ui(
                 alarm_id,
                 AlarmUIPatch(time=new_time),
+            )
+            self.refresh_tree()
+            self.update_next_alarm_label()
+            return "break"
+
+        if col_name == "custom_desc" and (alarm.repeat or "") == "custom":
+            weekday_ints_custom: list[int] = [int(w) for w in (alarm.weekday or [])]
+            result_custom: dict[str, list[int] | int] | None = self.open_custom_dialog(
+                initial={
+                    "weekday": weekday_ints_custom,
+                    "week_of_month": list(alarm.week_of_month or []),
+                    "interval_weeks": alarm.interval_weeks or 1,
+                }
+            )
+            if not result_custom:
+                return "break"
+
+            weekday_value: list[int] | int = result_custom.get("weekday", [])
+            week_of_month_value: list[int] | int = result_custom.get("week_of_month", [])
+            interval_weeks_value: list[int] | int = result_custom.get("interval_weeks", 1)
+
+            weekday_patch: list[int | str] = [
+                int(w) if isinstance(w, str) else w for w in weekday_value
+            ] if isinstance(weekday_value, list) else []
+
+            week_of_month_patch: list[int] = (
+                week_of_month_value
+                if isinstance(week_of_month_value, list)
+                else []
+            )
+
+            interval_weeks_patch: int = (
+                interval_weeks_value
+                if isinstance(interval_weeks_value, int)
+                else 1
+            )
+
+            self.controller.update_alarm_from_ui(
+                alarm_id,
+                AlarmUIPatch(
+                    weekday=weekday_patch,
+                    week_of_month=week_of_month_patch,
+                    interval_weeks=interval_weeks_patch,
+                ),
             )
             self.refresh_tree()
             self.update_next_alarm_label()

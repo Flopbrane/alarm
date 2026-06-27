@@ -7,7 +7,7 @@
 # GUIの呼び出しコントローラクラス
 #########################
 from __future__ import annotations
-from dataclasses import dataclass
+
 from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING
 from alarm.alarm_internal_model import AlarmInternal
 from alarm.alarm_manager_temp import NextAlarmInfo
 from alarm.alarm_states_model import AlarmStateInternal
+from alarm.alarm_ui_mapper import InternalToViewMapper
 from alarm.alarm_ui_model import AlarmUI, AlarmUIPatch, AlarmDisplayRow
 from alarm.data_ui_to_mgr_adapter import DataEditAdapter
 
@@ -185,39 +186,26 @@ class GUIController:
         valid_alarms: list[AlarmInternal] = [
             alarm for alarm in self.manager.alarms if alarm.id
         ]
-
-        next_alarms_list: list[NextAlarmInfo] = self.manager.get_next_alarms(
-            len(valid_alarms)
-        )
-
-        next_datetime_map: dict[str, datetime] = {
-            item["alarm"].id: item["next_datetime"]
-            for item in next_alarms_list
-            if item["alarm"].id
-        }
+        def get_sort_key(alarm: AlarmInternal) -> datetime:
+            state: AlarmStateInternal | None = self.manager.get_state_by_id(alarm.id)
+            if state is not None and state.next_fire_datetime is not None:
+                return state.next_fire_datetime
+            return datetime.max
 
         sorted_alarms: list[AlarmInternal] = sorted(
             valid_alarms,
-            key=lambda alarm: next_datetime_map.get(alarm.id, datetime.max),
+            key=get_sort_key,
         )
 
         rows: list[AlarmDisplayRow] = []
 
         for row_no, alarm in enumerate(sorted_alarms, start=1):
+            state: AlarmStateInternal | None = self.manager.get_state_by_id(alarm.id)
             rows.append(
-                AlarmDisplayRow(
+                InternalToViewMapper.internal_to_display_row(
                     row_no=row_no,
-                    alarm_id=alarm.id,
-                    name=alarm.name or "(名称なし)",
-                    date=str(alarm.date) if alarm.date else "",
-                    time=str(alarm.time) if alarm.time else "",
-                    repeat=alarm.repeat or "none",
-                    weekday="",
-                    enabled=alarm.enabled,
-                    next_alarm_datetime=next_datetime_map.get(alarm.id),
-                    skip_holiday=alarm.skip_holiday,
-                    snooze_limit=alarm.snooze_limit,
-                    custom_desc="",
+                    alarm=alarm,
+                    state=state,
                 )
             )
 
