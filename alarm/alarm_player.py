@@ -16,12 +16,10 @@ AlarmPlayerGUI   : Tkinter の after を使って停止を管理
 import threading
 import tkinter as tk
 from time import sleep
-from typing import Any, TYPE_CHECKING
+from typing import Any
 
 from alarm.logger_bridge import get_alarm_logger
 
-if TYPE_CHECKING:
-    from logs.multi_info_logger import AppLogger
 
 
 def _get_pygame() -> Any | None:

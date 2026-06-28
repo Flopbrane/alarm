@@ -36,7 +36,7 @@ from datetime import time as TimeType
 from datetime import timedelta
 from pathlib import Path
 from typing import Any, Callable, Literal, TypedDict, Optional
-from typing import TYPE_CHECKING, overload
+from typing import overload
 
 # Third party
 
@@ -89,9 +89,6 @@ from alarm.env_paths import ALARM_PATH, BACKUP_DIR, DATA_DIR, STANDBY_PATH
 # logger_project 側の責務に寄せる方針のため、
 # alarm 本体では SystemMonitor を常時駆動しない。
 # from alarm.system_monitor_bridge import SystemMonitor
-
-if TYPE_CHECKING:
-    from logs.multi_info_logger import AppLogger
 
 
 class NextAlarmInfo(TypedDict): # UI表示用の次回鳴動予定アラーム情報

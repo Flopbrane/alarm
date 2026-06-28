@@ -24,7 +24,6 @@ Scheduler はこういう存在です。
 import calendar
 from collections.abc import Callable
 from datetime import datetime, time, timedelta
-from typing import TYPE_CHECKING
 
 # 3rd partyモジュール
 from alarm.logger_bridge import get_alarm_logger
@@ -32,9 +31,6 @@ from alarm.logger_bridge import get_alarm_logger
 # 自作モジュール
 from alarm.alarm_internal_model import AlarmInternal
 from alarm.cui_datetime_normalizer import normalize_base_date
-
-if TYPE_CHECKING:
-    from logs.multi_info_logger import AppLogger
 
 
 # 型エイリアスをクラス外で定義

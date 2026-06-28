@@ -21,14 +21,8 @@ import re
 from pathlib import Path
 from datetime import date, datetime, timedelta
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
-
 
 from alarm.logger_bridge import AlarmLogger, get_alarm_logger
-
-
-if TYPE_CHECKING:
-    from logs.multi_info_logger import AppLogger
 
 
 def load_window_position(_window: tk.Misc, _key: str) -> None:

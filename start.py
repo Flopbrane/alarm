@@ -16,7 +16,6 @@ from __future__ import annotations
 # 標準ライブラリ
 import tkinter as tk
 from tkinter import ttk
-from typing import TYPE_CHECKING
 
 ## 外部ライブラリ
 import psutil
@@ -27,10 +26,6 @@ from alarm.alarm_manager import AlarmManager
 from alarm.cui_starter import main as cui_main
 from alarm.gui_starter import main as gui_main
 from alarm.logger_bridge import AlarmLogger, get_alarm_logger
-
-
-if TYPE_CHECKING:
-    from logs.multi_info_logger import AppLogger
 
 # =====================================================
 # 🔹 起動処理本体

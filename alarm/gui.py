@@ -4,7 +4,7 @@
 #########################
 # Author: F.Kurokawa
 # Description:
-# 　GUI　script
+# GUIscript
 #########################
 # gui.py は AlarmGUI / AlarmStateGUI しか触らない
 from __future__ import annotations
@@ -52,7 +52,6 @@ WINDOW_KEYS: dict[str, WindowKey] = {
 # print(python_version := os.sys.version) # デバッグ用
 if TYPE_CHECKING:
     from alarm.gui_controller import GUIController
-    from logs.multi_info_logger import AppLogger
 
 
 class CustomRepeatData(TypedDict):
