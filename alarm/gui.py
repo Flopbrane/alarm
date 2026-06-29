@@ -21,6 +21,8 @@ from typing import TYPE_CHECKING, Any, Callable, Literal, TypedDict, cast
 
 from alarm.alarm_config_manager import Config, ConfigManager
 from alarm.alarm_ui_model import AlarmDisplayRow, AlarmUI, AlarmUIPatch
+from alarm.custom_repeat_dialog import CustomRepeatDialog
+from alarm.weekday_select_dialog import WeekdaySelectDialog
 from alarm.window_position_store import WindowPositionStore
 
 # --- 自作モジュール ---------------------------------------------------------
@@ -994,23 +996,19 @@ class AlarmGUI:
     # ------------------
     def delete_selected_alarms(self) -> None:
         """選択されたアラームをまとめて削除する"""
-        tree: ttk.Treeview = self.tree
-        if tree is None: # type: ignore
-            return
-
-        selected_items: tuple[str, ...] = tree.selection()
+        selected_items: tuple[str, ...] = self.tree.selection()
 
         if not selected_items:
             self._warn("警告", "削除する行を選択してください")
             return
 
-        alarm_ids: list[str] = [str(tree.set(item, "id")) for item in selected_items]
+        # Treeview の iid に alarm_id を入れているので、そのまま使う
+        alarm_ids: list[str] = list(selected_items)
 
         if not self._ask_yes_no("確認", f"{len(alarm_ids)} 件を削除しますか？"):
             return
 
         self.controller.delete_alarms_from_ui(alarm_ids)
-
         self.refresh_tree()
         self.update_next_alarm_label()
 
@@ -1143,71 +1141,16 @@ class AlarmGUI:
     # --------------------------------------------
     def select_weekdays_dialog(self, initial: list[int] | None = None) -> list[int] | None:
         """毎週繰り返し用のシンプルな曜日選択ダイアログ"""
-        selected_days: list[int] = initial or []
-        win = tk.Toplevel(self.root)
-        # 位置復元（無ければドッキング）
-        if not self.load_window_position(win, WINDOW_KEYS["WEEKDAY"]):
-            self._dock_child_window(win)
-        win.title("曜日の選択")
-        win.geometry("420x180")
-        win.resizable(False, False)
-
-        win.protocol(
-            "WM_DELETE_WINDOW", lambda: self.on_close(win, WINDOW_KEYS["WEEKDAY"])
+        parent: tk.Misc = getattr(self, "settings_window", self.root)
+        dialog = WeekdaySelectDialog(
+            parent=parent,
+            owner=self.root,
+            initial=initial,
+            load_window_position=self.load_window_position,
+            save_window_position=self.save_window_position,
+            dock_window=self._dock_child_window,
         )
-
-        ttk.Label(win, text="曜日を選択してください", font=("Meiryo", 12, "bold")).pack(
-            pady=8
-        )
-
-        # 🔹 横並びレイアウト
-        frame = ttk.Frame(win)
-        frame.pack(padx=10, pady=5)
-
-        weekday_vars: list[tk.BooleanVar] = []
-        for i, label in enumerate(WEEKDAY_LABELS):
-            var = tk.BooleanVar(value=i in selected_days)
-            weekday_vars.append(var)
-            ttk.Checkbutton(frame, text=label, variable=var).grid(
-                row=0, column=i, padx=6, pady=4
-            )
-
-        # 🔹 ボタンフレーム
-        btn_frame = ttk.Frame(win)
-        btn_frame.pack(pady=12)
-
-        result: list[int] | None = None
-
-        def on_ok() -> None:
-            nonlocal result
-            result = [i for i, var in enumerate(weekday_vars) if var.get()]
-            win.destroy()
-
-        def on_clear() -> None:
-            for v in weekday_vars:
-                v.set(False)
-
-        def on_cancel() -> None:
-            nonlocal result
-            result = None
-            win.destroy()
-
-        ttk.Button(btn_frame, text="OK", width=10, command=on_ok).grid(
-            row=0, column=0, padx=10
-        )
-        ttk.Button(btn_frame, text="クリア", width=10, command=on_clear).grid(
-            row=0, column=1, padx=10
-        )
-        ttk.Button(btn_frame, text="キャンセル", width=10, command=on_cancel).grid(
-            row=0, column=2, padx=10
-        )
-
-        win.grab_set()
-        # ---------------------------------------
-        # ✅ 終了待機
-        # ---------------------------------------
-        win.wait_window()
-        return result
+        return dialog.show()
 
     # --------------------------------------------
     # 🔹 カスタム繰り返し設定ウインドウ（改良版）
@@ -1226,112 +1169,16 @@ class AlarmGUI:
         initial: dict[str, list[int] | int] | None = None
         ) -> dict[str, list[int] | int] | None:
         """第n週／曜日／週おきを設定できるカスタム設定ダイアログ"""
-        initial = initial or {"weekday": [], "week_of_month": [], "interval_weeks": 1}
-
-        win = tk.Toplevel(self.root)
-        win.title("カスタム繰り返し設定")
-        win.geometry("420x360")
-        win.resizable(False, False)
-        if not self.load_window_position(win, WINDOW_KEYS["CUSTOM"]):
-            self._dock_child_window(win)
-        try:
-            parent: Any | tk.Tk = getattr(self, "settings_window", self.root)
-            self.place_subwindow_near_parent(parent, win)
-            win.transient(parent)
-            win.lift()  # pyright: ignore[reportUnknownMemberType]
-            win.focus_force()
-        except Exception:
-            pass
-
-        # === タイトル ===
-        ttk.Label(win, text="🗓 カスタム繰り返し設定", font=("Meiryo", 12, "bold")).pack(
-            pady=(10, 6)
+        parent: tk.Misc = getattr(self, "settings_window", self.root)
+        dialog = CustomRepeatDialog(
+            parent=parent,
+            owner=self.root,
+            initial=initial,
+            load_window_position=self.load_window_position,
+            save_window_position=self.save_window_position,
+            dock_window=self._dock_child_window,
         )
-
-        # === 第n週 ===
-        ttk.Label(
-            win, text="■ 第n週の指定（複数可）", font=("Meiryo", 10, "bold")
-        ).pack(pady=(6, 2))
-        week_frame = ttk.Frame(win)
-        week_frame.pack(pady=(0, 8))
-        week_vars:list[tk.BooleanVar] = []
-        week_of_month: list[int] | int = initial.get("week_of_month", [])
-        week_of_month = week_of_month if isinstance(week_of_month, list) else []
-
-        for i in range(1, 6):
-            var = tk.BooleanVar(value=i in week_of_month)
-            ttk.Checkbutton(week_frame, text=f"第{i}週", variable=var).pack(
-                side="left", padx=6
-            )
-            week_vars.append(var)
-
-        # === 曜日 ===
-        ttk.Label(win, text="■ 曜日の指定（複数可）", font=("Meiryo", 10, "bold")).pack(
-            pady=(6, 2)
-        )
-        weekday_frame = ttk.Frame(win)
-        weekday_frame.pack(pady=(0, 8))
-        weekday_vars: list[tk.BooleanVar] = []
-        for i, label in enumerate(WEEKDAY_LABELS):
-            weekday: list[int] | int = initial.get("weekday", [])
-            weekday = weekday if isinstance(weekday, list) else []
-            var = tk.BooleanVar(value=i in weekday)
-            ttk.Checkbutton(weekday_frame, text=label, variable=var).pack(
-                side="left", padx=6
-            )
-            weekday_vars.append(var)
-
-        # === 週おき ===
-        ttk.Label(
-            win, text="■ 繰り返し間隔（週おき）", font=("Meiryo", 10, "bold")
-        ).pack(pady=(8, 3))
-        interval_var = tk.StringVar(value=str(initial.get("interval_weeks", 1)))
-        interval_combo = ttk.Combobox(
-            win,
-            textvariable=interval_var,
-            values=["1", "2", "3", "4"],
-            width=6,
-            state="readonly",
-        )
-        interval_combo.pack(pady=(0, 12))
-
-        # === ボタン列 ===
-        btn_frame = ttk.Frame(win)
-        btn_frame.pack(pady=(10, 8))
-
-        result: dict[str, list[int] | int] = {}
-
-        def on_ok() -> None:
-            result["week_of_month"] = [
-                i + 1 for i, var in enumerate(week_vars) if var.get()  # type: ignore
-            ]
-            result["weekday"] = [i for i, var in enumerate(weekday_vars) if var.get()]  # type: ignore
-            result["interval_weeks"] = int(interval_var.get())
-            win.destroy()
-
-        def on_clear() -> None:
-            for var in week_vars + weekday_vars:
-                var.set(False)
-            interval_var.set("1")
-
-        def on_cancel() -> None:
-            result.clear()
-            win.destroy()
-
-        ttk.Button(btn_frame, text="OK", width=10, command=on_ok).pack(
-            side="left", padx=8
-        )
-        ttk.Button(btn_frame, text="クリア", width=10, command=on_clear).pack(
-            side="left", padx=8
-        )
-        ttk.Button(btn_frame, text="キャンセル", width=10, command=on_cancel).pack(
-            side="left", padx=8
-        )
-
-        win.grab_set()
-        win.wait_window()
-
-        return result if result else None
+        return dialog.show()
 
     # --------------------------------------------
     # 🔹 新規登録フォーム用：曜日選択ハンドラ

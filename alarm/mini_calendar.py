@@ -51,7 +51,7 @@ LOG_DATE_PATTERN: re.Pattern[str] = re.compile(r"(?P<date>\d{4}-\d{2}-\d{2})")
 def collect_log_dates(log_dir: Path) -> set[date]:
     """ログ/JSONLファイル名に含まれる YYYY-MM-DD を有効日として収集する"""
     dates: set[date] = set()
-    logger = get_alarm_logger()
+    logger: AlarmLogger = get_alarm_logger()
 
     for path in log_dir.iterdir():
         if not path.is_file():
