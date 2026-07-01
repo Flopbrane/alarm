@@ -1,8 +1,12 @@
 # -*- coding: utf-8 -*-
-"""Manager cycle control options module.
-Defines CycleOptions dataclass and predefined control modes
-for alarm manager cycles.
 """
+TIMER_TICK      → 毎秒用。通知しない。
+STARTUP_SYNC    → 起動時用。読み込み・保存・通知する。
+CONFIG_CHANGED → 追加/編集/削除用。保存・通知する。
+CUI_STARTUP    → CUI起動用。通知しない。
+TEST_*         → テスト専用。
+"""
+
 #########################
 # Author: F.Kurokawa
 # Description:
@@ -25,23 +29,25 @@ class CycleOptions:
 
 # ===== 実働モード用定義（モジュール定数）=====
 
-# =====manager.main_loop()用=====
-RUNNING = CycleOptions(
+# ===== 定期監視用 =====
+TIMER_TICK = CycleOptions(
     load=False,
     fire=True,
     save=False,
-    notify=True,
-    validate=True,
+    notify=False,
+    validate=False,
 )
-# =====manager.startup_sync()用=====
-STARTUP = CycleOptions(
+
+# ===== 起動同期用 =====
+STARTUP_SYNC = CycleOptions(
     load=True,
     fire=False,
     save=True,
     notify=True,
     validate=True,
 )
-# =====manager.on_alarm_config_changed()用=====
+
+# ===== 設定変更用 =====
 CONFIG_CHANGED = CycleOptions(
     load=False,
     fire=False,
@@ -49,7 +55,8 @@ CONFIG_CHANGED = CycleOptions(
     notify=True,
     validate=True,
 )
-# =====CUI用起動時======
+
+# ===== CUI起動用 =====
 CUI_STARTUP = CycleOptions(
     load=True,
     fire=False,
@@ -57,11 +64,12 @@ CUI_STARTUP = CycleOptions(
     notify=False,
     validate=True,
 )
-# =========test_config_changed===================================
+
+# ===== テスト用 =====
 TEST_CONFIG_CHANGED = CycleOptions(
     load=True,
     fire=True,
-    save=True,  # ★ テストでは必ず False→True に変更しないと、saveの動作が確認できないため、True に設定
+    save=True,
     notify=True,
     validate=True,
 )

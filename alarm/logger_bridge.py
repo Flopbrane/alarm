@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+from functools import lru_cache
 from importlib import import_module
 from pprint import pformat
 from pathlib import Path
@@ -135,10 +136,12 @@ def _looks_like_alarm_logger(candidate: object) -> bool:
     )
 
 
+@lru_cache(maxsize=1)
 def get_alarm_logger() -> AlarmLogger:
     """alarm 用 logger を返す。外部依存が無ければ簡易 logger を返す。"""
 
     logger: AlarmLogger | None = _load_external_logger("alarm")
     if logger is not None:
         return logger
+
     return FallbackLogger("alarm")

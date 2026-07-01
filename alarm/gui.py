@@ -37,7 +37,7 @@ from alarm.constants import (
     # WEEKS_CUSTOM_INTERNAL,
 )
 from alarm.cui_datetime_normalizer import validate_date, validate_time
-from alarm.logger_bridge import get_alarm_logger
+from alarm.logger_bridge import AlarmLogger, get_alarm_logger
 from alarm.weekday_formatter import weekday_to_str
 from alarm.window_keys import WindowKey
 from utils.text_utils import to_hankaku
@@ -95,7 +95,7 @@ class AlarmGUI:
     # =========================================
     def __init__(self, controller: "GUIController") -> None:
         self.controller: "GUIController" = controller
-        self.logger = get_alarm_logger()
+        self.logger: AlarmLogger = get_alarm_logger()
         self.root = tk.Tk()
         # Tk after 版のプレーヤーを使用
         from alarm.alarm_player import AlarmPlayerGUI

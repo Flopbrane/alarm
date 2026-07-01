@@ -7,14 +7,6 @@ from alarm.alarm_manager_temp import (
     AlarmManager,
     CycleOptions,
     CONFIG_CHANGED,
-    RUNNING,
-    STARTUP,
+    TIMER_TICK,
+    STARTUP_SYNC,
 )
-
-__all__: list[str] = [
-    "AlarmManager",
-    "CycleOptions",
-    "CONFIG_CHANGED",
-    "RUNNING",
-    "STARTUP",
-]

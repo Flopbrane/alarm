@@ -63,7 +63,7 @@ class GUIController:
         self.manager.start_cycle(condition="startup")
 
     def run_alarm_cycle(self) -> None:
-        """GUI の定期監視から Manager の通常サイクルを回す。"""
+        """毎回、notify,validateを呼び出さない"""
         self.manager.start_cycle(condition="loop")
 
     def get_active_alarm_ui(self) -> AlarmUI | None:
@@ -154,7 +154,7 @@ class GUIController:
 
         self.manager.player.stop()
         self.manager.snooze_alarm(alarm, state, minutes)
-        self.manager.request_stop()
+        # self.manager.request_stop()
 
         next_time: datetime | None = state.snoozed_until
         return True, alarm.name, next_time

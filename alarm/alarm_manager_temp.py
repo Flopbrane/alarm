@@ -68,9 +68,9 @@ from alarm.constants import DEFAULT_SOUND
 
 # === controller ===
 from alarm.alarm_manager_cycle_control_options import (
+    TIMER_TICK,
+    STARTUP_SYNC,
     CONFIG_CHANGED,
-    RUNNING,
-    STARTUP,
     CycleOptions,
 )
 
@@ -337,14 +337,59 @@ class AlarmManager:
 
         return result
 
-    def _handle_due_alarms(self) -> None:  # 実際に鳴らす処理
+    def _handle_due_alarms(self) -> None:
         """次回鳴動予定日時に達したアラームを処理する（自己修復型）"""
 
         now: DateTimeType = self.internal_clock()
 
+        # ======================================================
+        # 1. スヌーズ中アラームを先に処理する
+        # ======================================================
+        for state in self.states:
+
+            if state.snoozed_until is not None:
+                print(
+                    "[DEBUG SNOOZE WATCH]",
+                    state.id,
+                    "snoozed_until=",
+                    state.snoozed_until,
+                    "now=",
+                    now,
+                    "lifecycle_finished=",
+                    state.lifecycle_finished,
+                )
+
+            if state.lifecycle_finished:
+                continue
+
+            if state.snoozed_until is None:
+                continue
+
+            alarm: AlarmInternal | None = self.get_alarm_by_id(state.id)
+            if alarm is None or not alarm.enabled:
+                continue
+
+            snooze_time: DateTimeType = state.snoozed_until.replace(
+                second=0,
+                microsecond=0,
+            )
+
+            if now.replace(second=0, microsecond=0) >= snooze_time:
+                state.snoozed_until = None
+
+                # スヌーズ再鳴動
+                self._fire_alarm(alarm, state)
+
+                self.save()
+                self.save_standby()
+                continue
+
+        # ======================================================
+        # 2. 通常アラームを処理する
+        # ======================================================
         for alarm_id in self.cache.next_fire_map:
 
-            alarm: AlarmInternal | None = self.get_alarm_by_id(alarm_id)
+            alarm = self.get_alarm_by_id(alarm_id)
             state: AlarmStateInternal | None = self.get_state_by_id(alarm_id)
 
             if state is None or state.lifecycle_finished:
@@ -356,7 +401,7 @@ class AlarmManager:
                 alarm=alarm,
                 state=state,
                 now=now,
-                logger=self.logger
+                logger=self.logger,
             )
 
             if checker.should_fire() and alarm_id not in self.cache.just_created_ids:
@@ -382,7 +427,9 @@ class AlarmManager:
         state.last_fired_at = now
 
         if alarm.repeat == "single":
-            state.lifecycle_finished = True
+            # 鳴動中はまだ終了扱いにしない
+            # STOPされた時に終了扱いにする
+            state.lifecycle_finished = False
             state.next_fire_datetime = None
             state.needs_recalc = False
 
@@ -455,6 +502,7 @@ class AlarmManager:
                 if (
                     alarm
                     and alarm.repeat == "single"
+                    and state.snoozed_until is None
                     and state.triggered_at is not None
                     and state.triggered_at < now
                 ):
@@ -1025,6 +1073,9 @@ class AlarmManager:
         state.triggered = False
         state.triggered_at = None
 
+        # スヌーズ中は、単発でもまだ終了していない
+        state.lifecycle_finished = False
+
         self.save()
         self.save_standby()
 
@@ -1064,6 +1115,7 @@ class AlarmManager:
         # 時刻到達 → 通常解除（次を鳴らして良い）
         if now >= su.replace(second=0, microsecond=0):
             state.snoozed_until = None
+            state.lifecycle_finished = False
             return "expired"
 
         return "none"
@@ -1086,8 +1138,12 @@ class AlarmManager:
         # 多重発火防止：直後に再発火しないよう数秒 ahead にしておく
         state.last_fired_at = (self.internal_clock()) + timedelta(seconds=10)
 
+        alarm: AlarmInternal | None = self.get_alarm_by_id(state.id)
+        if alarm and alarm.repeat == "single":
+            state.lifecycle_finished = True
+
         self.save()
-        self.request_stop()
+        # self.request_stop()
         self.save_standby()
 
     # ======================================================
@@ -1255,8 +1311,6 @@ class AlarmManager:
 
         self.storage.save_alarms(json_alarms)
 
-
-
     def save_standby(self) -> None:
         """standby.json を保存する（alarms と同レベルで正規化）"""
         normalized: list[AlarmStateInternal] = self._normalize_for_persistence()
@@ -1374,9 +1428,9 @@ class AlarmManager:
         self.cache.just_created_ids.clear()
 
         options_map: dict[str, CycleOptions] = {
-            "startup": STARTUP, # 起動時は完全サイクル（load → recalc → fire → save → notify）
-            "loop": RUNNING, # メインループ（recalc → fire → save → notify）
-            "config_change": CONFIG_CHANGED, # 設定変更時（recalc → fire → save → notify）
+            "startup": STARTUP_SYNC,  # 起動時は完全サイクル（load → recalc → fire → save → notify）
+            "loop": TIMER_TICK,  # メインループ（recalc → fire → save → notify）
+            "config_change": CONFIG_CHANGED  # 設定変更時（recalc → fire → save → notify）
         }
 
         opt: CycleOptions | None = options if options is not None else options_map.get(condition)
@@ -1402,7 +1456,7 @@ class AlarmManager:
         # ★ここ追加
         now: DateTimeType = self._now  # type: ignore
         # 起動時のみ
-        if opt == STARTUP:
+        if opt == STARTUP_SYNC:
             self._normalize_on_boot_and_edit(reason="boot")  # ←ここ🔥
         # クロックジャンプ検知（ここでやる）
         self._detect_clock_jump(now)
