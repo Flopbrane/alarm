@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""alarm_manager_temp.py の最小統合テスト
+"""AlarmManagerCore の最小統合テスト
 
 manager -> checker -> player の連動を、
 副作用を抑えた最小構成で確認する。
@@ -11,13 +11,13 @@ from unittest.mock import MagicMock
 
 from alarm_payloads import AddPayload
 from alarm_manager_cycle_control_options import CycleOptions
-from alarm_manager_temp import AlarmManager
+from alarm.alarm_manager import AlarmManager
 from alarm_states_model import AlarmStateInternal
 from alarm_ui_model import AlarmUI
 
 
 class TestManagerMinimum(unittest.TestCase):
-    """AlarmManager の最小連動テスト"""
+    """Facade 経由の AlarmManager の最小連動テスト"""
 
     def setUp(self) -> None:
         self.mgr = AlarmManager()
@@ -53,7 +53,7 @@ class TestManagerMinimum(unittest.TestCase):
         self.mgr.tick = MagicMock(side_effect=fake_tick)
 
     def _new_ui_alarm(self) -> AlarmUI:
-        """新規登録用の UI データを作る"""
+        """Facade 経由で流す新規登録用の UI データを作る"""
         return AlarmUI(
             name="minimum_test_alarm",
             date=self.fixed_now.strftime("%Y-%m-%d"),

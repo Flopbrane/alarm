@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-"""alarm_manager_temp.py の単体テスト"""
+"""AlarmManagerCore を Facade 経由で検証する単体テスト"""
 #########################
 # Author: F.Kurokawa
 # Description:
-# alarm_manager_temp.py の単体テスト
+# AlarmManagerCore の単体テスト
 #########################
 # -*- coding: utf-8 -*-
 import unittest
@@ -12,13 +12,13 @@ from unittest.mock import MagicMock
 
 from alarm_internal_model import AlarmInternal
 from alarm_states_model import AlarmStateInternal
-from alarm_manager_temp import AlarmManager, CycleOptions
+from alarm.alarm_manager import AlarmManager, CycleOptions
 
 
-class TestAlarmManagerTemp(unittest.TestCase):
-    """AlarmManagerTemp の単体テスト"""
+class TestAlarmManagerCore(unittest.TestCase):
+    """AlarmManagerCore の単体テスト"""
     def setUp(self) -> None:
-        """AlarmManager を副作用なしで初期化"""
+        """Facade 経由で作られた AlarmManager を副作用なしで初期化"""
         self.mgr = AlarmManager()
 
         # ---- 副作用のある部品を全部モック化 ----

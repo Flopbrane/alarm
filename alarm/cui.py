@@ -142,11 +142,9 @@ def print_upcoming_alarms(controller: CUIController) -> None:
 # ------------------------------------------
 # 🔹 メインメニュー
 # ------------------------------------------
-def main(alarm_manager: "AlarmManager") -> None:
+def main(controller: CUIController) -> None:
     """メニュー表示"""
-
-    alarm_manager.start_cycle("startup", CUI_STARTUP)
-    controller = CUIController(alarm_manager)
+    controller.manager.start_cycle("startup", CUI_STARTUP)
 
     def run_alarm_monitor(manager: "AlarmManager") -> None:
         """アラーム監視開始"""
@@ -353,7 +351,7 @@ def main(alarm_manager: "AlarmManager") -> None:
                 continue
 
         elif choice == "5":
-            run_alarm_monitor(alarm_manager)
+            run_alarm_monitor(controller.manager)
 
         elif choice == "0":
             print("終了します。")
@@ -366,4 +364,4 @@ def main(alarm_manager: "AlarmManager") -> None:
 if __name__ == "__main__":
     from alarm.alarm_manager import AlarmManager
 
-    main(AlarmManager())
+    main(CUIController(AlarmManager()))

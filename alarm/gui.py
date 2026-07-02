@@ -34,9 +34,6 @@ from alarm.constants import (
     REPEAT_INTERNAL,
     REPEAT_OPTIONS_GUI,
     WEEKDAY_LABELS,
-    DEFAULT_DURATION_SECONDS,
-    DEFAULT_SNOOZE_MINUTES,
-    DEFAULT_SNOOZE_LIMIT,
 )
 from alarm.cui_datetime_normalizer import validate_date, validate_time
 from alarm.logger_bridge import AlarmLogger, get_alarm_logger

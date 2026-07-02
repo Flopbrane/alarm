@@ -8,15 +8,8 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from alarm_manager import AlarmManager
+    from alarm.alarm_app import AlarmApp
 
-def main(manager: "AlarmManager") -> None:
+def main(app: "AlarmApp") -> None:
     """CUI 起動エントリーポイント"""
-    # manager.logger = get_logger()
-    manager.logger.info("CUI 起動")
-
-    # 循環参照回避のため、ここでインポート
-    from alarm.cui_controller import CUIController  # pylint: disable=import-outside-toplevel
-
-    controller = CUIController(manager)
-    controller.run()
+    app.run_cui()

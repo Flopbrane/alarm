@@ -131,8 +131,8 @@ class RuntimeCache:
     just_created_ids: list[str] = field(default_factory=_new_just_created_id_list)
 
 
-class AlarmManager:
-    """アラーム設定を管理するクラス（STOP制御統一版）"""
+class AlarmManagerCore:
+    """アラーム設定を管理する中核クラス（STOP制御統一版）"""
     SnoozeResult = Literal["none", "expired", "limit"]
     # "none": 何もしない
     # "expired": 時刻到達で解除（次を鳴らして良い）
@@ -1680,6 +1680,9 @@ def debug_run_sound_cycle_test(
     except KeyboardInterrupt:
         manager.player.stop()
         print("[DEBUG] Sound test interrupted by keyboard.")
+
+AlarmManager = AlarmManagerCore
+
 
 if __name__ == "__main__":
     debug_run_sound_cycle_test()

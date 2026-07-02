@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""AlarmStorage を介した保存・再読込・発火の統合テスト"""
+"""Facade 経由の AlarmManager で保存・再読込・発火を確認する統合テスト"""
 from __future__ import annotations
 
 import json
@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any, cast
 from unittest.mock import MagicMock
 
-from alarm_manager import AlarmManager, CycleOptions
+from alarm.alarm_manager import AlarmManager, CycleOptions
 from alarm_payloads import AddPayload
 from alarm_states_model import AlarmStateInternal
 from alarm_ui_model import AlarmUI

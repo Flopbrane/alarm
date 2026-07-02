@@ -19,7 +19,7 @@ from logs.multi_info_logger import AppLogger
 from alarm.alarm_internal_model import AlarmInternal
 from alarm.alarm_states_model import AlarmStateInternal
 from alarm.env_paths import BASE_DIR
-from alarm.alarm_manager_temp import AlarmManager
+from alarm.alarm_manager import AlarmManager
 
 # NEXT: AlarmStateJson の欠損時は initial を追加（test 追加）
 # WHY : GUI で状態が必要。保存系は state を落とす可能性があるため
@@ -33,7 +33,7 @@ FIXED_RUNTIME_DIR.mkdir(parents=True, exist_ok=True)
 
 
 class AlarmRuntime:
-    """AlarmManager を安全に実行するためのテスト用実行文脈"""
+    """Facade 経由の AlarmManager を安全に実行するためのテスト用実行文脈"""
 
     def __init__(
         self,
@@ -95,7 +95,7 @@ def main() -> None:
 # 🔹 テスト用ユーティリティ
 # =====================================================
 def make_test_manager() -> AlarmManager:
-    """固定の検証用ディレクトリ上に AlarmManager を作成して返す"""
+    """固定の検証用ディレクトリ上に Facade 経由の AlarmManager を作成して返す"""
     alarm_path: Path = FIXED_RUNTIME_DIR / "alarm.json"
     standby_path: Path = FIXED_RUNTIME_DIR / "standby.json"
     if not alarm_path.exists():

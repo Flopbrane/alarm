@@ -14,14 +14,13 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from alarm.alarm_internal_model import AlarmInternal
-from alarm.alarm_manager_temp import NextAlarmInfo
 from alarm.alarm_states_model import AlarmStateInternal
 from alarm.alarm_ui_mapper import InternalToViewMapper
 from alarm.alarm_ui_model import AlarmUI, AlarmUIPatch, AlarmDisplayRow
 from alarm.data_ui_to_mgr_adapter import DataEditAdapter
 
 if TYPE_CHECKING:
-    from alarm.alarm_manager import AlarmManager
+    from alarm.alarm_manager import AlarmManager, NextAlarmInfo
     from alarm.gui import AlarmGUI
 
 

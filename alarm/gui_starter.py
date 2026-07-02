@@ -10,14 +10,11 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from alarm.alarm_manager import AlarmManager
+    from alarm.alarm_app import AlarmApp
 
 
 def main(
-    manager: "AlarmManager",
+    app: "AlarmApp",
 ) -> None:
     """GUI 起動エントリーポイント"""
-
-    from alarm.gui_controller import GUIController
-
-    GUIController(manager).start()
+    app.run_gui()
