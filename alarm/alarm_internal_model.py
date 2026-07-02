@@ -18,6 +18,11 @@ from typing import Optional
 # 自作モジュール
 from alarm.alarm_types import DateType, TimeType
 from alarm.constants import DEFAULT_SOUND, REPEAT_INTERNAL
+from alarm.constants import (
+    DEFAULT_DURATION_SECONDS,
+    DEFAULT_SNOOZE_MINUTES,
+    DEFAULT_SNOOZE_LIMIT,
+)
 
 # ユーティリティ関数：list[int] のデフォルト値用
 def _int_list() -> list[int]:
@@ -121,13 +126,13 @@ class AlarmInternal:
     skip_holiday: bool = False
     # 祝日スキップするか（Rule 側で使用）
 
-    duration: int = 10
+    duration: int = DEFAULT_DURATION_SECONDS
     # 再生秒数
 
-    snooze_minutes: int = 10
+    snooze_minutes: int = DEFAULT_SNOOZE_MINUTES
     # 1回のスヌーズ時間（分）
 
-    snooze_limit: int = 3
+    snooze_limit: int = DEFAULT_SNOOZE_LIMIT
     # スヌーズ可能回数の上限
 
     end_at: datetime | None = None

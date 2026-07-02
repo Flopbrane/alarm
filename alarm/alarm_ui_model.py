@@ -31,7 +31,12 @@ from dataclasses import dataclass, field
 from typing import List, Optional, Union, cast
 
 # 自作モジュール
-from alarm.constants import DEFAULT_SOUND
+from alarm.constants import (
+    DEFAULT_SOUND,
+    DEFAULT_DURATION_SECONDS,
+    DEFAULT_SNOOZE_MINUTES,
+    DEFAULT_SNOOZE_LIMIT,
+)
 
 @dataclass
 class AlarmUI:
@@ -62,9 +67,9 @@ class AlarmUI:
     sound: str = str(DEFAULT_SOUND)  # WAV ファイル
     skip_holiday: bool = False  # True/False
 
-    duration: int = 30  # 再生秒数
-    snooze_minutes: int = 10  # 初スヌーズ分
-    snooze_limit: int = 10  # 回数上限
+    duration: int = DEFAULT_DURATION_SECONDS  # 再生秒数
+    snooze_minutes: int = DEFAULT_SNOOZE_MINUTES  # 初スヌーズ分
+    snooze_limit: int = DEFAULT_SNOOZE_LIMIT  # 回数上限
     end_at: str | None = None  # アラームの終了日時（ISO文字列）(None の場合は無期限に鳴る)
 
 

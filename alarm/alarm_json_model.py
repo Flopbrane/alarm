@@ -18,7 +18,12 @@ from datetime import datetime
 from pathlib import Path
 
 # 自作モジュール
-from alarm.constants import DEFAULT_SOUND
+from alarm.constants import (
+    DEFAULT_SOUND,
+    DEFAULT_DURATION_SECONDS,
+    DEFAULT_SNOOZE_MINUTES,
+    DEFAULT_SNOOZE_LIMIT,
+)
 
 # ユーティリティ関数：list[int] のデフォルト値用
 # 「可変デフォルト回避」の意図が伝わりやすくなる
@@ -44,9 +49,9 @@ class AlarmJson:
     enabled: bool = True
     sound: str = field(default_factory=lambda: str(DEFAULT_SOUND))
     skip_holiday: bool = False
-    duration: int = 30
-    snooze_minutes: int = 10
-    snooze_limit: int = 3
+    duration: int = DEFAULT_DURATION_SECONDS
+    snooze_minutes: int = DEFAULT_SNOOZE_MINUTES
+    snooze_limit: int = DEFAULT_SNOOZE_LIMIT
     end_at: str | None = None
 
     @property

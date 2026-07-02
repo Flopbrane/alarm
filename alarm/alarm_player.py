@@ -19,7 +19,7 @@ from time import sleep
 from typing import Any
 
 from alarm.logger_bridge import get_alarm_logger
-
+from alarm.constants import DEFAULT_DURATION_SECONDS
 
 
 def _get_pygame() -> Any | None:
@@ -58,7 +58,7 @@ class AlarmPlayer:
             get_alarm_logger().warning(f"⚠ pygame 初期化に失敗しました: {e}")
             self._init_failed = True
 
-    def play(self, sound: str, duration: int = 10) -> None:
+    def play(self, sound: str, duration: int = DEFAULT_DURATION_SECONDS) -> None:
         """指定された音を duration 秒だけ再生する"""
         self._ensure_init()
         if self._init_failed:
@@ -126,7 +126,7 @@ class AlarmPlayerGUI:
         self.root: tk.Misc = root
         self._after_id: str | None = None
 
-    def play(self, sound: str, duration: int = 10) -> None:
+    def play(self, sound: str, duration: int = DEFAULT_DURATION_SECONDS) -> None:
         """GUI 用の再生メソッド"""
         if self._init_failed:
             get_alarm_logger().warning("⚠ pygame が初期化されていないため再生できません")

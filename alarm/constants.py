@@ -82,6 +82,12 @@ WEEKS_CUSTOM_GUI: Final[list[str]] = [WEEKS_DISPLAY[i] for i in WEEKS_INTERNAL]
 # 内部用（数値）
 WEEKS_CUSTOM_INTERNAL: Final[list[int]] = list(WEEKS_DISPLAY.keys())
 
+# ==========================================================
+# 📆 スヌーズ機能のデフォルト設定
+# ==========================================================
+DEFAULT_DURATION_SECONDS: int = 10
+DEFAULT_SNOOZE_MINUTES: int = 10
+DEFAULT_SNOOZE_LIMIT: int = 3
 
 # ==========================================================
 # 📋 GUI 一覧表（カラム定義）
@@ -110,7 +116,7 @@ COLUMN_LABELS: Final[dict[str, str]] = {
     "weekday": "曜日",
     "enabled": "有効/無効",
     "skip_holiday": "祝日スキップ",
-    "duration_time": "再生分数",
+    "duration_time": "再生秒数",
     "snooze_limit": "スヌーズ回数上限",
     "end_at": "アラーム有効期限終了日時",
     "custom_desc": "詳細設定",

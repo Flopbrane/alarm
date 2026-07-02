@@ -8,7 +8,12 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-from alarm.constants import DEFAULT_SOUND
+from alarm.constants import (
+    DEFAULT_DURATION_SECONDS,
+    DEFAULT_SNOOZE_MINUTES,
+    DEFAULT_SNOOZE_LIMIT,
+    DEFAULT_SOUND
+)
 
 ALARM_TEMPLATE: dict[str, Any] = {
     "id": 0,
@@ -25,9 +30,9 @@ ALARM_TEMPLATE: dict[str, Any] = {
     "custom_desc": "",
     "sound": str(DEFAULT_SOUND),
     "skip_holiday": False,
-    "duration": 10,
-    "snooze_minutes": 10,
-    "snooze_limit": 3,
+    "duration": DEFAULT_DURATION_SECONDS,
+    "snooze_minutes": DEFAULT_SNOOZE_MINUTES,
+    "snooze_limit": DEFAULT_SNOOZE_LIMIT,
     "end_at": "",
     "_snooze_count": 0,
     "_snoozed_until": "",

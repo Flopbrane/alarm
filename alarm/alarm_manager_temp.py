@@ -64,7 +64,12 @@ from alarm.alarm_ui_model import AlarmUI, AlarmUIPatch, AlarmListItem
 
 # === utils ===
 from alarm.logger_bridge import get_alarm_logger
-from alarm.constants import DEFAULT_SOUND
+from alarm.constants import (
+    DEFAULT_SOUND,
+    DEFAULT_DURATION_SECONDS,
+    DEFAULT_SNOOZE_MINUTES,
+    DEFAULT_SNOOZE_LIMIT,
+)
 
 # === controller ===
 from alarm.alarm_manager_cycle_control_options import (
@@ -166,7 +171,7 @@ class AlarmManager:
         self.states: list[AlarmStateInternal] = []
         self._states_map: dict[str, AlarmStateInternal] = {}
         # === settings ===
-        self.snooze_default: int = 30
+        self.snooze_default: int = DEFAULT_SNOOZE_MINUTES
         self._stop_requested: bool = False
 
         # === mapper ===
@@ -1376,7 +1381,7 @@ class AlarmManager:
         next_alarms: list[NextAlarmInfo] = self.get_next_alarms(1)
 
         if not next_alarms:
-            return 30  # アラーム無し
+            return DEFAULT_DURATION_SECONDS  # アラーム無し
 
         next_alarm: NextAlarmInfo = next_alarms[0]
 
@@ -1577,9 +1582,9 @@ def _debug_build_sound_test_alarm(
         repeat="single",
         sound=str(sound_path),
         enabled=True,
-        snooze_minutes=5,
-        snooze_limit=3,
-        duration=60,
+        snooze_minutes=DEFAULT_SNOOZE_MINUTES,
+        snooze_limit=DEFAULT_SNOOZE_LIMIT,
+        duration=DEFAULT_DURATION_SECONDS,
     )
 
 

@@ -34,7 +34,9 @@ from alarm.constants import (
     REPEAT_INTERNAL,
     REPEAT_OPTIONS_GUI,
     WEEKDAY_LABELS,
-    # WEEKS_CUSTOM_INTERNAL,
+    DEFAULT_DURATION_SECONDS,
+    DEFAULT_SNOOZE_MINUTES,
+    DEFAULT_SNOOZE_LIMIT,
 )
 from alarm.cui_datetime_normalizer import validate_date, validate_time
 from alarm.logger_bridge import AlarmLogger, get_alarm_logger
@@ -1415,7 +1417,7 @@ class AlarmGUI:
         if col_name == "duration_time":
             cb = ttk.Combobox(
                 tree,
-                values=["10", "20", "30", "60", "120"],
+                values=["5", "10", "15", "20", "25", "30", "45", "60", "120"],
                 state="readonly",
             )
             cb.set(str(alarm.duration))
@@ -1424,7 +1426,7 @@ class AlarmGUI:
                 try:
                     duration = int(value)
                 except Exception:
-                    duration = alarm.duration
+                    duration: int = alarm.duration
                 self.controller.update_alarm_from_ui(
                     alarm_id,
                     AlarmUIPatch(duration=duration),

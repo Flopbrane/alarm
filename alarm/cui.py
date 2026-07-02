@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=C0301
 """CUIで駆動するアラームデータの入出力操作
 ✅ “CUI寄りのCLI”
 メニューを出して「1/2/3/0」で選ばせる
@@ -24,7 +25,13 @@ from alarm.alarm_ui_model import (
     AlarmDisplayRow,
     AlarmUI,
 )
-from alarm.constants import DEFAULT_SOUND, REPEAT_INTERNAL
+from alarm.constants import (
+    DEFAULT_SOUND,
+    REPEAT_INTERNAL,
+    DEFAULT_DURATION_SECONDS,
+    DEFAULT_SNOOZE_MINUTES,
+    DEFAULT_SNOOZE_LIMIT,
+)
 from alarm.alarm_manager_cycle_control_options import CUI_STARTUP
 from alarm.cui_repeat_normalizer import normalize_repeat_input
 from alarm.cui_datetime_normalizer import normalize_commas, validate_date, validate_time
@@ -294,9 +301,10 @@ def main(alarm_manager: "AlarmManager") -> None:
                 else:
                     sound = sound_input or str(DEFAULT_SOUND)
 
-                duration: int = int(input_with_mode("鳴動時間(秒)", mode="half", default="10"))
+                duration: int = int(input_with_mode("鳴動時間(秒)", mode="half", default=str(DEFAULT_DURATION_SECONDS)))
+                snooze_minutes: int = int(input_with_mode("スヌーズ時間(分)", mode="half", default=str(DEFAULT_SNOOZE_MINUTES)))
                 snooze_limit: int = int(
-                    input_with_mode("スヌーズ上限(回、デフォルト3)", mode="half", default="3")
+                    input_with_mode("スヌーズ上限(回、デフォルト3)", mode="half", default=str(DEFAULT_SNOOZE_LIMIT))
                 )
                 skip_holiday: bool = input_bool("祝日スキップしますか", default=False)
 
@@ -316,7 +324,7 @@ def main(alarm_manager: "AlarmManager") -> None:
                     sound=str(sound),
                     skip_holiday=skip_holiday,
                     duration=duration,
-                    snooze_minutes=alarm_manager.snooze_default,
+                    snooze_minutes=snooze_minutes,
                     snooze_limit=snooze_limit,
                     end_at=None,
                 )
