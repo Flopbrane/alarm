@@ -1594,7 +1594,7 @@ def debug_run_sound_cycle_test(
 ) -> None:
     """manager -> checker -> player の実鳴動を確認するデバッグ用関数"""
 
-    manager = AlarmManager()
+    manager = AlarmManagerCore()
 
     resolved_sound_path: Path = Path(sound_path or DEFAULT_SOUND)
     resolved_sound_path = resolved_sound_path.resolve()
@@ -1680,9 +1680,6 @@ def debug_run_sound_cycle_test(
     except KeyboardInterrupt:
         manager.player.stop()
         print("[DEBUG] Sound test interrupted by keyboard.")
-
-AlarmManager = AlarmManagerCore
-
 
 if __name__ == "__main__":
     debug_run_sound_cycle_test()
