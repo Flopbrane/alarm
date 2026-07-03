@@ -515,9 +515,9 @@ class AlarmGUI:
                     row.weekday,
                     enabled_str,
                     skip_str,
-                    "",
+                    row.duration,
                     row.snooze_limit,
-                    "",
+                    row.end_at,
                     row.custom_desc,
                 ]
                 self.tree.insert("", "end", iid=row.alarm_id, values=values)
@@ -1391,14 +1391,26 @@ class AlarmGUI:
             return "break"
 
         if col_name == "snooze_limit":
-            cb = ttk.Combobox(tree, values=["1", "2", "3", "4", "5", "6"], state="readonly")
-            cb.set(str(alarm.snooze_limit))
+            cb = ttk.Combobox(
+                tree,
+                values=[str(i) for i in range(1, 31)],
+                state="normal",
+            )
+
+            if alarm.snooze_limit < 1 or alarm.snooze_limit > 30:
+                cb.set("3")
+            else:
+                cb.set(str(alarm.snooze_limit))
 
             def commit_snooze(value: str) -> None:
                 try:
                     snooze_limit = int(value)
-                except Exception:
-                    snooze_limit = 3
+                    if snooze_limit < 1 or snooze_limit > 30:
+                        raise ValueError
+                except ValueError:
+                    self._warn("入力エラー", "スヌーズ回数上限は 1〜30 の整数で入力してください。")
+                    return
+
                 self.controller.update_alarm_from_ui(
                     alarm_id,
                     AlarmUIPatch(snooze_limit=snooze_limit),
@@ -1411,19 +1423,23 @@ class AlarmGUI:
             cb.after(100, lambda: cb.event_generate("<Down>"))
             return "break"
 
-        if col_name == "duration_time":
+        if col_name == "duration":
             cb = ttk.Combobox(
                 tree,
                 values=["5", "10", "15", "20", "25", "30", "45", "60", "120"],
-                state="readonly",
+                state="normal",
             )
             cb.set(str(alarm.duration))
 
             def commit_duration(value: str) -> None:
                 try:
                     duration = int(value)
-                except Exception:
-                    duration: int = alarm.duration
+                    if duration <= 0:
+                        raise ValueError
+                except ValueError:
+                    self._warn("入力エラー", "再生秒数は 1 以上の整数で入力してください。")
+                    return
+
                 self.controller.update_alarm_from_ui(
                     alarm_id,
                     AlarmUIPatch(duration=duration),

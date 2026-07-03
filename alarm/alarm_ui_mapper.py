@@ -229,6 +229,26 @@ class InternalToViewMapper:
     """Internalモデルから表示用の行データへの変換クラス"""
 
     @staticmethod
+    def _format_custom_desc(alarm: AlarmInternal) -> str:
+        """custom 設定の中身を一覧向けに簡潔に文字列化する。"""
+        if (alarm.repeat or "") != "custom":
+            return alarm.custom_desc or ""
+
+        parts: list[str] = []
+        if alarm.interval_weeks and alarm.interval_weeks != 1:
+            parts.append(f"{alarm.interval_weeks}週おき")
+        if alarm.weekday:
+            parts.append(f"曜日={weekday_to_str(list(alarm.weekday))}")
+        if alarm.week_of_month:
+            parts.append(f"第週={','.join(str(v) for v in alarm.week_of_month)}")
+        if alarm.interval_days:
+            parts.append(f"{alarm.interval_days}日おき")
+        if alarm.base_date_:
+            parts.append(f"基準日={alarm.base_date_.strftime('%Y-%m-%d')}")
+
+        return " / ".join(parts) if parts else "カスタム"
+
+    @staticmethod
     def internal_to_display_row(
         row_no: int,
         alarm: AlarmInternal,
@@ -262,8 +282,10 @@ class InternalToViewMapper:
             enabled=bool(alarm.enabled),
             next_alarm_datetime=next_alarm_datetime,
             skip_holiday=bool(alarm.skip_holiday),
+            duration=int(alarm.duration),
+            end_at=dt_to_any(alarm.end_at) or "",
             snooze_limit=int(alarm.snooze_limit),
-            custom_desc=alarm.custom_desc or "",
+            custom_desc=InternalToViewMapper._format_custom_desc(alarm),
         )
 
 

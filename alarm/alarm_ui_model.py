@@ -136,6 +136,8 @@ class AlarmDisplayRow:
     enabled: bool
     next_alarm_datetime: datetime | None
     skip_holiday: bool = False
+    duration: int = 0
+    end_at: str = ""
     snooze_limit: int = 3
     custom_desc: str = ""
 
