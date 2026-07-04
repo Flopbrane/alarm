@@ -98,9 +98,11 @@ class MiniCalendar:
         parent: tk.Tk | tk.Toplevel,
         *,
         initial_date: date | None = None,
+        window_key: str | None = None,
     ) -> None:
         self.parent: tk.Tk | tk.Toplevel = parent
         self.initial_date: date = initial_date or date.today()
+        self.window_key: str | None = window_key
 
         # 状態
         self.selected_date: date | None = None
@@ -128,6 +130,13 @@ class MiniCalendar:
         """メイン呼び出し"""
         self.window = tk.Toplevel(self.parent)
         self.window.title("日付選択")
+        self.window.resizable(False, False)
+        if self.window_key:
+            try:
+                load_window_position(self.window, self.window_key)
+            except Exception:
+                pass
+        self.window.protocol("WM_DELETE_WINDOW", self._on_cancel)
 
         self._build_ui()
 
@@ -268,11 +277,21 @@ class MiniCalendar:
     def _on_ok(self) -> None:
         if self.selected_date:
             self.result = self.selected_date
+        if self.window_key and self.window is not None:
+            try:
+                save_window_position(self.window, self.window_key)
+            except Exception:
+                pass
         if self.window:
             self.window.destroy()
 
     def _on_cancel(self) -> None:
         self.result = None
+        if self.window_key and self.window is not None:
+            try:
+                save_window_position(self.window, self.window_key)
+            except Exception:
+                pass
         if self.window:
             self.window.destroy()
 

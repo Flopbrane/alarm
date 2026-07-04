@@ -137,7 +137,7 @@ class GUIController:
     ) -> tuple[bool, str, datetime | None]:
         """鳴動中アラームに対してスヌーズ要求を出す。"""
         state: AlarmStateInternal | None = self.manager.get_active_alarm_state()
-        if state is None or not state.triggered:
+        if state is None:
             return False, "", None
 
         alarm: AlarmInternal | None = self.manager.get_alarm_by_id(state.id)
@@ -149,6 +149,9 @@ class GUIController:
             isinstance(triggered_at, datetime)
             and (datetime.now() - triggered_at).total_seconds() > alarm.duration + 5
         ):
+            return False, alarm.name, None
+
+        if not state.triggered and state.snoozed_until is None:
             return False, alarm.name, None
 
         self.manager.player.stop()

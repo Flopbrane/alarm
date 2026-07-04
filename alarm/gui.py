@@ -74,6 +74,7 @@ class AlarmGUI:
     date_label: tk.Label
     time_label: tk.Label
     next_label: tk.Label
+    snooze_status_label: tk.Label
     stop_button: tk.Button
     snooze_button: tk.Button
     snooze_entry: tk.Entry
@@ -108,6 +109,7 @@ class AlarmGUI:
         self.config_data: Config = self.config_manager.load_config()
         self._next_alarm_cache: tuple[datetime, AlarmUI] | tuple[None, None] = (None, None)
         self._next_label_line1: str = ""
+        self._current_alarm_id: str | None = None
         self._refreshing_tree = False
         # =========================================
         self.window_position_store = WindowPositionStore()
@@ -339,7 +341,7 @@ class AlarmGUI:
                 alarm: AlarmUI = current
                 next_time_calc: datetime = datetime.now()
                 icon = "🔔"
-                self._set_bg_snooze()
+                self._set_bg_triggered()
                 name: str = alarm.name or "(名称なし)"
                 repeat_display: str = REPEAT_DISPLAY.get(
                     alarm.repeat or "none", alarm.repeat or ""
@@ -373,9 +375,11 @@ class AlarmGUI:
 
                 if next_alarm is None:
                     self._next_alarm_cache = (None, None)
-                    self._next_label_line1: str = "⏰ 次のアラーム：なし"
+                    self._next_label_line1 = "⏰ 次のアラーム：なし"
                     self._set_bg_normal()
-                    self.next_label.config(text=self._next_label_line1)
+                    self.next_label.config(text=self._next_label_line1, fg="#14325C")
+                    self.snooze_status_label.config(text="")
+                    self._set_alarm_action_state(is_active=False, is_snoozed=False)
                     return
 
                 next_time, alarm = next_alarm
@@ -410,13 +414,97 @@ class AlarmGUI:
 
                 self._next_alarm_cache = (next_time_calc, alarm)
                 self._next_label_line1: str = line1
+                self._current_alarm_id = alarm.id
+                if snoozed_until is not None:
+                    active_alarm: AlarmUI | None = self.controller.get_active_alarm_ui()
+                    self._sync_snooze_minutes_from_alarm(active_alarm or alarm)
+                else:
+                    self._sync_snooze_minutes_from_alarm(alarm)
+                self._update_snooze_status_line(alarm, snoozed_until)
 
         self._update_remaining_text()
+
+    def _update_snooze_status_line(
+        self,
+        alarm: AlarmUI | None,
+        snoozed_until: datetime | None,
+    ) -> None:
+        """スヌーズ時の補助情報を次のアラームの下へ表示する。"""
+        if alarm is None or snoozed_until is None:
+            self.snooze_status_label.config(text="")
+            return
+
+        remaining_seconds: int = max(
+            0, int((snoozed_until - datetime.now()).total_seconds())
+        )
+        remaining_minutes: int = math.ceil(remaining_seconds / 60)
+
+        if remaining_minutes >= 60:
+            hours: int = remaining_minutes // 60
+            minutes: int = remaining_minutes % 60
+            detail: str = f"スヌーズ: {snoozed_until.strftime('%H:%M')} / あと {hours} 時間 {minutes} 分"
+        else:
+            detail: str = f"スヌーズ: {snoozed_until.strftime('%H:%M')} / あと {remaining_minutes} 分"
+
+        self.snooze_status_label.config(text=detail)
+
+    def _sync_snooze_minutes_from_alarm(self, alarm: AlarmUI | None) -> None:
+        """表示対象のアラームからスヌーズ分数を入力欄へ反映する。"""
+        if alarm is None:
+            return
+        if self.snooze_entry.focus_get() is self.snooze_entry:
+            return
+
+        try:
+            snooze_minutes: int = int(alarm.snooze_minutes)
+        except Exception:
+            snooze_minutes = self.controller.get_snooze_default_minutes()
+
+        self.snooze_entry.delete(0, tk.END)
+        self.snooze_entry.insert(0, str(snooze_minutes))
+
+    def _set_alarm_action_state(self, *, is_active: bool, is_snoozed: bool) -> None:
+        """STOP と スヌーズ の見た目を状態に応じて切り替える。"""
+        if is_active or is_snoozed:
+            self.stop_button.config(
+                state="normal",
+                bg="#ff5a5f" if is_active else "#f6a500",
+                activebackground="#ff7a7a" if is_active else "#ffc94d",
+                fg="white",
+                activeforeground="white",
+            )
+            self.snooze_button.config(
+                state="normal",
+                bg="#ff9800" if is_snoozed else "#4d9fe8",
+                activebackground="#ffb347" if is_snoozed else "#74b9ff",
+                fg="white",
+                activeforeground="white",
+            )
+        else:
+            self.stop_button.config(
+                state="disabled",
+                bg="#f2c7c7",
+                activebackground="#f2c7c7",
+                fg="#7a7a7a",
+                activeforeground="#7a7a7a",
+                disabledforeground="#7a7a7a",
+            )
+            self.snooze_button.config(
+                state="disabled",
+                bg="#d7e6f5",
+                activebackground="#d7e6f5",
+                fg="#7a7a7a",
+                activeforeground="#7a7a7a",
+                disabledforeground="#7a7a7a",
+            )
 
     def _update_remaining_text(self) -> None:
         """キャッシュをもとに残り時間のみ更新"""
         if not self._next_alarm_cache:
-            self.next_label.config(text="⏰ 次のアラーム：なし")
+            self.next_label.config(text="⏰ 次のアラーム：なし", fg="#14325C")
+            self.snooze_status_label.config(text="")
+            self._set_bg_normal()
+            self._set_alarm_action_state(is_active=False, is_snoozed=False)
             return
 
         next_time_calc: datetime | None
@@ -425,12 +513,18 @@ class AlarmGUI:
         next_time_calc, alarm = self._next_alarm_cache
 
         if alarm and alarm.id and self.controller.is_alarm_triggered(alarm.id):
-            self.next_label.config(text=f"{self._next_label_line1}\n鳴動中")
+            self.next_label.config(text=f"{self._next_label_line1}\n鳴動中", fg="#b00020")
+            self._set_bg_triggered()
+            self._set_alarm_action_state(is_active=True, is_snoozed=False)
+            self.snooze_status_label.config(text="")
             return
 
         # 過去になっていたら再計算
         if next_time_calc is None or next_time_calc < datetime.now():
-            self.next_label.config(text=self._next_label_line1)
+            self.next_label.config(text=self._next_label_line1, fg="#14325C")
+            self._set_bg_normal()
+            self._set_alarm_action_state(is_active=False, is_snoozed=False)
+            self.snooze_status_label.config(text="")
             return
 
         diff = int((next_time_calc - datetime.now()).total_seconds())
@@ -447,7 +541,22 @@ class AlarmGUI:
             else:
                 remaining: str = "まもなく鳴ります"
 
-        self.next_label.config(text=f"{self._next_label_line1}\n{remaining}")
+        snoozed: bool = alarm is not None and alarm.id is not None and (
+            self.controller.get_snoozed_until(alarm.id) is not None
+        )
+        if snoozed:
+            snoozed_until: datetime | None = (
+                self.controller.get_snoozed_until(alarm.id) if alarm and alarm.id else None
+            )
+            self.next_label.config(text=f"{self._next_label_line1}\n{remaining}", fg="#b26a00")
+            self._set_bg_snooze()
+            self._set_alarm_action_state(is_active=False, is_snoozed=True)
+            self._update_snooze_status_line(alarm, snoozed_until)
+        else:
+            self.next_label.config(text=f"{self._next_label_line1}\n{remaining}", fg="#14325C")
+            self._set_bg_normal()
+            self._set_alarm_action_state(is_active=False, is_snoozed=False)
+            self.snooze_status_label.config(text="")
 
     def _countdown_loop(self) -> None:
         self._update_remaining_text()
@@ -566,6 +675,7 @@ class AlarmGUI:
                     enabled_str,
                     skip_str,
                     row.duration,
+                    row.snooze_minutes,
                     row.snooze_limit,
                     row.end_at,
                     row.custom_desc,
@@ -678,9 +788,17 @@ class AlarmGUI:
 
         # --- 次のアラーム ---
         self.next_label = tk.Label(
-            self.main_frame, font=("Meiryo", 14), bg="#f0f0f0"  # ← 14 に変更
+            self.main_frame, font=("Meiryo", 14), bg="#f0f0f0", fg="#14325C"
         )
         self.next_label.pack(pady=(0, 20))
+
+        self.snooze_status_label = tk.Label(
+            self.main_frame,
+            font=("Meiryo", 11),
+            bg="#f0f0f0",
+            fg="#6a4c00",
+        )
+        self.snooze_status_label.pack(pady=(0, 14))
 
         # --- ボタン行 ---
         button_frame = tk.Frame(self.main_frame, bg="#f0f0f0")
@@ -708,11 +826,13 @@ class AlarmGUI:
         )
         self.snooze_button.pack(side="left", padx=10)
 
+        self._set_alarm_action_state(is_active=False, is_snoozed=False)
+
         # --- スヌーズ入力 ---
         input_frame = tk.Frame(self.main_frame, bg="#f0f0f0")
         input_frame.pack(pady=(10, 0))
 
-        tk.Label(input_frame, text="スヌーズ(分):", bg="#f0f0f0").pack(
+        tk.Label(input_frame, text="このアラームのスヌーズ(分):", bg="#f0f0f0").pack(
             side="left", padx=5
         )
         self.snooze_entry = tk.Entry(input_frame, width=6)
@@ -749,6 +869,7 @@ class AlarmGUI:
         self.date_label.config(bg=bg)
         self.time_label.config(bg=bg)
         self.next_label.config(bg=bg)
+        self.snooze_status_label.config(bg=bg)
 
     def _set_bg_normal(self) -> None:
         bg = "#f0f0f0"  # 通常時ライトグレー
@@ -757,6 +878,16 @@ class AlarmGUI:
         self.date_label.config(bg=bg)
         self.time_label.config(bg=bg)
         self.next_label.config(bg=bg)
+        self.snooze_status_label.config(bg=bg)
+
+    def _set_bg_triggered(self) -> None:
+        bg = "#ffe0e0"  # 鳴動中の赤系
+
+        self.main_frame.config(bg=bg)
+        self.date_label.config(bg=bg)
+        self.time_label.config(bg=bg)
+        self.next_label.config(bg=bg)
+        self.snooze_status_label.config(bg=bg)
 
     # --------------------------------------------
     # 🔹 サウンドファイルセレクト
@@ -990,40 +1121,40 @@ class AlarmGUI:
         self.skip_holiday_combo.current(0)
         self.skip_holiday_combo.grid(row=1, column=4, sticky="w", padx=padx, pady=pady)
 
-        ttk.Label(form, text="スヌーズ上限：").grid(
+        ttk.Label(form, text="再生秒数：").grid(
             row=2, column=3, sticky="e", padx=padx, pady=pady
+        )
+        self.duration_entry = ttk.Entry(form, width=10)
+        self.duration_entry.grid(row=2, column=4, sticky="w", padx=padx, pady=pady)
+        self.duration_entry.insert(0, str(DEFAULT_DURATION_SECONDS))
+
+        ttk.Label(form, text="Snooze間隔(分)：").grid(
+            row=3, column=3, sticky="e", padx=padx, pady=pady
+        )
+        self.snooze_minutes_entry = ttk.Entry(form, width=10)
+        self.snooze_minutes_entry.grid(row=3, column=4, sticky="w", padx=padx, pady=pady)
+        self.snooze_minutes_entry.insert(0, str(DEFAULT_SNOOZE_MINUTES))
+
+        ttk.Label(form, text="スヌーズ上限：").grid(
+            row=4, column=3, sticky="e", padx=padx, pady=pady
         )
         self.snooze_limit_combo = ttk.Combobox(
             form, values=[str(x) for x in range(1, 7)], width=6, state="readonly"
         )
         self.snooze_limit_combo.current(2)
-        self.snooze_limit_combo.grid(row=2, column=4, sticky="w", padx=padx, pady=pady)
+        self.snooze_limit_combo.grid(row=4, column=4, sticky="w", padx=padx, pady=pady)
 
         # 音ファイル
         ttk.Label(form, text="音ファイル：").grid(
-            row=3, column=3, sticky="e", padx=padx, pady=pady
+            row=5, column=3, sticky="e", padx=padx, pady=pady
         )
         self.sound_entry = ttk.Entry(form)
-        self.sound_entry.grid(row=3, column=4, sticky="we", padx=padx, pady=pady)
+        self.sound_entry.grid(row=5, column=4, sticky="we", padx=padx, pady=pady)
         ttk.Button(
             form,
             text="選択",
             command=lambda: self.sound_entry.insert(0, filedialog.askopenfilename()),
-        ).grid(row=3, column=5, padx=padx, pady=pady)
-
-        ttk.Label(form, text="再生秒数：").grid(
-            row=4, column=0, sticky="e", padx=padx, pady=pady
-        )
-        self.duration_entry = ttk.Entry(form, width=10)
-        self.duration_entry.grid(row=4, column=1, sticky="w", padx=padx, pady=pady)
-        self.duration_entry.insert(0, str(DEFAULT_DURATION_SECONDS))
-
-        ttk.Label(form, text="Snooze間隔(分)：").grid(
-            row=4, column=3, sticky="e", padx=padx, pady=pady
-        )
-        self.snooze_minutes_entry = ttk.Entry(form, width=10)
-        self.snooze_minutes_entry.grid(row=4, column=4, sticky="w", padx=padx, pady=pady)
-        self.snooze_minutes_entry.insert(0, str(DEFAULT_SNOOZE_MINUTES))
+        ).grid(row=5, column=5, padx=padx, pady=pady)
 
         ttk.Label(form, text="アラーム終了年月日：").grid(
             row=5, column=0, sticky="e", padx=padx, pady=pady
@@ -1200,7 +1331,7 @@ class AlarmGUI:
 
         end_at: str | None = None
         if end_date_str :
-            end_at = f"{end_date_str}T{23:59:59}"  # 期限時刻は固定で23:59:59にする
+            end_at = f"{end_date_str}T23:59:59"  # 期限時刻は固定で23:59:59にする
 
         # 😴 スヌーズ上限
         try:
@@ -1721,7 +1852,9 @@ class AlarmGUI:
         from alarm.mini_calendar import MiniCalendar
 
         cal = MiniCalendar(
-            self.root, initial_date=initial_date
+            self.root,
+            initial_date=initial_date,
+            window_key=WINDOW_KEYS["CALENDAR"],
         )
         return cal.show()
 
@@ -1800,26 +1933,24 @@ class AlarmGUI:
             if snooze_min <= 0:
                 raise ValueError
         except ValueError:
-            snooze_min: int = self.controller.get_snooze_default_minutes()
+            snooze_min = self.controller.get_snooze_default_minutes()
 
         ok: bool
-        alarm_name: str
+        _alarm_name: str
         next_time: datetime | None
 
-        ok, alarm_name, next_time = self.controller.snooze_alarm_from_ui(snooze_min)
+        ok, _alarm_name, next_time = self.controller.snooze_alarm_from_ui(snooze_min)
+
         if not ok:
-            self._info("情報", "現在鳴動中のアラームはありません。")
+            self.snooze_status_label.config(text="")
             return
 
         self.player.stop()
         self.update_next_alarm_label()
-
-        # 🌙 案内
-        self._info(
-            "スヌーズ設定",
-            f"{alarm_name} を {snooze_min} 分後に再鳴動します。\n（{next_time.strftime('%H:%M') if next_time else '--:--'}）",
+        self._update_snooze_status_line(
+            self.controller.get_active_alarm_ui(),
+            next_time,
         )
-
     # --------------------------------------------
     # 🔹 起動
     # --------------------------------------------
