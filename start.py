@@ -8,8 +8,8 @@ import tkinter as tk
 
 import psutil
 
-from alarm.alarm_app import create_alarm_app
-from alarm.alarm_config_manager import Mode
+from alarm.alarm_app import AlarmApp, create_alarm_app
+from alarm.alarm_config_manager import Config, Mode
 from alarm.app_lock import AppLock
 from alarm.cui_starter import main as cui_main
 from alarm.gui_starter import main as gui_main
@@ -25,10 +25,10 @@ def start_application() -> None:
             logger = get_alarm_logger()
             logger.info("アプリ起動", context={"boot_time": psutil.boot_time()})
 
-            app = create_alarm_app(logger)
+            app: AlarmApp = create_alarm_app(logger)
             app.manager.start_cycle("startup")
 
-            cfg = app.config
+            cfg: Config = app.config
             if cfg.show_dialog:
                 mode: Mode | None = choose_mode_with_dialog(cfg.last_mode)
                 if mode is None:
@@ -54,10 +54,10 @@ def start_application() -> None:
 
 def choose_mode_with_dialog(default_mode: Mode) -> Mode | None:
     """Ask the user to choose one mode only."""
-    root = tk.Tk()
+    root: tk.Tk = tk.Tk()
     root.title("起動モードを選択")
-    root.geometry("360x150")
-    root.resizable(False, False)
+    root.geometry("450x150")
+    root.resizable(True, True)
 
     result: dict[str, Mode | None] = {"mode": default_mode}
 
@@ -66,10 +66,10 @@ def choose_mode_with_dialog(default_mode: Mode) -> Mode | None:
         root.destroy()
 
     tk.Label(root, text="起動モードを選んでください", font=("Meiryo", 12)).pack(pady=15)
-    frame = tk.Frame(root)
+    frame: tk.Frame = tk.Frame(root)
     frame.pack(pady=5)
-    tk.Button(frame, text="GUI", width=15, command=lambda: select("gui")).grid(row=0, column=0, padx=5)
-    tk.Button(frame, text="CUI", width=15, command=lambda: select("cui")).grid(row=0, column=1, padx=5)
+    tk.Button(frame, text="ウインドウで起動", width=15, command=lambda: select("gui")).grid(row=0, column=0, padx=5)
+    tk.Button(frame, text="ターミナルで起動", width=15, command=lambda: select("cui")).grid(row=0, column=1, padx=5)
     tk.Button(frame, text="キャンセル", width=15, command=lambda: select(None)).grid(row=0, column=2, padx=5)
 
     root.mainloop()

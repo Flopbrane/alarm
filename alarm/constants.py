@@ -64,8 +64,8 @@ REPEAT_OPTIONS_INTERNAL: Final[list[str]] = list(REPEAT_INTERNAL.values())
 # ==========================================================
 # 📆 「何週おき」表示（interval_weeks）
 # ==========================================================
-# 内部値（1〜5週おき）
-WEEKS_INTERNAL: Final[tuple[int, ...]] = (1, 2, 3, 4, 5)
+# 内部値（1〜6週おき、6=最終週）
+WEEKS_INTERNAL: Final[tuple[int, ...]] = (1, 2, 3, 4, 5, 6)
 
 # 表示用（GUI）
 WEEKS_DISPLAY: Final[dict[int, str]] = {
@@ -74,13 +74,14 @@ WEEKS_DISPLAY: Final[dict[int, str]] = {
     3: "3週おき",
     4: "4週おき",
     5: "5週おき",
+    6: "最終週",
 }
 # デフォルト値
 DEFAULT_INTERVAL_WEEKS: Final[int] = 1
 # GUI ドロップダウン用（表示）
 WEEKS_CUSTOM_GUI: Final[list[str]] = [WEEKS_DISPLAY[i] for i in WEEKS_INTERNAL]
 # 内部用（数値）
-WEEKS_CUSTOM_INTERNAL: Final[list[int]] = list(WEEKS_DISPLAY.keys())
+WEEKS_CUSTOM_INTERNAL: Final[list[int]] = list(WEEKS_INTERNAL)
 
 # ==========================================================
 # 📆 スヌーズ機能のデフォルト設定

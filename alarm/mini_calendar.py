@@ -14,7 +14,6 @@
 from __future__ import annotations
 
 import tkinter as tk
-from tkinter import Toplevel
 from tkinter import ttk
 import calendar
 import re
@@ -93,6 +92,7 @@ class DateRange:
 # =========================
 class MiniCalendar:
     """単一日付選択用カレンダー"""
+
     def __init__(
         self,
         parent: tk.Tk | tk.Toplevel,
@@ -107,12 +107,19 @@ class MiniCalendar:
         self.result: date | None = None
 
         # UI
-        self.window: Toplevel | None = None
+        self.window: tk.Toplevel | None = None
         self.cal_frame: tk.Frame | None = None
 
-        self.year_var: tk.StringVar | None = None
-        self.month_var: tk.StringVar | None = None
-        self.status_var: tk.StringVar | None = None
+        # StringVar は必ず作るので Optional にしない
+        self.year_var: tk.StringVar = tk.StringVar(
+            master=self.parent,
+            value=str(self.initial_date.year),
+        )
+        self.month_var: tk.StringVar = tk.StringVar(
+            master=self.parent,
+            value=str(self.initial_date.month),
+        )
+        self.status_var: tk.StringVar = tk.StringVar(master=self.parent)
 
     # =========================
     # 公開API
@@ -136,18 +143,42 @@ class MiniCalendar:
         top = tk.Frame(self.window)
         top.pack()
 
-        self.year_var = tk.StringVar(value=str(self.initial_date.year))
-        self.month_var = tk.StringVar(value=str(self.initial_date.month))
+        # 年の候補：現在年の前後10年くらい
+        current_year: int = date.today().year
+        year_values: list[str] = [str(y) for y in range(current_year - 10, current_year + 11)]
 
-        tk.Entry(top, textvariable=self.year_var, width=6).pack(side=tk.LEFT)
-        tk.Entry(top, textvariable=self.month_var, width=4).pack(side=tk.LEFT)
+        year_box = ttk.Combobox(
+            top,
+            textvariable=self.year_var,
+            values=year_values,
+            width=6,
+            state="readonly",
+        )
+        year_box.pack(side=tk.LEFT)
+        year_box.bind("<<ComboboxSelected>>", lambda _e: self._draw_calendar())
+
+        tk.Label(top, text="年").pack(side=tk.LEFT, padx=(2, 8))
+
+        month_box = ttk.Combobox(
+            top,
+            textvariable=self.month_var,
+            values=[str(m) for m in range(1, 13)],
+            width=4,
+            state="readonly",
+        )
+        month_box.pack(side=tk.LEFT)
+        month_box.bind("<<ComboboxSelected>>", lambda _e: self._draw_calendar())
+
+        tk.Label(top, text="月").pack(side=tk.LEFT, padx=(2, 8))
+
+        year_box.bind("<<ComboboxSelected>>", lambda _e: self._draw_calendar())
+        month_box.bind("<<ComboboxSelected>>", lambda _e: self._draw_calendar())
 
         tk.Button(top, text="更新", command=self._draw_calendar).pack(side=tk.LEFT)
 
         self.cal_frame = tk.Frame(self.window)
         self.cal_frame.pack()
 
-        self.status_var = tk.StringVar()
         tk.Label(self.window, textvariable=self.status_var).pack()
 
         btn_frame = tk.Frame(self.window)
@@ -170,8 +201,14 @@ class MiniCalendar:
         for w in self.cal_frame.winfo_children():
             w.destroy()
 
-        year = int(self.year_var.get())
-        month = int(self.month_var.get())
+        try:
+            year = int(self.year_var.get())
+            month = int(self.month_var.get())
+        except ValueError:
+            return
+
+        if not 1 <= month <= 12:
+            return
 
         calendar.setfirstweekday(calendar.SUNDAY)
         weeks: list[list[int]] = calendar.monthcalendar(year, month)
@@ -183,7 +220,7 @@ class MiniCalendar:
                     continue
 
                 current = date(year, month, d)
-                if current == self.initial_date:
+                if self.selected_date is None and current == self.initial_date:
                     self.selected_date = current
 
                 fg: str

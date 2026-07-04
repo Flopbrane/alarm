@@ -205,7 +205,7 @@ def main(controller: CUIController) -> None:
         return result
 
     def input_week_of_month() -> list[int]:
-        s: str = input_with_mode("第n週（1-5をカンマ区切り、空欄可）", mode="half")
+        s: str = input_with_mode("第n週（1-6をカンマ区切り、6=最終週、空欄可）", mode="half")
         out: list[Any]
         if not s:
             return []
@@ -214,7 +214,7 @@ def main(controller: CUIController) -> None:
             part: str = part.strip()
             if part.isdigit():
                 n = int(part)
-                if 1 <= n <= 5:
+                if 1 <= n <= 6:
                     out.append(n)
         return out
 

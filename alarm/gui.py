@@ -241,7 +241,6 @@ class AlarmGUI:
             )
             print("⚠ ウインド位置の保存失敗:", e)
 
-
     def load_window_position(self, window: tk.Misc, key: WindowKey) -> bool:
         """保存されたウインド位置を復元する。
         復元に成功すれば True、位置が無ければ False を返す。
@@ -1026,19 +1025,22 @@ class AlarmGUI:
         self.snooze_minutes_entry.grid(row=4, column=4, sticky="w", padx=padx, pady=pady)
         self.snooze_minutes_entry.insert(0, str(DEFAULT_SNOOZE_MINUTES))
 
-        ttk.Label(form, text="アラーム期限：").grid(
+        ttk.Label(form, text="アラーム終了年月日：").grid(
             row=5, column=0, sticky="e", padx=padx, pady=pady
         )
+
         self.end_date_entry = ttk.Entry(form, width=12)
         self.end_date_entry.grid(row=5, column=1, sticky="w", padx=padx, pady=pady)
-        self.end_date_entry.insert(0, "")
 
-        ttk.Label(form, text="期限時刻：").grid(
-            row=5, column=3, sticky="e", padx=padx, pady=pady
-        )
-        self.end_time_entry = ttk.Entry(form, width=8)
-        self.end_time_entry.grid(row=5, column=4, sticky="w", padx=padx, pady=pady)
-        self.end_time_entry.insert(0, "23:59")
+        # 左クリックしたら終了日用カレンダー表示
+        self.end_date_entry.bind("<Button-1>", lambda e: self.pick_end_date())
+
+        # ttk.Label(form, text="期限年月日：").grid(
+        #     row=5, column=3, sticky="e", padx=padx, pady=pady
+        # )
+        # self.end_time_entry = ttk.Entry(form, width=8)
+        # self.end_time_entry.grid(row=5, column=4, sticky="w", padx=padx, pady=pady)
+        # self.end_time_entry.insert(0, "23:59")
 
         # 登録ボタン
         ttk.Button(
@@ -1072,7 +1074,24 @@ class AlarmGUI:
         win.protocol(
             "WM_DELETE_WINDOW", lambda: self.on_close(win, WINDOW_KEYS["SETTINGS"])
         )
+    # --------------------------------------
+    # alarm 終了日選択
+    # --------------------------------------
+    def pick_end_date(self) -> None:
+        """新規登録フォームの「アラーム終了年月日」クリック時に呼ばれる"""
+        old_str: str | None = self.end_date_entry.get() or None
+        old_date: date | None = None
 
+        if old_str:
+            try:
+                old_date = date.fromisoformat(old_str)
+            except ValueError:
+                old_date = None
+
+        new: date | None = self.select_date_dialog(old_date)
+        if new:
+            self.end_date_entry.delete(0, tk.END)
+            self.end_date_entry.insert(0, str(new))
     # ------------------
     # --- 登録済みアラーム削除ボタン ---
     # ------------------
@@ -1173,15 +1192,15 @@ class AlarmGUI:
             self._warn("入力エラー", "アラーム期限は YYYY-MM-DD 形式で入力してください。")
             return
 
-        end_time_raw: str = to_hankaku(self.end_time_entry.get().strip())
-        end_time_str: str | None = validate_time(end_time_raw) if end_date_str else None
-        if end_date_str and end_time_str is None:
-            self._warn("入力エラー", "期限時刻は HH:MM 形式で入力してください。")
-            return
+        # end_time_raw: str = to_hankaku(self.end_time_entry.get().strip())
+        # end_time_str: str | None = validate_time(end_time_raw) if end_date_str else None
+        # if end_date_str and end_time_str is None:
+        #     self._warn("入力エラー", "期限時刻は HH:MM 形式で入力してください。")
+        #     return
 
         end_at: str | None = None
-        if end_date_str and end_time_str:
-            end_at = f"{end_date_str}T{end_time_str}"
+        if end_date_str :
+            end_at = f"{end_date_str}T{23:59:59}"  # 期限時刻は固定で23:59:59にする
 
         # 😴 スヌーズ上限
         try:
@@ -1227,9 +1246,9 @@ class AlarmGUI:
 
         current: tuple[str, ...] = tree.selection()
         if item_id in current:
-            next_selection = tuple(x for x in current if x != item_id)
+            next_selection: tuple[str, ...] = tuple(x for x in current if x != item_id)
         else:
-            next_selection = current + (item_id,)
+            next_selection: tuple[str, ...] = current + (item_id,)
 
         tree.selection_set(next_selection)
         tree.focus(item_id)
@@ -1339,6 +1358,8 @@ class AlarmGUI:
                     "隔週": 2,
                     "3週おき": 3,
                     "4週おき": 4,
+                    "5週おき": 5,
+                    "最終週": 6,
                 }
 
                 interval_weeks: int = repeat_interval_map.get(repeat_display, 1)

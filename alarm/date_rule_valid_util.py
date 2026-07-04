@@ -7,6 +7,7 @@
 #########################
 
 import datetime
+import calendar
 from typing import Sequence
 
 
@@ -22,7 +23,14 @@ def is_valid_week_of_month(
         return True
 
     week_num: int = (now.day - 1) // 7 + 1
-    return week_num in valid_weeks
+    if week_num in valid_weeks:
+        return True
+
+    if 6 not in valid_weeks:
+        return False
+
+    last_day: int = calendar.monthrange(now.year, now.month)[1]
+    return now.day >= max(1, last_day - 6)
 
 
 def is_valid_interval_week(now_week: int, base_week: int, interval_weeks: int) -> bool:

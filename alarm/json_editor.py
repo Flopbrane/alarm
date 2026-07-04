@@ -894,9 +894,10 @@ class JsonEditor:
         week_frame = ttk.Frame(win)
         week_frame.pack(pady=(0, 6))
         week_vars: list[tk.BooleanVar] = []
-        for i in range(1, 6):
+        for i in range(1, 7):
             var = tk.BooleanVar(value=i in (initial_weeks or []))
-            ttk.Checkbutton(week_frame, text=f"第{i}週", variable=var).pack(
+            label: str = "最終週" if i == 6 else f"第{i}週"
+            ttk.Checkbutton(week_frame, text=label, variable=var).pack(
                 side="left", padx=4
             )
             week_vars.append(var)

@@ -245,13 +245,18 @@ class InternalToViewMapper:
         if (alarm.repeat or "") != "custom":
             return InternalToViewMapper._wrap_custom_desc(alarm.custom_desc or "")
 
+        def _format_week_item(value: int) -> str:
+            if value == 6:
+                return "最終週"
+            return f"第{value}週"
+
         parts: list[str] = []
         if alarm.interval_weeks and alarm.interval_weeks != 1:
             parts.append(f"{alarm.interval_weeks}週おき")
         if alarm.weekday:
             parts.append(f"曜:{weekday_to_str(list(alarm.weekday))}")
         if alarm.week_of_month:
-            parts.append(f"週:{','.join(str(v) for v in alarm.week_of_month)}")
+            parts.append(f"週:{','.join(_format_week_item(v) for v in alarm.week_of_month)}")
         if alarm.interval_days:
             parts.append(f"{alarm.interval_days}日おき")
 

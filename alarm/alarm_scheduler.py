@@ -87,6 +87,12 @@ class AlarmScheduler:
     def _get_handler(self, repeat: str) -> CallableType | None:
         return self._handlers.get(repeat)
 
+    @staticmethod
+    def _is_last_week_of_month(candidate: datetime) -> bool:
+        """候補日が月末の最終週に入っているか判定する。"""
+        last_day: int = calendar.monthrange(candidate.year, candidate.month)[1]
+        return candidate.day >= max(1, last_day - 6)
+
     # ======================================================
     # _base()：基準日を1か所で決める
     # ======================================================
@@ -406,7 +412,10 @@ class AlarmScheduler:
             # --- 月内条件（custom固有） ---
             if alarm.week_of_month:
                 week_num: int = (candidate.day - 1) // 7 + 1
-                if week_num not in alarm.week_of_month:
+                if week_num not in alarm.week_of_month and not (
+                    6 in alarm.week_of_month
+                    and self._is_last_week_of_month(candidate)
+                ):
                     candidate += timedelta(days=1)
                     continue
 
