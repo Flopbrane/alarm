@@ -23,26 +23,26 @@ from datetime import date, datetime, timedelta
 from dataclasses import dataclass
 
 from alarm.logger_bridge import AlarmLogger, get_alarm_logger
+from alarm.window_keys import WindowKey
+from alarm.window_position_store import WindowPositionStore
 
 
-def load_window_position(_window: tk.Misc, _key: str) -> None:
-    """ウィンドウ位置復元の互換フック。
+def load_window_position(window: tk.Tk | tk.Toplevel, key: str) -> None:
+    """ウィンドウ位置を保存領域から復元する。"""
+    try:
+        window_key = WindowKey(key)
+    except ValueError:
+        return
+    WindowPositionStore.load_window_position(window, window_key)
 
-    NOTE:
-    window_position は現時点では構造エラー回避を優先し、
-    mini_calendar.py 内では実処理を持たせない。
-    """
-    return None
 
-
-def save_window_position(_window: tk.Misc, _key: str) -> None:
-    """ウィンドウ位置保存の互換フック。
-
-    NOTE:
-    window_position は現時点では構造エラー回避を優先し、
-    mini_calendar.py 内では実処理を持たせない。
-    """
-    return None
+def save_window_position(window: tk.Tk | tk.Toplevel, key: str) -> None:
+    """ウィンドウ位置を保存領域へ書き戻す。"""
+    try:
+        window_key = WindowKey(key)
+    except ValueError:
+        return
+    WindowPositionStore.save_window_position(window, window_key)
 
 
 LOG_DATE_PATTERN: re.Pattern[str] = re.compile(r"(?P<date>\d{4}-\d{2}-\d{2})")
@@ -95,11 +95,11 @@ class MiniCalendar:
     """単一日付選択用カレンダー"""
     def __init__(
         self,
-        parent: tk.Misc,
+        parent: tk.Tk | tk.Toplevel,
         *,
         initial_date: date | None = None,
     ) -> None:
-        self.parent: tk.Misc = parent
+        self.parent: tk.Tk | tk.Toplevel = parent
         self.initial_date: date = initial_date or date.today()
 
         # 状態
@@ -247,17 +247,17 @@ class LogDateRangeCalendar:
     """日付範囲選択用カレンダー。開始日と終了日を選択して DateRange を返す。"""
     def __init__(
         self,
-        parent: tk.Misc,
+        parent: tk.Tk | tk.Toplevel,
         available_dates: set[date],
     ) -> None:
-        self.parent: tk.Misc = parent
+        self.parent: tk.Tk | tk.Toplevel = parent
         self.available_dates: set[date] = available_dates
 
         self.selected_start: date | None = None
         self.selected_end: date | None = None
         self.result: DateRange | None = None
 
-        self.window: Toplevel | None = None
+        self.window: tk.Toplevel | None = None
         self.cal_frame: tk.Frame | None = None
 
         self.year_var: tk.StringVar | None = None
@@ -388,12 +388,12 @@ class TimePicker:
     """
     def __init__(
         self,
-        parent: tk.Misc,
+        parent: tk.Tk | tk.Toplevel,
         initial_time: str = "07:00",
         window_key: str | None = None,
         now: datetime | None = None,
     ) -> None:
-        self.parent: tk.Misc = parent
+        self.parent: tk.Tk | tk.Toplevel = parent
         self.now: datetime = now or datetime.now()
         self.logger: AlarmLogger = get_alarm_logger()
 

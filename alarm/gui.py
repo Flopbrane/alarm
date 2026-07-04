@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# pylint: disable=C0415,W0718,C0302,C0301
+# pylint: disable=C0415,W0718,C0302,C0301,W0201
 """GUI駆動の表示、データ入出力のみを担当します"""
 #########################
 # Author: F.Kurokawa
@@ -34,6 +34,8 @@ from alarm.constants import (
     REPEAT_INTERNAL,
     REPEAT_OPTIONS_GUI,
     WEEKDAY_LABELS,
+    DEFAULT_DURATION_SECONDS,
+    DEFAULT_SNOOZE_MINUTES,
 )
 from alarm.cui_datetime_normalizer import validate_date, validate_time
 from alarm.logger_bridge import AlarmLogger, get_alarm_logger
@@ -159,6 +161,38 @@ class AlarmGUI:
             },
         )
 
+    def _autosize_tree_columns(self) -> None:
+        """Treeview の列幅を見出しと内容の長さに合わせて調整する。"""
+        tree: ttk.Treeview | None = getattr(self, "tree", None)
+        if tree is None or not tree.winfo_exists():
+            return
+
+        columns: tuple[str, ...] = cast(tuple[str, ...], tree["columns"])
+        rows: list[tuple[str, ...]] = [
+            tuple(str(value) for value in tree.item(item_id, "values"))
+            for item_id in tree.get_children()
+        ]
+
+        for col_index, col_name in enumerate(columns):
+            header_text: str = COLUMN_LABELS.get(col_name, col_name)
+            candidates: list[str] = [header_text]
+            for row in rows:
+                if col_index < len(row):
+                    candidates.append(row[col_index])
+
+            max_len: int = max((len(text) for text in candidates), default=0)
+            if col_name == "custom_desc":
+                max_len = max(max_len, 24)
+                width: int = min(max(max_len * 8, 180), 420)
+            elif col_name in ("name", "date", "time", "repeat", "weekday"):
+                width = min(max(max_len * 10, 90), 220)
+            elif col_name in ("snooze_limit", "duration", "enabled", "skip_holiday"):
+                width = min(max(max_len * 10, 80), 150)
+            else:
+                width = min(max(max_len * 9, 80), 240)
+
+            tree.column(col_name, width=width, stretch=True)
+
     # --------------------------------------------
     # 🔹 messagebox ラッパー（親をメインに固定）
     # --------------------------------------------
@@ -188,9 +222,17 @@ class AlarmGUI:
 
     def save_window_position(self, window: tk.Misc, key: WindowKey) -> None:
         """ウインド位置を保存する。"""
+        if not isinstance(window, (tk.Tk, tk.Toplevel)):
+            self._log_ui_warning(
+                "Skipped saving non-window widget position",
+                window_key=key,
+                window_type=type(window).__name__,
+            )
+            return
+
         try:
             self.window_position_store.save_window_position(window, key)
-        except Exception as e: # pylint: disable=broad-exception-caught
+        except Exception as e:  # pylint: disable=broad-exception-caught
             self._log_ui_error(
                 "Failed to save window position",
                 e,
@@ -199,13 +241,22 @@ class AlarmGUI:
             )
             print("⚠ ウインド位置の保存失敗:", e)
 
+
     def load_window_position(self, window: tk.Misc, key: WindowKey) -> bool:
         """保存されたウインド位置を復元する。
         復元に成功すれば True、位置が無ければ False を返す。
         """
+        if not isinstance(window, (tk.Tk, tk.Toplevel)):
+            self._log_ui_warning(
+                "Skipped loading non-window widget position",
+                window_key=key,
+                window_type=type(window).__name__,
+            )
+            return False
+
         try:
-            return self.window_position_store.load_window_position(cast(tk.Wm, window), key)
-        except Exception as e: # pylint: disable=broad-exception-caught
+            return self.window_position_store.load_window_position(window, key)
+        except Exception as e:  # pylint: disable=broad-exception-caught
             self._log_ui_error(
                 "Failed to load window position",
                 e,
@@ -521,6 +572,8 @@ class AlarmGUI:
                     row.custom_desc,
                 ]
                 self.tree.insert("", "end", iid=row.alarm_id, values=values)
+
+            self._autosize_tree_columns()
 
             # NOTE:
             # 「次のアラーム」表示は next_alarm_update_loop() 側で定期更新する。
@@ -843,6 +896,7 @@ class AlarmGUI:
         self.tree.column("snooze_limit", width=90, anchor="center")
         self.tree.column("custom_desc", width=180, anchor="w")
         self.tree.pack(fill="x", expand=False, padx=10, pady=10)
+        self.tree.bind("<Button-1>", self._toggle_tree_selection, add="+")
         self.tree.bind("<Double-1>", self.on_double_click)
 
         # ここに削除ボタン
@@ -958,13 +1012,42 @@ class AlarmGUI:
             command=lambda: self.sound_entry.insert(0, filedialog.askopenfilename()),
         ).grid(row=3, column=5, padx=padx, pady=pady)
 
+        ttk.Label(form, text="再生秒数：").grid(
+            row=4, column=0, sticky="e", padx=padx, pady=pady
+        )
+        self.duration_entry = ttk.Entry(form, width=10)
+        self.duration_entry.grid(row=4, column=1, sticky="w", padx=padx, pady=pady)
+        self.duration_entry.insert(0, str(DEFAULT_DURATION_SECONDS))
+
+        ttk.Label(form, text="Snooze間隔(分)：").grid(
+            row=4, column=3, sticky="e", padx=padx, pady=pady
+        )
+        self.snooze_minutes_entry = ttk.Entry(form, width=10)
+        self.snooze_minutes_entry.grid(row=4, column=4, sticky="w", padx=padx, pady=pady)
+        self.snooze_minutes_entry.insert(0, str(DEFAULT_SNOOZE_MINUTES))
+
+        ttk.Label(form, text="アラーム期限：").grid(
+            row=5, column=0, sticky="e", padx=padx, pady=pady
+        )
+        self.end_date_entry = ttk.Entry(form, width=12)
+        self.end_date_entry.grid(row=5, column=1, sticky="w", padx=padx, pady=pady)
+        self.end_date_entry.insert(0, "")
+
+        ttk.Label(form, text="期限時刻：").grid(
+            row=5, column=3, sticky="e", padx=padx, pady=pady
+        )
+        self.end_time_entry = ttk.Entry(form, width=8)
+        self.end_time_entry.grid(row=5, column=4, sticky="w", padx=padx, pady=pady)
+        self.end_time_entry.insert(0, "23:59")
+
         # 登録ボタン
         ttk.Button(
             form, text="アラームを登録", width=20, command=self.add_alarm_action
-        ).grid(row=4, column=0, columnspan=6, pady=(14, 5))
+        ).grid(row=6, column=0, columnspan=6, pady=(14, 5))
 
         # 画面部品をすべて作り終えてから一覧とラベルを更新する
         self.refresh_tree()
+        self._autosize_tree_columns()
         self.root.after_idle(self.update_next_alarm_label)
 
         # --------------------------------------
@@ -1066,6 +1149,40 @@ class AlarmGUI:
         # 🔊 音ファイル
         sound: str = self.sound_entry.get().strip()
 
+        duration_raw: str = self.duration_entry.get().strip()
+        try:
+            duration: int = int(duration_raw)
+            if duration <= 0:
+                raise ValueError
+        except ValueError:
+            self._warn("入力エラー", "再生秒数は 1 以上の整数で入力してください。")
+            return
+
+        snooze_raw: str = self.snooze_minutes_entry.get().strip()
+        try:
+            snooze_minutes: int = int(snooze_raw)
+            if snooze_minutes <= 0:
+                raise ValueError
+        except ValueError:
+            self._warn("入力エラー", "Snooze間隔(分)は 1 以上の整数で入力してください。")
+            return
+
+        end_date_raw: str = to_hankaku(self.end_date_entry.get().strip())
+        end_date_str: str | None = validate_date(end_date_raw) if end_date_raw else None
+        if end_date_raw and end_date_str is None:
+            self._warn("入力エラー", "アラーム期限は YYYY-MM-DD 形式で入力してください。")
+            return
+
+        end_time_raw: str = to_hankaku(self.end_time_entry.get().strip())
+        end_time_str: str | None = validate_time(end_time_raw) if end_date_str else None
+        if end_date_str and end_time_str is None:
+            self._warn("入力エラー", "期限時刻は HH:MM 形式で入力してください。")
+            return
+
+        end_at: str | None = None
+        if end_date_str and end_time_str:
+            end_at = f"{end_date_str}T{end_time_str}"
+
         # 😴 スヌーズ上限
         try:
             snooze_limit: int = int(self.snooze_limit_combo.get())
@@ -1084,8 +1201,10 @@ class AlarmGUI:
             enabled=True,
             sound=sound,
             skip_holiday=skip_holiday,
-            snooze_minutes=self.controller.get_snooze_default_minutes(),
+            duration=duration,
+            snooze_minutes=snooze_minutes,
             snooze_limit=snooze_limit,
+            end_at=end_at,
         )
 
         # ✅ Controller 経由で Manager へ登録
@@ -1095,6 +1214,26 @@ class AlarmGUI:
         self.refresh_tree()
         self.update_next_alarm_label()
         self._info("登録完了", f"「{name}」を登録しました。")
+
+    def _toggle_tree_selection(self, event: tk.Event) -> str | None:
+        """Treeview の行をクリックでトグル選択する。"""
+        tree: ttk.Treeview = self.tree
+        if tree.identify_region(event.x, event.y) != "cell":
+            return None
+
+        item_id: str = tree.identify_row(event.y)
+        if not item_id:
+            return None
+
+        current: tuple[str, ...] = tree.selection()
+        if item_id in current:
+            next_selection = tuple(x for x in current if x != item_id)
+        else:
+            next_selection = current + (item_id,)
+
+        tree.selection_set(next_selection)
+        tree.focus(item_id)
+        return "break"
 
     # =========サブウインドウ・ダイアログ群=========
     # --------------------------------------------

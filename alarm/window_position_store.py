@@ -26,7 +26,7 @@ class WindowPositionStore:
     """🗂 ウインドウ位置の永続化専用"""
 
     @staticmethod
-    def load_window_position(window: tk.Wm, key: WindowKey) -> bool:
+    def load_window_position(window: tk.Tk |tk.Toplevel, key: WindowKey) -> bool:
         """既存 GUI 互換: 単一ウインドウ位置を復元する。"""
         all_data: Dict[WindowKey, WindowGeometry] = WindowPositionStore.load_all()
         geometry: WindowGeometry | None = all_data.get(key)
@@ -39,7 +39,7 @@ class WindowPositionStore:
         return True
 
     @staticmethod
-    def save_window_position(window:tk.Misc, key: WindowKey) -> None:
+    def save_window_position(window: tk.Tk |tk.Toplevel, key: WindowKey) -> None:
         """既存 GUI 互換: 単一ウインドウ位置を保存する。"""
         window.update_idletasks()
 

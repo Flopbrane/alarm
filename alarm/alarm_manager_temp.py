@@ -1550,6 +1550,14 @@ class AlarmManagerCore:
                 message="Failed to save alarms data",
                 context={"error": str(e)},
             )
+        else:
+            try:
+                self.storage.backup()
+            except OSError as e:
+                self.logger.warning(
+                    message="Failed to create backup after save",
+                    context={"error": str(e)},
+                )
 
     # ⑦ STOP処理
     def _stop_phase(self) -> None:
