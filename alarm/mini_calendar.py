@@ -130,15 +130,33 @@ class MiniCalendar:
         """メイン呼び出し"""
         self.window = tk.Toplevel(self.parent)
         self.window.title("日付選択")
-        self.window.resizable(False, False)
+        self.window.resizable(True, True)
+
         if self.window_key:
             try:
                 load_window_position(self.window, self.window_key)
-            except Exception:
+            except Exception:  # pylint: disable=broad-except
                 pass
+
         self.window.protocol("WM_DELETE_WINDOW", self._on_cancel)
 
         self._build_ui()
+
+        # ★ UI作成後に必要サイズを確定
+        self.window.update_idletasks()
+        self.window.minsize(320, 360)
+
+        # ★ 現在サイズが小さすぎる場合だけ拡張
+        current_width: int = self.window.winfo_width()
+        current_height: int = self.window.winfo_height()
+
+        min_width: int = 320
+        min_height: int = 360
+
+        if current_width < min_width or current_height < min_height:
+            self.window.geometry(
+                f"{max(current_width, min_width)}x{max(current_height, min_height)}"
+            )
 
         self.parent.wait_window(self.window)
         return self.result
@@ -180,8 +198,8 @@ class MiniCalendar:
 
         tk.Label(top, text="月").pack(side=tk.LEFT, padx=(2, 8))
 
-        year_box.bind("<<ComboboxSelected>>", lambda _e: self._draw_calendar())
-        month_box.bind("<<ComboboxSelected>>", lambda _e: self._draw_calendar())
+        # year_box.bind("<<ComboboxSelected>>", lambda _e: self._draw_calendar())
+        # month_box.bind("<<ComboboxSelected>>", lambda _e: self._draw_calendar())
 
         tk.Button(top, text="更新", command=self._draw_calendar).pack(side=tk.LEFT)
 
@@ -280,7 +298,7 @@ class MiniCalendar:
         if self.window_key and self.window is not None:
             try:
                 save_window_position(self.window, self.window_key)
-            except Exception:
+            except Exception: # pylint: disable=broad-except
                 pass
         if self.window:
             self.window.destroy()
@@ -290,7 +308,7 @@ class MiniCalendar:
         if self.window_key and self.window is not None:
             try:
                 save_window_position(self.window, self.window_key)
-            except Exception:
+            except Exception: # pylint: disable=broad-except
                 pass
         if self.window:
             self.window.destroy()
