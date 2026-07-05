@@ -62,10 +62,12 @@ def any_to_dt(v: str | datetime | None) -> datetime | None: # 内部値への変
         return v
     return str_to_dt(v)
 
-def dt_to_any(dt: datetime | None) -> str | None: # Jsonへの変換用
+def dt_to_any(dt: datetime | str | None) -> str | None: # Jsonへの変換用
     """datetime|None → str|None (安全ラッパー) ※ Internal → Json 専用。UI では使用禁止"""
     if not dt:
         return None
+    if isinstance(dt, str):
+        return dt
     return dt.isoformat()
 
 def logger() -> "AppLogger":

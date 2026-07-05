@@ -92,6 +92,8 @@ class AlarmGUI:
     custom_data: CustomRepeatData | None
     weekday_selected: list[int]
     _refreshing_tree: bool
+    _ui_modal_depth: int
+    _active_cell_editor: tk.Widget | None
     # =========================================
     # 🔹 __init__
     # =========================================
@@ -302,6 +304,9 @@ class AlarmGUI:
     def alarm_check_loop(self) -> None:
         """アラーム鳴動チェック（音鳴らし）"""
         try:
+            if getattr(self, "_ui_modal_depth", 0) > 0:
+                self.root.after(1000, self.alarm_check_loop)
+                return
             self.controller.run_alarm_cycle()
             self.update_next_alarm_label(recalc=True)
         except Exception as e:  # pylint: disable=broad-exception-caught
@@ -335,13 +340,21 @@ class AlarmGUI:
     def update_next_alarm_label(self, recalc: bool = True) -> None:
         """次のアラームを再計算しキャッシュ。残り時間は別ループで更新。"""
         if recalc:
-            # まず鳴動中・スヌーズ中のアラームを優先表示
+            # まず鳴動中・スヌーズ中の active alarm を優先表示
             current: AlarmUI | None = self.controller.get_active_alarm_ui()
-            if current and current.id and self.controller.is_alarm_triggered(current.id):
-                alarm: AlarmUI = current
-                next_time_calc: datetime = datetime.now()
-                icon = "🔔"
-                self._set_bg_triggered()
+            current_snoozed_until: datetime | None = (
+                self.controller.get_snoozed_until(current.id) if current and current.id else None
+            )
+            if current and current.id and (self.controller.is_alarm_triggered(current.id) or current_snoozed_until is not None):
+                alarm = current
+                next_time_calc = current_snoozed_until or datetime.now()
+                if current_snoozed_until is not None:
+                    icon = "😴"
+                    self._set_bg_snooze()
+                else:
+                    icon = "🔔"
+                    self._set_bg_triggered()
+
                 name: str = alarm.name or "(名称なし)"
                 repeat_display: str = REPEAT_DISPLAY.get(
                     alarm.repeat or "none", alarm.repeat or ""
@@ -349,7 +362,7 @@ class AlarmGUI:
                 weekday_list: list[int] = list(alarm.weekday or [])  # type: ignore
                 weekday_str: str = weekday_to_str(weekday_list) if weekday_list else ""
 
-                line1: str = f"{icon} 鳴動中：{name}"
+                line1: str = f"{icon} 次のアラーム：{name} {next_time_calc.strftime('%H:%M')}"
                 if repeat_display:
                     line1 += f" / {repeat_display}"
                 if weekday_str:
@@ -357,10 +370,12 @@ class AlarmGUI:
 
                 self._next_alarm_cache = (next_time_calc, alarm)
                 self._next_label_line1 = line1
+                self._current_alarm_id = alarm.id
+                self._sync_snooze_minutes_from_alarm(alarm)
+                self._update_snooze_status_line(alarm, current_snoozed_until)
             else:
                 try:
                     next_alarm: tuple[datetime, AlarmUI] | None = self.controller.get_next_alarm_ui()
-                    # print(f"call_time: {datetime.now().strftime('%M:%S')}")
                 except ValueError as e:
                     self._log_ui_warning(
                         "Failed to get next alarm for label update",
@@ -370,8 +385,6 @@ class AlarmGUI:
                     )
                     print(f"[WARN] 次のアラーム取得でエラー: {e}")
                     next_alarm = None
-
-                next_time: datetime | None
 
                 if next_alarm is None:
                     self._next_alarm_cache = (None, None)
@@ -384,43 +397,25 @@ class AlarmGUI:
 
                 next_time, alarm = next_alarm
                 next_time_calc = next_time
+                icon = "⏰"
+                self._set_bg_normal()
 
-                # スヌーズ中
-                snoozed_until: datetime | None = (
-                    self.controller.get_snoozed_until(alarm.id) if alarm.id else None
-                )
-                if snoozed_until is not None:
-                    next_time_calc = snoozed_until
-                    icon = "😴"
-                    self._set_bg_snooze()
-                else:
-                    icon = "⏰"
-                    self._set_bg_normal()
-
-                name: str = alarm.name or "(名称なし)"
-                repeat_display: str = REPEAT_DISPLAY.get(
-                    alarm.repeat or "none", alarm.repeat or ""
-                )
-                weekday_list: list[int] = [d for d in (alarm.weekday or []) if isinstance(d, int)]
+                name = alarm.name or "(名称なし)"
+                repeat_display = REPEAT_DISPLAY.get(alarm.repeat or "none", alarm.repeat or "")
+                weekday_list = [d for d in (alarm.weekday or []) if isinstance(d, int)]
                 weekday_str = weekday_to_str(weekday_list) if weekday_list else ""
 
-                line1: str = (
-                    f"{icon} 次のアラーム：{name} {next_time_calc.strftime('%H:%M')}"
-                )
+                line1 = f"{icon} 次のアラーム：{name} {next_time_calc.strftime('%H:%M')}"
                 if repeat_display:
                     line1 += f" / {repeat_display}"
                 if weekday_str:
                     line1 += f"（{weekday_str}）"
 
                 self._next_alarm_cache = (next_time_calc, alarm)
-                self._next_label_line1: str = line1
+                self._next_label_line1 = line1
                 self._current_alarm_id = alarm.id
-                if snoozed_until is not None:
-                    active_alarm: AlarmUI | None = self.controller.get_active_alarm_ui()
-                    self._sync_snooze_minutes_from_alarm(active_alarm or alarm)
-                else:
-                    self._sync_snooze_minutes_from_alarm(alarm)
-                self._update_snooze_status_line(alarm, snoozed_until)
+                self._sync_snooze_minutes_from_alarm(alarm)
+                self._update_snooze_status_line(alarm, None)
 
         self._update_remaining_text()
 
@@ -452,7 +447,11 @@ class AlarmGUI:
         """表示対象のアラームからスヌーズ分数を入力欄へ反映する。"""
         if alarm is None:
             return
-        if self.snooze_entry.focus_get() is self.snooze_entry:
+        try:
+            focused_widget = self.root.focus_get()
+        except (KeyError, tk.TclError):
+            focused_widget = None
+        if focused_widget is self.snooze_entry:
             return
 
         try:
@@ -465,38 +464,22 @@ class AlarmGUI:
 
     def _set_alarm_action_state(self, *, is_active: bool, is_snoozed: bool) -> None:
         """STOP と スヌーズ の見た目を状態に応じて切り替える。"""
-        if is_active or is_snoozed:
-            self.stop_button.config(
-                state="normal",
-                bg="#ff5a5f" if is_active else "#f6a500",
-                activebackground="#ff7a7a" if is_active else "#ffc94d",
-                fg="white",
-                activeforeground="white",
-            )
-            self.snooze_button.config(
-                state="normal",
-                bg="#ff9800" if is_snoozed else "#4d9fe8",
-                activebackground="#ffb347" if is_snoozed else "#74b9ff",
-                fg="white",
-                activeforeground="white",
-            )
-        else:
-            self.stop_button.config(
-                state="disabled",
-                bg="#f2c7c7",
-                activebackground="#f2c7c7",
-                fg="#7a7a7a",
-                activeforeground="#7a7a7a",
-                disabledforeground="#7a7a7a",
-            )
-            self.snooze_button.config(
-                state="disabled",
-                bg="#d7e6f5",
-                activebackground="#d7e6f5",
-                fg="#7a7a7a",
-                activeforeground="#7a7a7a",
-                disabledforeground="#7a7a7a",
-            )
+        # STOP / スヌーズ は常時押せるようにして、状態差は色だけで表す。
+        # 無効化切り替えは混乱を招きやすいため、ここでは state を変えない。
+        self.stop_button.config(
+            state="normal",
+            bg="#ff5a5f" if is_active else "#f2c7c7" if not is_snoozed else "#f6a500",
+            activebackground="#ff7a7a" if is_active else "#ffc94d" if is_snoozed else "#f2c7c7",
+            fg="white" if (is_active or is_snoozed) else "#5f5f5f",
+            activeforeground="white" if (is_active or is_snoozed) else "#5f5f5f",
+        )
+        self.snooze_button.config(
+            state="normal",
+            bg="#ff9800" if is_snoozed else "#4d9fe8" if is_active else "#d7e6f5",
+            activebackground="#ffb347" if is_snoozed else "#74b9ff" if is_active else "#d7e6f5",
+            fg="white" if (is_active or is_snoozed) else "#5f5f5f",
+            activeforeground="white" if (is_active or is_snoozed) else "#5f5f5f",
+        )
 
     def _update_remaining_text(self) -> None:
         """キャッシュをもとに残り時間のみ更新"""
@@ -586,28 +569,53 @@ class AlarmGUI:
         height: int
 
         x, y, width, height = bbox
+        self._close_active_cell_editor()
 
         def editor_setter(widget: tk.Entry | ttk.Combobox) -> None:
+            self._active_cell_editor = widget
+
             # 位置とサイズをセルに合わせる
             widget.place(in_=tree, x=x, y=y, width=width, height=height)
 
             # フォーカスを当てる
             widget.focus_set()
 
+            def finish_edit(value: str | None = None) -> None:
+                if not widget.winfo_exists():
+                    return
+                try:
+                    widget.destroy()
+                finally:
+                    self._active_cell_editor = None
+                    tree.focus_set()
+                    tree.focus(item_id)
+                if value is not None:
+                    commit_callback(value)
+
             # 編集完了（Enter）
             def done(_event: tk.Event[tk.Widget] | None = None) -> None:
-                value: str = widget.get()
-                widget.destroy()
-                commit_callback(value)
+                finish_edit(widget.get())
 
             # キャンセル（Escape）
             def cancel(_event: tk.Event[tk.Widget] | None = None) -> None:
-                widget.destroy()
+                finish_edit(None)
 
             widget.bind("<Return>", done)
             widget.bind("<Escape>", cancel)
 
         return editor_setter
+
+    def _close_active_cell_editor(self) -> None:
+        """編集中のセル editor があれば閉じる。"""
+        editor: tk.Widget | None = getattr(self, "_active_cell_editor", None)
+        if editor is None:
+            return
+        try:
+            if editor.winfo_exists():
+                editor.destroy()
+        except tk.TclError:
+            pass
+        self._active_cell_editor = None
 
     # ---------------------------------------
     # 🔹 一覧更新（カスタム内容の日本語要約付き）
@@ -1215,14 +1223,16 @@ class AlarmGUI:
 
         if old_str:
             try:
-                old_date = date.fromisoformat(old_str)
+                # 入力欄には日付だけを保持する
+                old_date = date.fromisoformat(old_str.split("T", 1)[0])
             except ValueError:
                 old_date = None
 
-        new: date | None = self.select_date_dialog(old_date)
-        if new:
+        new_date: date | None = self.select_date_dialog(old_date)
+
+        if new_date:
             self.end_date_entry.delete(0, tk.END)
-            self.end_date_entry.insert(0, str(new))
+            self.end_date_entry.insert(0, new_date.isoformat())
     # ------------------
     # --- 登録済みアラーム削除ボタン ---
     # ------------------
@@ -1331,7 +1341,7 @@ class AlarmGUI:
 
         end_at: str | None = None
         if end_date_str :
-            end_at = f"{end_date_str}T23:59:59"  # 期限時刻は固定で23:59:59にする
+            end_at = end_date_str
 
         # 😴 スヌーズ上限
         try:
@@ -1429,6 +1439,7 @@ class AlarmGUI:
     # --------------------------------------------
     def select_weekdays_dialog(self, initial: list[int] | None = None) -> list[int] | None:
         """毎週繰り返し用のシンプルな曜日選択ダイアログ"""
+        self._close_active_cell_editor()
         parent: tk.Misc = getattr(self, "settings_window", self.root)
         dialog = WeekdaySelectDialog(
             parent=parent,
@@ -1457,6 +1468,7 @@ class AlarmGUI:
         initial: dict[str, list[int] | int] | None = None
         ) -> dict[str, list[int] | int] | None:
         """第n週／曜日／週おきを設定できるカスタム設定ダイアログ"""
+        self._close_active_cell_editor()
         parent: tk.Misc = getattr(self, "settings_window", self.root)
         dialog = CustomRepeatDialog(
             parent=parent,
@@ -1714,6 +1726,41 @@ class AlarmGUI:
             cb.after(100, lambda: cb.event_generate("<Down>"))
             return "break"
 
+        if col_name == "snooze_minutes":
+            cb = ttk.Combobox(
+                tree,
+                values=["1", "2", "3", "4", "5", "10", "15", "20", "30", "60"],
+                state="normal",
+            )
+
+            try:
+                current_snooze: int = int(alarm.snooze_minutes)
+            except Exception:
+                current_snooze = self.controller.get_snooze_default_minutes()
+
+            cb.set(str(current_snooze))
+
+            def commit_snooze_minutes(value: str) -> None:
+                try:
+                    snooze_minutes = int(value)
+                    if snooze_minutes <= 0:
+                        raise ValueError
+                except ValueError:
+                    self._warn("入力エラー", "Snooze間隔(分)は 1 以上の整数で入力してください。")
+                    return
+
+                self.controller.update_alarm_from_ui(
+                    alarm_id,
+                    AlarmUIPatch(snooze_minutes=snooze_minutes),
+                )
+                self.refresh_tree()
+                self.update_next_alarm_label()
+
+            set_editor(cb, commit_snooze_minutes)
+            cb.bind("<<ComboboxSelected>>", lambda e: commit_snooze_minutes(cb.get()))
+            cb.after(100, lambda: cb.event_generate("<Down>"))
+            return "break"
+
         if col_name == "duration":
             cb = ttk.Combobox(
                 tree,
@@ -1741,6 +1788,28 @@ class AlarmGUI:
             set_editor(cb, commit_duration)
             cb.bind("<<ComboboxSelected>>", lambda e: commit_duration(cb.get()))
             cb.after(100, lambda: cb.event_generate("<Down>"))
+            return "break"
+
+        if col_name == "end_at":
+            if alarm.end_at:
+                try:
+                    initial_date = date.fromisoformat(str(alarm.end_at)[:10])
+                except ValueError:
+                    initial_date = None
+            else:
+                initial_date = None
+
+            new_date: date | None = self.select_date_dialog(initial_date)
+            if not new_date:
+                return "break"
+
+            end_at: str = new_date.isoformat()
+            self.controller.update_alarm_from_ui(
+                alarm_id,
+                AlarmUIPatch(end_at=end_at),
+            )
+            self.refresh_tree()
+            self.update_next_alarm_label()
             return "break"
 
         if col_name == "date":
@@ -1849,14 +1918,19 @@ class AlarmGUI:
     # =================================================================
     def select_date_dialog(self, initial_date: date | None = None) -> date | None:
         """ミニカレンダーを開き、YYYY-MM-DD を返す"""
+        self._close_active_cell_editor()
         from alarm.mini_calendar import MiniCalendar
 
-        cal = MiniCalendar(
-            self.root,
-            initial_date=initial_date,
-            window_key=WINDOW_KEYS["CALENDAR"],
-        )
-        return cal.show()
+        self._ui_modal_depth = getattr(self, "_ui_modal_depth", 0) + 1
+        try:
+            cal = MiniCalendar(
+                self.root,
+                initial_date=initial_date,
+                window_key=WINDOW_KEYS["CALENDAR"],
+            )
+            return cal.show()
+        finally:
+            self._ui_modal_depth = max(0, getattr(self, "_ui_modal_depth", 1) - 1)
 
     # -----------------------------
     # 🕒 TimePicker 呼び出し関数(一覧編集用)
@@ -1866,12 +1940,17 @@ class AlarmGUI:
         if not initial_time:
             initial_time = datetime.now().strftime("%H:%M")
         try:
+            self._close_active_cell_editor()
             from alarm.mini_calendar import TimePicker
 
-            tp = TimePicker(
-                self.root, initial_time or "07:00", window_key=WINDOW_KEYS["TIME"]
-            )
-            return tp.show()
+            self._ui_modal_depth = getattr(self, "_ui_modal_depth", 0) + 1
+            try:
+                tp = TimePicker(
+                    self.root, initial_time or "07:00", window_key=WINDOW_KEYS["TIME"]
+                )
+                return tp.show()
+            finally:
+                self._ui_modal_depth = max(0, getattr(self, "_ui_modal_depth", 1) - 1)
         except tk.TclError:
             self._error("Error", "TimePicker を読み込めませんでした")
             return None

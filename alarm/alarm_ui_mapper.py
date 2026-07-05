@@ -60,17 +60,21 @@ def ui_default_date_time(
     )
 
 
-def any_to_dt(v: str | None) -> datetime | None:
+def any_to_dt(v: str | datetime | None) -> datetime | None:
     """str|datetime|None → datetime|None (安全ラッパー) ※ UI では使用禁止"""
     if not v:
         return None
+    if isinstance(v, datetime):
+        return v
     return datetime.fromisoformat(v)
 
 
-def dt_to_any(dt: datetime | None) -> str | None:
+def dt_to_any(dt: datetime | str | None) -> str | None:
     """datetime|None → str|None (安全ラッパー) ※ UI では使用禁止"""
     if not dt:
         return None
+    if isinstance(dt, str):
+        return dt
     return dt.isoformat()
 
 
@@ -220,6 +224,10 @@ class UIpatchtoInternalMapper:
             if f.name == "base_date":
                 continue
 
+            if f.name == "end_at":
+                internal.end_at = any_to_dt(value)
+                continue
+
             setattr(internal, f.name, value)
 
         return internal
@@ -298,7 +306,8 @@ class InternalToViewMapper:
             next_alarm_datetime=next_alarm_datetime,
             skip_holiday=bool(alarm.skip_holiday),
             duration=int(alarm.duration),
-            end_at=dt_to_any(alarm.end_at) or "",
+            snooze_minutes=int(alarm.snooze_minutes),
+            end_at=alarm.end_at.date().isoformat() if alarm.end_at else "",
             snooze_limit=int(alarm.snooze_limit),
             custom_desc=InternalToViewMapper._format_custom_desc(alarm),
         )

@@ -29,7 +29,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 import sys
 import threading
-import time
+# import time
 import uuid
 from datetime import datetime as DateTimeType
 from datetime import time as TimeType
@@ -40,10 +40,10 @@ from typing import overload
 
 # Third party
 
-try:
-    import msvcrt
-except ImportError:
-    msvcrt = None
+# try:
+#     import msvcrt
+# except ImportError:
+#     msvcrt = None
 
 
 # Local modules
@@ -65,10 +65,8 @@ from alarm.alarm_ui_model import AlarmUI, AlarmUIPatch, AlarmListItem
 # === utils ===
 from alarm.logger_bridge import get_alarm_logger
 from alarm.constants import (
-    DEFAULT_SOUND,
     DEFAULT_DURATION_SECONDS,
     DEFAULT_SNOOZE_MINUTES,
-    DEFAULT_SNOOZE_LIMIT,
 )
 
 # === controller ===
@@ -313,14 +311,16 @@ class AlarmManagerCore:
     def get_state_by_id(self, alarm_id: str) -> AlarmStateInternal | None:
         """alarm_id に対応する AlarmStateInternal を返す"""
         state: AlarmStateInternal | None = self._states_map.get(alarm_id)
+        if state is not None:
+            return state
 
-        if state is None:
-            # 🔥 不整合チェック
-            for s in self.states:
-                if s.id == alarm_id:
-                    raise RuntimeError("states_map不整合🔥")
+        # states を正として再探索し、必要なら map を再構築する
+        for s in self.states:
+            if s.id == alarm_id:
+                self._rebuild_state_map()
+                return self._states_map.get(alarm_id)
 
-        return state
+        return None
 
     def get_alarm_list(self) -> list[AlarmListItem]:
         """CUI表示用管理アラーム一覧（UUIDを隠蔽）"""
@@ -538,15 +538,30 @@ class AlarmManagerCore:
 
         results: list[NextAlarmInfo] = []
 
-        for alarm_id, next_dt in self.cache.next_fire_map.items():
-            alarm: AlarmInternal | None = self.get_alarm_by_id(alarm_id)
-            if alarm is None:
+        candidates: list[tuple[DateTimeType, AlarmInternal]] = []
+
+        for alarm in self.alarms:
+            if not alarm.id or not alarm.enabled:
                 continue
 
-            # 無効アラームは表示しない
-            if not alarm.enabled:
+            state: AlarmStateInternal | None = self.get_state_by_id(alarm.id)
+            if state is not None and state.lifecycle_finished:
                 continue
 
+            next_dt: DateTimeType | None = self.scheduler.get_next_time(alarm, now)
+            if next_dt is None:
+                continue
+
+            # cache と state のずれを減らすため、見つかった次回時刻を state にも反映
+            if state is not None and state.next_fire_datetime != next_dt:
+                state.next_fire_datetime = next_dt
+                state.needs_recalc = False
+
+            candidates.append((next_dt, alarm))
+
+        candidates.sort(key=lambda item: item[0])
+
+        for next_dt, alarm in candidates[:count]:
             results.append(
                 {
                     "alarm": alarm,
@@ -554,9 +569,6 @@ class AlarmManagerCore:
                     "time_until": (next_dt - now).total_seconds(),
                 }
             )
-
-            if len(results) >= count:
-                break
 
         return results
     # ======================================================
@@ -1229,7 +1241,7 @@ class AlarmManagerCore:
 
     def _rebuild_state_map(self) -> None:
         """state list から state_map を再構築"""
-        self._states_map: dict[str, AlarmStateInternal] = {state.id: state for state in self.states}
+        self._states_map = {state.id: state for state in self.states}
 
     # -----------------------------------------
     # 🔹 alarms.json , standby.json
@@ -1516,10 +1528,13 @@ class AlarmManagerCore:
 
     # ③ 再計算フェーズ（超重要）
     def _recalc_phase(self) -> None:
+        # 1. まず states 側を正とした再計算を行う
         self._rebuild_state_map()
         self._repair_invalid_states()
         self._recalc_states()
-        # ★ここ
+        # 2. その結果を索引へ反映する
+        self._rebuild_state_map()
+        # 3. 最後に cache を作る
         self._rebuild_runtime_cache()
 
     # ④ 発火フェーズ
@@ -1567,126 +1582,126 @@ class AlarmManagerCore:
             print("Alarm stop requested; alarms have been stopped.")
 
 
-# ======================================================
-# デバッグ用関数コーナー
-# ======================================================
-def _debug_any_key_pressed() -> bool:
-    """デバッグ用：キー入力をノンブロッキングでチェック"""
-    if msvcrt is None:
-        return False
-    return msvcrt.kbhit()
+# # ======================================================
+# # デバッグ用関数コーナー
+# # ======================================================
+# def _debug_any_key_pressed() -> bool:
+#     """デバッグ用：キー入力をノンブロッキングでチェック"""
+#     if msvcrt is None:
+#         return False
+#     return msvcrt.kbhit()
 
 
-def _debug_build_sound_test_alarm(
-    target_time: DateTimeType,
-    sound_path: Path,
-) -> AlarmUI:
-    """デバッグ用：音声テスト用アラームを構築する"""
-    return AlarmUI(
-        name="[DEBUG] Sound Test Alarm",
-        date=target_time.date().isoformat(),
-        time=target_time.time().isoformat(),
-        repeat="single",
-        sound=str(sound_path),
-        enabled=True,
-        snooze_minutes=DEFAULT_SNOOZE_MINUTES,
-        snooze_limit=DEFAULT_SNOOZE_LIMIT,
-        duration=DEFAULT_DURATION_SECONDS,
-    )
+# def _debug_build_sound_test_alarm(
+#     target_time: DateTimeType,
+#     sound_path: Path,
+# ) -> AlarmUI:
+#     """デバッグ用：音声テスト用アラームを構築する"""
+#     return AlarmUI(
+#         name="[DEBUG] Sound Test Alarm",
+#         date=target_time.date().isoformat(),
+#         time=target_time.time().isoformat(),
+#         repeat="single",
+#         sound=str(sound_path),
+#         enabled=True,
+#         snooze_minutes=DEFAULT_SNOOZE_MINUTES,
+#         snooze_limit=DEFAULT_SNOOZE_LIMIT,
+#         duration=DEFAULT_DURATION_SECONDS,
+#     )
 
 
-def debug_run_sound_cycle_test(
-    sound_path: Path | None = None,
-    lead_seconds: int = 5,
-) -> None:
-    """manager -> checker -> player の実鳴動を確認するデバッグ用関数"""
+# def debug_run_sound_cycle_test(
+#     sound_path: Path | None = None,
+#     lead_seconds: int = 5,
+# ) -> None:
+#     """manager -> checker -> player の実鳴動を確認するデバッグ用関数"""
 
-    manager = AlarmManagerCore()
+#     manager = AlarmManagerCore()
 
-    resolved_sound_path: Path = Path(sound_path or DEFAULT_SOUND)
-    resolved_sound_path = resolved_sound_path.resolve()
+#     resolved_sound_path: Path = Path(sound_path or DEFAULT_SOUND)
+#     resolved_sound_path = resolved_sound_path.resolve()
 
-    if not resolved_sound_path.exists():
-        print(f"[DEBUG] Debug sound file not found: {resolved_sound_path}")
-        return
+#     if not resolved_sound_path.exists():
+#         print(f"[DEBUG] Debug sound file not found: {resolved_sound_path}")
+#         return
 
-    now: DateTimeType = DateTimeType.now().replace(microsecond=0)
-    target_time: DateTimeType = now + timedelta(seconds=max(lead_seconds, 10))
+#     now: DateTimeType = DateTimeType.now().replace(microsecond=0)
+#     target_time: DateTimeType = now + timedelta(seconds=max(lead_seconds, 10))
 
-    ui_alarm: AlarmUI = _debug_build_sound_test_alarm(
-        target_time,
-        resolved_sound_path,
-    )
+#     ui_alarm: AlarmUI = _debug_build_sound_test_alarm(
+#         target_time,
+#         resolved_sound_path,
+#     )
 
-    # 🔥 新設計（payload経由）
-    payload: AddPayload = AddPayload(ui_alarm=ui_alarm)
+#     # 🔥 新設計（payload経由）
+#     payload: AddPayload = AddPayload(ui_alarm=ui_alarm)
 
-    alarm: AlarmInternal | None = manager.apply_alarm_mutation("add", payload)
+#     alarm: AlarmInternal | None = manager.apply_alarm_mutation("add", payload)
 
-    # 秒精度補正（デバッグ専用）
-    alarm.datetime_ = target_time
+#     # 秒精度補正（デバッグ専用）
+#     alarm.datetime_ = target_time
 
-    state: AlarmStateInternal | None = manager.get_state_by_id(alarm.id)
-    if state is not None:
-        state.needs_recalc = True
+#     state: AlarmStateInternal | None = manager.get_state_by_id(alarm.id)
+#     if state is not None:
+#         state.needs_recalc = True
 
-    print(f"[DEBUG] Sound test alarm id: {alarm.id}")
-    print(f"[DEBUG] Sound file: {resolved_sound_path}")
-    print(f"[DEBUG] Alarm will fire at: {target_time:%Y-%m-%d %H:%M:%S}")
-    print("[DEBUG] Waiting for alarm. Press any key while sounding to stop.")
+#     print(f"[DEBUG] Sound test alarm id: {alarm.id}")
+#     print(f"[DEBUG] Sound file: {resolved_sound_path}")
+#     print(f"[DEBUG] Alarm will fire at: {target_time:%Y-%m-%d %H:%M:%S}")
+#     print("[DEBUG] Waiting for alarm. Press any key while sounding to stop.")
 
-    has_started = False
+#     has_started = False
 
-    try:
-        while True:
-            manager.start_cycle(
-                "loop",
-                CycleOptions(
-                    load=False,
-                    fire=True,
-                    save=False,
-                    notify=False,
-                    validate=True,
-                ),
-            )
+#     try:
+#         while True:
+#             manager.start_cycle(
+#                 "loop",
+#                 CycleOptions(
+#                     load=False,
+#                     fire=True,
+#                     save=False,
+#                     notify=False,
+#                     validate=True,
+#                 ),
+#             )
 
-            active_state: AlarmStateInternal | None = manager.get_active_alarm_state()
+#             active_state: AlarmStateInternal | None = manager.get_active_alarm_state()
 
-            if active_state and active_state.triggered and not has_started:
-                has_started = True
-                print("[DEBUG] Alarm is sounding. Press any key to stop.")
+#             if active_state and active_state.triggered and not has_started:
+#                 has_started = True
+#                 print("[DEBUG] Alarm is sounding. Press any key to stop.")
 
-            if (
-                has_started
-                and active_state
-                and active_state.triggered
-                and _debug_any_key_pressed()
-            ):
-                manager.stop_alarm(active_state)
+#             if (
+#                 has_started
+#                 and active_state
+#                 and active_state.triggered
+#                 and _debug_any_key_pressed()
+#             ):
+#                 manager.stop_alarm(active_state)
 
-                manager.start_cycle(
-                    "loop",
-                    CycleOptions(
-                        load=False,
-                        fire=False,
-                        save=False,
-                        notify=False,
-                        validate=False,
-                    ),
-                )
+#                 manager.start_cycle(
+#                     "loop",
+#                     CycleOptions(
+#                         load=False,
+#                         fire=False,
+#                         save=False,
+#                         notify=False,
+#                         validate=False,
+#                     ),
+#                 )
 
-                print("[DEBUG] Alarm stopped by keyboard input.")
-                break
+#                 print("[DEBUG] Alarm stopped by keyboard input.")
+#                 break
 
-            if has_started and (not active_state or not active_state.triggered):
-                print("[DEBUG] Alarm playback finished.")
-                break
+#             if has_started and (not active_state or not active_state.triggered):
+#                 print("[DEBUG] Alarm playback finished.")
+#                 break
 
-            time.sleep(0.1)
+#             time.sleep(0.1)
 
-    except KeyboardInterrupt:
-        manager.player.stop()
-        print("[DEBUG] Sound test interrupted by keyboard.")
+#     except KeyboardInterrupt:
+#         manager.player.stop()
+#         print("[DEBUG] Sound test interrupted by keyboard.")
 
-if __name__ == "__main__":
-    debug_run_sound_cycle_test()
+# if __name__ == "__main__":
+#     debug_run_sound_cycle_test()

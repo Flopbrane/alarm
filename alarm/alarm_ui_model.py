@@ -70,7 +70,7 @@ class AlarmUI:
     duration: int = DEFAULT_DURATION_SECONDS  # 再生秒数
     snooze_minutes: int = DEFAULT_SNOOZE_MINUTES  # 初スヌーズ分
     snooze_limit: int = DEFAULT_SNOOZE_LIMIT  # 回数上限
-    end_at: str | None = None  # アラームの終了日時（ISO文字列）(None の場合は無期限に鳴る)
+    end_at: str | None = None  # アラームの終了日時（UI/Storage境界は文字列）
 
 
 @dataclass
@@ -100,7 +100,7 @@ class AlarmUIPatch:
     duration: Optional[int] = None  # 再生秒数
     snooze_minutes: Optional[int] = None  # 初スヌーズ分
     snooze_limit: Optional[int] = None  # 回数上限
-    end_at: Optional[str | None] = None  # アラームの終了日時（ISO文字列）(None の場合は無期限に鳴る)
+    end_at: Optional[str | None] = None  # アラームの終了日時（UI/Storage境界は文字列）
 
 
 @dataclass(frozen=True)
